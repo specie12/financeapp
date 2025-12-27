@@ -5,7 +5,10 @@ import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { PrismaModule } from './prisma/prisma.module'
 import { AuthModule } from './auth/auth.module'
+import { AuthorizationModule } from './authorization/authorization.module'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
+import { PermissionGuard } from './authorization/guards/permission.guard'
+import { HouseholdGuard } from './authorization/guards/household.guard'
 import configuration from './config/configuration'
 
 @Module({
@@ -16,13 +19,26 @@ import configuration from './config/configuration'
     }),
     PrismaModule,
     AuthModule,
+    AuthorizationModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
+    // Guards execute in registration order:
+    // 1. JwtAuthGuard - Authentication (validates JWT, attaches user)
+    // 2. PermissionGuard - Role-based permission check
+    // 3. HouseholdGuard - Resource ownership verification
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: PermissionGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: HouseholdGuard,
     },
   ],
 })
