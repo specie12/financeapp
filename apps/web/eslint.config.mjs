@@ -13,5 +13,5 @@ const compat = new FlatCompat({
 export default [
   { ignores: ['**/*.d.ts'] },
   ...rootConfig,
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...compat.extends('next/core-web-vitals'),
 ]

@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum AccountType {
+  checking
+  savings
+  credit_card
+  investment
+  loan
+  cash
+}
+
+enum TransactionType {
+  income
+  expense
+  transfer
+}
+
+enum BudgetPeriod {
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+enum Currency {
+  USD
+  EUR
+  GBP
+  JPY
+  CAD
+  AUD
+  CHF
+  CNY
+  INR
+  NGN
+}
+
+enum AssetType {
+  real_estate
+  vehicle
+  investment
+  retirement_account
+  bank_account
+  crypto
+  other
+}
+
+enum LiabilityType {
+  mortgage
+  auto_loan
+  student_loan
+  credit_card
+  personal_loan
+  other
+}
+
+enum CashFlowType {
+  income
+  expense
+}
+
+enum Frequency {
+  one_time
+  weekly
+  biweekly
+  monthly
+  quarterly
+  annually
+}
+
+enum OverrideTargetType {
+  asset
+  liability
+  cash_flow_item
+}
+
+// =============================================================================
+// MODELS
+// =============================================================================
+
+model Household {
+  id   String @id @default(uuid()) @db.Uuid
+  name String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users         User[]
+  assets        Asset[]
+  liabilities   Liability[]
+  cashFlowItems CashFlowItem[]
+  scenarios     Scenario[]
+
+  @@map("households")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  householdId  String    @map("household_id") @db.Uuid
+  household    Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  accounts   Account[]
+  categories Category[]
+  budgets    Budget[]
+
+  @@index([householdId])
+  @@index([email])
+  @@map("users")
+}
+
+model Account {
+  id       String      @id @default(uuid()) @db.Uuid
+  userId   String      @map("user_id") @db.Uuid
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  type     AccountType
+  currency Currency    @default(USD)
+  balance  Int         @default(0) // cents
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([type])
+  @@map("accounts")
+}
+
+model Transaction {
+  id          String          @id @default(uuid()) @db.Uuid
+  accountId   String          @map("account_id") @db.Uuid
+  account     Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId  String?         @map("category_id") @db.Uuid
+  category    Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type        TransactionType
+  amount      Int // cents
+  currency    Currency        @default(USD)
+  description String
+  date        DateTime        @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([date])
+  @@map("transactions")
+}
+
+model Category {
+  id       String          @id @default(uuid()) @db.Uuid
+  userId   String          @map("user_id") @db.Uuid
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  type     TransactionType
+  icon     String?
+  color    String?
+  parentId String?         @map("parent_id") @db.Uuid
+  parent   Category?       @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[]      @relation("CategoryHierarchy")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Budget {
+  id         String       @id @default(uuid()) @db.Uuid
+  userId     String       @map("user_id") @db.Uuid
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId String       @map("category_id") @db.Uuid
+  category   Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  amount     Int // cents
+  period     BudgetPeriod
+  startDate  DateTime     @map("start_date") @db.Date
+  endDate    DateTime?    @map("end_date") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([categoryId])
+  @@map("budgets")
+}
+
+model Asset {
+  id                      String    @id @default(uuid()) @db.Uuid
+  householdId             String    @map("household_id") @db.Uuid
+  household               Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name                    String
+  type                    AssetType
+  currentValueCents       Int       @map("current_value_cents")
+  annualGrowthRatePercent Decimal?  @map("annual_growth_rate_percent") @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  scenarioOverrides ScenarioOverride[]
+
+  @@index([householdId])
+  @@index([type])
+  @@index([householdId, type])
+  @@map("assets")
+}
+
+model Liability {
+  id                  String        @id @default(uuid()) @db.Uuid
+  householdId         String        @map("household_id") @db.Uuid
+  household           Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name                String
+  type                LiabilityType
+  principalCents      Int           @map("principal_cents")
+  currentBalanceCents Int           @map("current_balance_cents")
+  interestRatePercent Decimal       @map("interest_rate_percent") @db.Decimal(5, 3)
+  minimumPaymentCents Int           @map("minimum_payment_cents")
+  paymentFrequency    Frequency     @default(monthly) @map("payment_frequency")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  scenarioOverrides ScenarioOverride[]
+
+  @@index([householdId])
+  @@index([type])
+  @@index([householdId, type])
+  @@map("liabilities")
+}
+
+model CashFlowItem {
+  id                      String       @id @default(uuid()) @db.Uuid
+  householdId             String       @map("household_id") @db.Uuid
+  household               Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name                    String
+  type                    CashFlowType
+  amountCents             Int          @map("amount_cents")
+  frequency               Frequency
+  startDate               DateTime?    @map("start_date") @db.Date
+  endDate                 DateTime?    @map("end_date") @db.Date
+  annualGrowthRatePercent Decimal?     @map("annual_growth_rate_percent") @db.Decimal(5, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  scenarioOverrides ScenarioOverride[]
+
+  @@index([householdId])
+  @@index([type])
+  @@index([householdId, type])
+  @@map("cash_flow_items")
+}
+
+model Scenario {
+  id          String    @id @default(uuid()) @db.Uuid
+  householdId String    @map("household_id") @db.Uuid
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isBaseline  Boolean   @default(false) @map("is_baseline")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  overrides ScenarioOverride[]
+
+  @@index([householdId])
+  @@index([isBaseline])
+  @@map("scenarios")
+}
+
+model ScenarioOverride {
+  id             String             @id @default(uuid()) @db.Uuid
+  scenarioId     String             @map("scenario_id") @db.Uuid
+  scenario       Scenario           @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  targetType     OverrideTargetType @map("target_type")
+  assetId        String?            @map("asset_id") @db.Uuid
+  asset          Asset?             @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  liabilityId    String?            @map("liability_id") @db.Uuid
+  liability      Liability?         @relation(fields: [liabilityId], references: [id], onDelete: Cascade)
+  cashFlowItemId String?            @map("cash_flow_item_id") @db.Uuid
+  cashFlowItem   CashFlowItem?      @relation(fields: [cashFlowItemId], references: [id], onDelete: Cascade)
+  fieldName      String             @map("field_name")
+  overrideValue  String             @map("override_value")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([scenarioId, assetId, fieldName])
+  @@unique([scenarioId, liabilityId, fieldName])
+  @@unique([scenarioId, cashFlowItemId, fieldName])
+  @@index([scenarioId])
+  @@index([targetType])
+  @@index([assetId])
+  @@index([liabilityId])
+  @@index([cashFlowItemId])
+  @@map("scenario_overrides")
+}
