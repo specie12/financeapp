@@ -58,6 +58,8 @@ export const frequencySchema = z.enum([
   'annually',
 ])
 
+export const cashFlowTypeSchema = z.enum(['income', 'expense'])
+
 // ============================================
 // User Schemas
 // ============================================
@@ -171,6 +173,22 @@ export const createLiabilitySchema = z.object({
 export const updateLiabilitySchema = createLiabilitySchema.partial()
 
 // ============================================
+// CashFlowItem Schemas
+// ============================================
+
+export const createCashFlowItemSchema = z.object({
+  name: z.string().min(1, 'Name is required').max(100),
+  type: cashFlowTypeSchema,
+  amountCents: z.number().int().nonnegative('Amount must be non-negative'),
+  frequency: frequencySchema,
+  startDate: z.coerce.date().nullable().optional(),
+  endDate: z.coerce.date().nullable().optional(),
+  annualGrowthRatePercent: z.number().min(-100).max(1000).nullable().optional(),
+})
+
+export const updateCashFlowItemSchema = createCashFlowItemSchema.partial()
+
+// ============================================
 // Query Schemas
 // ============================================
 
@@ -196,6 +214,10 @@ export const assetQuerySchema = paginationSchema.extend({
 
 export const liabilityQuerySchema = paginationSchema.extend({
   type: liabilityTypeSchema.optional(),
+})
+
+export const cashFlowItemQuerySchema = paginationSchema.extend({
+  type: cashFlowTypeSchema.optional(),
 })
 
 // ============================================
@@ -224,6 +246,10 @@ export type Frequency = z.infer<typeof frequencySchema>
 export type CreateLiabilityInput = z.infer<typeof createLiabilitySchema>
 export type UpdateLiabilityInput = z.infer<typeof updateLiabilitySchema>
 export type LiabilityQueryInput = z.infer<typeof liabilityQuerySchema>
+export type CashFlowType = z.infer<typeof cashFlowTypeSchema>
+export type CreateCashFlowItemInput = z.infer<typeof createCashFlowItemSchema>
+export type UpdateCashFlowItemInput = z.infer<typeof updateCashFlowItemSchema>
+export type CashFlowItemQueryInput = z.infer<typeof cashFlowItemQuerySchema>
 
 // Re-export zod for convenience
 export { z } from 'zod'
