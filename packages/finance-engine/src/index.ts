@@ -1,6 +1,11 @@
 import type { Transaction, Budget, BudgetPeriod, Currency } from '@finance-app/shared-types'
 
 // ============================================
+// Money Utilities (Decimal.js-based)
+// ============================================
+export * from './money'
+
+// ============================================
 // Interest Calculations
 // ============================================
 
