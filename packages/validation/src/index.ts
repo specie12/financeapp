@@ -40,6 +40,24 @@ export const assetTypeSchema = z.enum([
   'other',
 ])
 
+export const liabilityTypeSchema = z.enum([
+  'mortgage',
+  'auto_loan',
+  'student_loan',
+  'credit_card',
+  'personal_loan',
+  'other',
+])
+
+export const frequencySchema = z.enum([
+  'one_time',
+  'weekly',
+  'biweekly',
+  'monthly',
+  'quarterly',
+  'annually',
+])
+
 // ============================================
 // User Schemas
 // ============================================
@@ -135,6 +153,24 @@ export const createAssetSchema = z.object({
 export const updateAssetSchema = createAssetSchema.partial()
 
 // ============================================
+// Liability Schemas
+// ============================================
+
+export const createLiabilitySchema = z.object({
+  name: z.string().min(1, 'Liability name is required').max(100),
+  type: liabilityTypeSchema,
+  principalCents: z.number().int().nonnegative('Principal must be non-negative'),
+  currentBalanceCents: z.number().int().nonnegative('Balance must be non-negative'),
+  interestRatePercent: z.number().min(0, 'Interest rate must be non-negative').max(100),
+  minimumPaymentCents: z.number().int().nonnegative('Minimum payment must be non-negative'),
+  paymentFrequency: frequencySchema.default('monthly'),
+  termMonths: z.number().int().positive('Term must be positive').nullable().optional(),
+  startDate: z.coerce.date(),
+})
+
+export const updateLiabilitySchema = createLiabilitySchema.partial()
+
+// ============================================
 // Query Schemas
 // ============================================
 
@@ -158,6 +194,10 @@ export const assetQuerySchema = paginationSchema.extend({
   type: assetTypeSchema.optional(),
 })
 
+export const liabilityQuerySchema = paginationSchema.extend({
+  type: liabilityTypeSchema.optional(),
+})
+
 // ============================================
 // Type Exports (inferred from schemas)
 // ============================================
@@ -179,6 +219,11 @@ export type AssetType = z.infer<typeof assetTypeSchema>
 export type CreateAssetInput = z.infer<typeof createAssetSchema>
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>
 export type AssetQueryInput = z.infer<typeof assetQuerySchema>
+export type LiabilityType = z.infer<typeof liabilityTypeSchema>
+export type Frequency = z.infer<typeof frequencySchema>
+export type CreateLiabilityInput = z.infer<typeof createLiabilitySchema>
+export type UpdateLiabilityInput = z.infer<typeof updateLiabilitySchema>
+export type LiabilityQueryInput = z.infer<typeof liabilityQuerySchema>
 
 // Re-export zod for convenience
 export { z } from 'zod'

@@ -265,6 +265,8 @@ model Liability {
   interestRatePercent Decimal       @map("interest_rate_percent") @db.Decimal(5, 3)
   minimumPaymentCents Int           @map("minimum_payment_cents")
   paymentFrequency    Frequency     @default(monthly) @map("payment_frequency")
+  termMonths          Int?          @map("term_months")
+  startDate           DateTime      @map("start_date") @db.Date
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
