@@ -30,6 +30,16 @@ export const transactionTypeSchema = z.enum(['income', 'expense', 'transfer'])
 
 export const budgetPeriodSchema = z.enum(['weekly', 'monthly', 'quarterly', 'yearly'])
 
+export const assetTypeSchema = z.enum([
+  'real_estate',
+  'vehicle',
+  'investment',
+  'retirement_account',
+  'bank_account',
+  'crypto',
+  'other',
+])
+
 // ============================================
 // User Schemas
 // ============================================
@@ -112,6 +122,19 @@ export const createBudgetSchema = z.object({
 export const updateBudgetSchema = createBudgetSchema.partial()
 
 // ============================================
+// Asset Schemas
+// ============================================
+
+export const createAssetSchema = z.object({
+  name: z.string().min(1, 'Asset name is required').max(100),
+  type: assetTypeSchema,
+  currentValueCents: z.number().int().nonnegative('Value must be non-negative'),
+  annualGrowthRatePercent: z.number().min(-100).max(1000).nullable().optional(),
+})
+
+export const updateAssetSchema = createAssetSchema.partial()
+
+// ============================================
 // Query Schemas
 // ============================================
 
@@ -131,6 +154,10 @@ export const transactionQuerySchema = paginationSchema.merge(dateRangeSchema).ex
   type: transactionTypeSchema.optional(),
 })
 
+export const assetQuerySchema = paginationSchema.extend({
+  type: assetTypeSchema.optional(),
+})
+
 // ============================================
 // Type Exports (inferred from schemas)
 // ============================================
@@ -148,6 +175,10 @@ export type UpdateBudgetInput = z.infer<typeof updateBudgetSchema>
 export type PaginationInput = z.infer<typeof paginationSchema>
 export type DateRangeInput = z.infer<typeof dateRangeSchema>
 export type TransactionQueryInput = z.infer<typeof transactionQuerySchema>
+export type AssetType = z.infer<typeof assetTypeSchema>
+export type CreateAssetInput = z.infer<typeof createAssetSchema>
+export type UpdateAssetInput = z.infer<typeof updateAssetSchema>
+export type AssetQueryInput = z.infer<typeof assetQuerySchema>
 
 // Re-export zod for convenience
 export { z } from 'zod'
