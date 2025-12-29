@@ -11,6 +11,11 @@ export * from './money'
 export * from './amortization'
 
 // ============================================
+// Investment Aggregation Engine
+// ============================================
+export * from './investment'
+
+// ============================================
 // Interest Calculations
 // ============================================
 
