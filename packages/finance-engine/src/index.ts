@@ -6,6 +6,11 @@ import type { Transaction, Budget, BudgetPeriod, Currency } from '@finance-app/s
 export * from './money'
 
 // ============================================
+// Loan Amortization Engine
+// ============================================
+export * from './amortization'
+
+// ============================================
 // Interest Calculations
 // ============================================
 
