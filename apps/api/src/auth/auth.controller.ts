@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Body, UseGuards, HttpCode, HttpStatus, Req } from '@nestjs/common'
 import { type Request } from 'express'
-import { type AuthService } from './auth.service'
+import { AuthService } from './auth.service'
 import { type LoginDto } from './dto/login.dto'
 import { type RegisterDto } from './dto/register.dto'
 import { type RefreshTokenDto } from './dto/refresh-token.dto'

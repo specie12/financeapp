@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { type PrismaService } from '../prisma/prisma.service'
+import { PrismaService } from '../prisma/prisma.service'
 import { type CreateLiabilityDto } from './dto/create-liability.dto'
 import { type UpdateLiabilityDto } from './dto/update-liability.dto'
 import { type LiabilityQueryDto } from './dto/liability-query.dto'

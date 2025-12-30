@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
-import { type PrismaService } from '../prisma/prisma.service'
+import { PrismaService } from '../prisma/prisma.service'
 import { type CreateCashFlowItemDto } from './dto/create-cash-flow-item.dto'
 import { type UpdateCashFlowItemDto } from './dto/update-cash-flow-item.dto'
 import { type CashFlowItemQueryDto } from './dto/cash-flow-item-query.dto'

@@ -12,7 +12,7 @@ import {
   ParseUUIDPipe,
   UsePipes,
 } from '@nestjs/common'
-import { type CashFlowItemsService } from './cash-flow-items.service'
+import { CashFlowItemsService } from './cash-flow-items.service'
 import { type CreateCashFlowItemDto } from './dto/create-cash-flow-item.dto'
 import { type UpdateCashFlowItemDto } from './dto/update-cash-flow-item.dto'
 import { type CashFlowItemQueryDto } from './dto/cash-flow-item-query.dto'

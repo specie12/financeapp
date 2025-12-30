@@ -1,5 +1,5 @@
 import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common'
-import { type DashboardService } from './dashboard.service'
+import { DashboardService } from './dashboard.service'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
 import { Permission } from '../authorization/interfaces/permission.interface'

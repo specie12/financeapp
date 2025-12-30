@@ -12,7 +12,7 @@ import {
   ParseUUIDPipe,
   UsePipes,
 } from '@nestjs/common'
-import { type AssetsService } from './assets.service'
+import { AssetsService } from './assets.service'
 import { type CreateAssetDto } from './dto/create-asset.dto'
 import { type UpdateAssetDto } from './dto/update-asset.dto'
 import { type AssetQueryDto } from './dto/asset-query.dto'
