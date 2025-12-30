@@ -26,7 +26,7 @@ export class ScenariosController {
   constructor(private readonly scenariosService: ScenariosService) {}
 
   @Post()
-  @RequirePermission(Permission.WRITE)
+  @RequirePermission(Permission.CREATE)
   async create(
     @CurrentUser('householdId') householdId: string,
     @Body() dto: CreateScenarioDto,
@@ -55,7 +55,7 @@ export class ScenariosController {
   }
 
   @Patch(':id')
-  @RequirePermission(Permission.WRITE)
+  @RequirePermission(Permission.UPDATE)
   async update(
     @CurrentUser('householdId') householdId: string,
     @Param('id', ParseUUIDPipe) id: string,

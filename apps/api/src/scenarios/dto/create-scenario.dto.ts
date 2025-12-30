@@ -17,25 +17,25 @@ export enum OverrideTargetType {
 
 export class ScenarioOverrideDto {
   @IsEnum(OverrideTargetType)
-  targetType: OverrideTargetType
+  targetType!: OverrideTargetType
 
   @IsString()
   @IsNotEmpty()
-  entityId: string
+  entityId!: string
 
   @IsString()
   @IsNotEmpty()
-  fieldName: string
+  fieldName!: string
 
   @IsString()
   @IsNotEmpty()
-  value: string
+  value!: string
 }
 
 export class CreateScenarioDto {
   @IsString()
   @IsNotEmpty()
-  name: string
+  name!: string
 
   @IsString()
   @IsOptional()

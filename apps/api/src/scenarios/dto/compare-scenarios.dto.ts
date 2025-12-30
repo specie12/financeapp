@@ -14,7 +14,7 @@ export class CompareScenariosDto {
   @IsString({ each: true })
   @ArrayMinSize(1)
   @ArrayMaxSize(4)
-  scenarioIds: string[]
+  scenarioIds!: string[]
 
   @IsInt()
   @Min(1)
