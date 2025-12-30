@@ -268,3 +268,130 @@ export interface AuthUser {
   firstName: string
   lastName: string
 }
+
+// ============================================
+// Dashboard Types
+// ============================================
+
+// Net Worth Dashboard
+export interface AssetBreakdown {
+  id: string
+  name: string
+  type: string
+  valueCents: number
+  growthRatePercent: number | null
+}
+
+export interface LiabilityBreakdown {
+  id: string
+  name: string
+  type: string
+  balanceCents: number
+  interestRatePercent: number
+}
+
+export interface AssetsByType {
+  type: string
+  totalValueCents: number
+  count: number
+  items: AssetBreakdown[]
+}
+
+export interface LiabilitiesByType {
+  type: string
+  totalBalanceCents: number
+  count: number
+  items: LiabilityBreakdown[]
+}
+
+export interface NetWorthProjection {
+  year: number
+  date: Date
+  totalAssetsCents: number
+  totalLiabilitiesCents: number
+  netWorthCents: number
+}
+
+export interface NetWorthResponse {
+  totalAssetsCents: number
+  totalLiabilitiesCents: number
+  netWorthCents: number
+  assetsByType: AssetsByType[]
+  liabilitiesByType: LiabilitiesByType[]
+  projection: NetWorthProjection[]
+}
+
+// Loans Dashboard
+export interface LoanSummary {
+  totalOutstandingCents: number
+  totalMonthlyPaymentCents: number
+  averageInterestRatePercent: number
+  loanCount: number
+}
+
+export interface LoanDetail {
+  id: string
+  name: string
+  type: string
+  principalCents: number
+  currentBalanceCents: number
+  interestRatePercent: number
+  minimumPaymentCents: number
+  termMonths: number | null
+  startDate: Date
+  estimatedPayoffDate: Date | null
+}
+
+export interface LoansResponse {
+  summary: LoanSummary
+  loans: LoanDetail[]
+}
+
+export interface AmortizationEntry {
+  paymentNumber: number
+  paymentDate: Date
+  beginningBalanceCents: number
+  scheduledPaymentCents: number
+  principalCents: number
+  interestCents: number
+  endingBalanceCents: number
+  cumulativePrincipalCents: number
+  cumulativeInterestCents: number
+}
+
+export interface LoanAmortizationResponse {
+  loan: LoanDetail
+  monthlyPaymentCents: number
+  totalPaymentsCents: number
+  totalInterestCents: number
+  originalTermMonths: number
+  actualPayoffMonth: number
+  payoffDate: Date
+  schedule: AmortizationEntry[]
+}
+
+// Investments Dashboard
+export interface InvestmentHoldingSummary {
+  id: string
+  name: string
+  type: string
+  valueCents: number
+  costBasisCents: number
+  gainLossCents: number
+  gainLossPercent: number
+  allocationPercent: number
+}
+
+export interface InvestmentPortfolioSummary {
+  totalValueCents: number
+  totalCostBasisCents: number
+  unrealizedGainCents: number
+  unrealizedGainPercent: number
+  totalReturnCents: number
+  totalReturnPercent: number
+}
+
+export interface InvestmentsResponse {
+  summary: InvestmentPortfolioSummary
+  holdings: InvestmentHoldingSummary[]
+}

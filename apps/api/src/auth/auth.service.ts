@@ -150,10 +150,13 @@ export class AuthService {
       type: 'access',
     }
 
-    const accessToken = this.jwtService.sign(accessPayload, {
-      secret: this.configService.get<string>('jwt.accessSecret'),
-      expiresIn: this.configService.get<string>('jwt.accessExpiresIn') ?? '15m',
-    } as { secret: string; expiresIn: string })
+    const accessToken = this.jwtService.sign(
+      accessPayload as object,
+      {
+        secret: this.configService.get<string>('jwt.accessSecret'),
+        expiresIn: this.configService.get<string>('jwt.accessExpiresIn') ?? '15m',
+      } as any,
+    )
 
     const refreshPayload: JwtRefreshPayload = {
       sub: user.id,
@@ -162,10 +165,13 @@ export class AuthService {
       tokenId: refreshTokenRecord.id,
     }
 
-    const refreshToken = this.jwtService.sign(refreshPayload, {
-      secret: this.configService.get<string>('jwt.refreshSecret'),
-      expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') ?? '7d',
-    } as { secret: string; expiresIn: string })
+    const refreshToken = this.jwtService.sign(
+      refreshPayload as object,
+      {
+        secret: this.configService.get<string>('jwt.refreshSecret'),
+        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn') ?? '7d',
+      } as any,
+    )
 
     await this.prisma.refreshToken.update({
       where: { id: refreshTokenRecord.id },

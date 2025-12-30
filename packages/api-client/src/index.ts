@@ -29,6 +29,10 @@ import type {
   AssetType,
   LiabilityType,
   CashFlowType,
+  NetWorthResponse,
+  LoansResponse,
+  LoanAmortizationResponse,
+  InvestmentsResponse,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -429,6 +433,40 @@ export class ApiClient {
 
     delete: async (id: string): Promise<void> => {
       await this.client.delete(`/cash-flow-items/${id}`)
+    },
+  }
+
+  // ============================================
+  // Dashboard Endpoints
+  // ============================================
+
+  dashboard = {
+    getNetWorth: async (horizonYears?: number): Promise<ApiResponse<NetWorthResponse>> => {
+      const response = await this.client.get<ApiResponse<NetWorthResponse>>(
+        '/dashboard/net-worth',
+        {
+          params: horizonYears ? { horizonYears } : undefined,
+        },
+      )
+      return response.data
+    },
+
+    getLoans: async (): Promise<ApiResponse<LoansResponse>> => {
+      const response = await this.client.get<ApiResponse<LoansResponse>>('/dashboard/loans')
+      return response.data
+    },
+
+    getLoanAmortization: async (loanId: string): Promise<ApiResponse<LoanAmortizationResponse>> => {
+      const response = await this.client.get<ApiResponse<LoanAmortizationResponse>>(
+        `/dashboard/loans/${loanId}/amortization`,
+      )
+      return response.data
+    },
+
+    getInvestments: async (): Promise<ApiResponse<InvestmentsResponse>> => {
+      const response =
+        await this.client.get<ApiResponse<InvestmentsResponse>>('/dashboard/investments')
+      return response.data
     },
   }
 }
