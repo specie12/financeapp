@@ -31,6 +31,11 @@ export * from './projection'
 export * from './rent-vs-buy'
 
 // ============================================
+// Financial Insights Engine
+// ============================================
+export * from './insights'
+
+// ============================================
 // Interest Calculations
 // ============================================
 
