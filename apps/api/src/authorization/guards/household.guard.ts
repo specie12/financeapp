@@ -5,10 +5,10 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common'
-import { type Reflector } from '@nestjs/core'
+import { Reflector } from '@nestjs/core'
 import { RESOURCE_KEY } from '../decorators/resource-id.decorator'
 import { type ResourceConfig } from '../interfaces/permission.interface'
-import { type ResourceOwnershipService } from '../services/resource-ownership.service'
+import { ResourceOwnershipService } from '../services/resource-ownership.service'
 
 @Injectable()
 export class HouseholdGuard implements CanActivate {

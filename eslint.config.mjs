@@ -70,4 +70,12 @@ export default tseslint.config(
       ],
     },
   },
+
+  // Disable consistent-type-imports for NestJS API - DI requires actual imports at runtime
+  {
+    files: ['apps/api/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-imports': 'off',
+    },
+  },
 )

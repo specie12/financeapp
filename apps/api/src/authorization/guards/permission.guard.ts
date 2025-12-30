@@ -4,7 +4,7 @@ import {
   type ExecutionContext,
   ForbiddenException,
 } from '@nestjs/common'
-import { type Reflector } from '@nestjs/core'
+import { Reflector } from '@nestjs/core'
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator'
 import {
   type Permission,
