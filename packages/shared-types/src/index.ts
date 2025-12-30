@@ -66,6 +66,80 @@ export interface Budget {
 export type BudgetPeriod = 'weekly' | 'monthly' | 'quarterly' | 'yearly'
 
 // ============================================
+// Asset Types
+// ============================================
+
+export interface Asset {
+  id: string
+  householdId: string
+  name: string
+  type: AssetType
+  currentValueCents: number
+  annualGrowthRatePercent: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type AssetType =
+  | 'real_estate'
+  | 'vehicle'
+  | 'investment'
+  | 'retirement_account'
+  | 'bank_account'
+  | 'crypto'
+  | 'other'
+
+// ============================================
+// Liability Types
+// ============================================
+
+export interface Liability {
+  id: string
+  householdId: string
+  name: string
+  type: LiabilityType
+  principalCents: number
+  currentBalanceCents: number
+  interestRatePercent: number
+  minimumPaymentCents: number
+  paymentFrequency: Frequency
+  termMonths: number | null
+  startDate: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type LiabilityType =
+  | 'mortgage'
+  | 'auto_loan'
+  | 'student_loan'
+  | 'credit_card'
+  | 'personal_loan'
+  | 'other'
+
+// ============================================
+// CashFlowItem Types
+// ============================================
+
+export interface CashFlowItem {
+  id: string
+  householdId: string
+  name: string
+  type: CashFlowType
+  amountCents: number
+  frequency: Frequency
+  startDate: Date | null
+  endDate: Date | null
+  annualGrowthRatePercent: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export type CashFlowType = 'income' | 'expense'
+
+export type Frequency = 'one_time' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'annually'
+
+// ============================================
 // Currency Types
 // ============================================
 
@@ -142,6 +216,35 @@ export interface CreateBudgetDto {
   period: BudgetPeriod
   startDate: Date
   endDate?: Date
+}
+
+export interface CreateAssetDto {
+  name: string
+  type: AssetType
+  currentValueCents: number
+  annualGrowthRatePercent?: number | null
+}
+
+export interface CreateLiabilityDto {
+  name: string
+  type: LiabilityType
+  principalCents: number
+  currentBalanceCents: number
+  interestRatePercent: number
+  minimumPaymentCents: number
+  paymentFrequency?: Frequency
+  termMonths?: number | null
+  startDate: Date
+}
+
+export interface CreateCashFlowItemDto {
+  name: string
+  type: CashFlowType
+  amountCents: number
+  frequency: Frequency
+  startDate?: Date | null
+  endDate?: Date | null
+  annualGrowthRatePercent?: number | null
 }
 
 // ============================================

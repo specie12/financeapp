@@ -10,6 +10,9 @@ import type {
   Transaction,
   Category,
   Budget,
+  Asset,
+  Liability,
+  CashFlowItem,
   ApiResponse,
   ApiErrorResponse,
   PaginatedResponse,
@@ -17,9 +20,15 @@ import type {
   CreateTransactionDto,
   CreateCategoryDto,
   CreateBudgetDto,
+  CreateAssetDto,
+  CreateLiabilityDto,
+  CreateCashFlowItemDto,
   LoginCredentials,
   AuthTokens,
   AuthUser,
+  AssetType,
+  LiabilityType,
+  CashFlowType,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -44,6 +53,18 @@ export interface TransactionFilters extends PaginationParams {
   type?: 'income' | 'expense' | 'transfer'
   startDate?: Date
   endDate?: Date
+}
+
+export interface AssetFilters extends PaginationParams {
+  type?: AssetType
+}
+
+export interface LiabilityFilters extends PaginationParams {
+  type?: LiabilityType
+}
+
+export interface CashFlowItemFilters extends PaginationParams {
+  type?: CashFlowType
 }
 
 // ============================================
@@ -303,6 +324,111 @@ export class ApiClient {
 
     delete: async (id: string): Promise<void> => {
       await this.client.delete(`/budgets/${id}`)
+    },
+  }
+
+  // ============================================
+  // Asset Endpoints
+  // ============================================
+
+  assets = {
+    list: async (filters?: AssetFilters): Promise<PaginatedResponse<Asset>> => {
+      const response = await this.client.get<PaginatedResponse<Asset>>('/assets', {
+        params: filters,
+      })
+      return response.data
+    },
+
+    get: async (id: string): Promise<ApiResponse<Asset>> => {
+      const response = await this.client.get<ApiResponse<Asset>>(`/assets/${id}`)
+      return response.data
+    },
+
+    create: async (data: CreateAssetDto): Promise<ApiResponse<Asset>> => {
+      const response = await this.client.post<ApiResponse<Asset>>('/assets', data)
+      return response.data
+    },
+
+    update: async (id: string, data: Partial<CreateAssetDto>): Promise<ApiResponse<Asset>> => {
+      const response = await this.client.patch<ApiResponse<Asset>>(`/assets/${id}`, data)
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/assets/${id}`)
+    },
+  }
+
+  // ============================================
+  // Liability Endpoints
+  // ============================================
+
+  liabilities = {
+    list: async (filters?: LiabilityFilters): Promise<PaginatedResponse<Liability>> => {
+      const response = await this.client.get<PaginatedResponse<Liability>>('/liabilities', {
+        params: filters,
+      })
+      return response.data
+    },
+
+    get: async (id: string): Promise<ApiResponse<Liability>> => {
+      const response = await this.client.get<ApiResponse<Liability>>(`/liabilities/${id}`)
+      return response.data
+    },
+
+    create: async (data: CreateLiabilityDto): Promise<ApiResponse<Liability>> => {
+      const response = await this.client.post<ApiResponse<Liability>>('/liabilities', data)
+      return response.data
+    },
+
+    update: async (
+      id: string,
+      data: Partial<CreateLiabilityDto>,
+    ): Promise<ApiResponse<Liability>> => {
+      const response = await this.client.patch<ApiResponse<Liability>>(`/liabilities/${id}`, data)
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/liabilities/${id}`)
+    },
+  }
+
+  // ============================================
+  // CashFlowItem Endpoints
+  // ============================================
+
+  cashFlowItems = {
+    list: async (filters?: CashFlowItemFilters): Promise<PaginatedResponse<CashFlowItem>> => {
+      const response = await this.client.get<PaginatedResponse<CashFlowItem>>('/cash-flow-items', {
+        params: filters,
+      })
+      return response.data
+    },
+
+    get: async (id: string): Promise<ApiResponse<CashFlowItem>> => {
+      const response = await this.client.get<ApiResponse<CashFlowItem>>(`/cash-flow-items/${id}`)
+      return response.data
+    },
+
+    create: async (data: CreateCashFlowItemDto): Promise<ApiResponse<CashFlowItem>> => {
+      const response = await this.client.post<ApiResponse<CashFlowItem>>('/cash-flow-items', data)
+      return response.data
+    },
+
+    update: async (
+      id: string,
+      data: Partial<CreateCashFlowItemDto>,
+    ): Promise<ApiResponse<CashFlowItem>> => {
+      const response = await this.client.patch<ApiResponse<CashFlowItem>>(
+        `/cash-flow-items/${id}`,
+        data,
+      )
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/cash-flow-items/${id}`)
     },
   }
 }
