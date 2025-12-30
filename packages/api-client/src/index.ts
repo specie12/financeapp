@@ -33,6 +33,11 @@ import type {
   LoansResponse,
   LoanAmortizationResponse,
   InvestmentsResponse,
+  Scenario,
+  CreateScenarioDto,
+  UpdateScenarioDto,
+  ScenarioProjectionResponse,
+  ScenarioComparisonResponse,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -466,6 +471,63 @@ export class ApiClient {
     getInvestments: async (): Promise<ApiResponse<InvestmentsResponse>> => {
       const response =
         await this.client.get<ApiResponse<InvestmentsResponse>>('/dashboard/investments')
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Scenarios Endpoints
+  // ============================================
+
+  scenarios = {
+    list: async (): Promise<ApiResponse<Scenario[]>> => {
+      const response = await this.client.get<ApiResponse<Scenario[]>>('/scenarios')
+      return response.data
+    },
+
+    get: async (id: string): Promise<ApiResponse<Scenario>> => {
+      const response = await this.client.get<ApiResponse<Scenario>>(`/scenarios/${id}`)
+      return response.data
+    },
+
+    create: async (data: CreateScenarioDto): Promise<ApiResponse<Scenario>> => {
+      const response = await this.client.post<ApiResponse<Scenario>>('/scenarios', data)
+      return response.data
+    },
+
+    update: async (id: string, data: UpdateScenarioDto): Promise<ApiResponse<Scenario>> => {
+      const response = await this.client.patch<ApiResponse<Scenario>>(`/scenarios/${id}`, data)
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/scenarios/${id}`)
+    },
+
+    getProjection: async (
+      id: string,
+      horizonYears?: number,
+    ): Promise<ApiResponse<ScenarioProjectionResponse>> => {
+      const response = await this.client.get<ApiResponse<ScenarioProjectionResponse>>(
+        `/scenarios/${id}/projection`,
+        {
+          params: horizonYears ? { horizonYears } : undefined,
+        },
+      )
+      return response.data
+    },
+
+    compare: async (
+      scenarioIds: string[],
+      horizonYears?: number,
+    ): Promise<ApiResponse<ScenarioComparisonResponse>> => {
+      const response = await this.client.post<ApiResponse<ScenarioComparisonResponse>>(
+        '/scenarios/compare',
+        {
+          scenarioIds,
+          horizonYears,
+        },
+      )
       return response.data
     },
   }

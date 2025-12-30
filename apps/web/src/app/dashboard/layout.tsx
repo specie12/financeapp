@@ -8,6 +8,7 @@ const navItems = [
   { href: '/dashboard/net-worth', label: 'Net Worth' },
   { href: '/dashboard/loans', label: 'Loans' },
   { href: '/dashboard/investments', label: 'Investments' },
+  { href: '/dashboard/scenarios', label: 'Scenarios' },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -28,7 +29,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   href={item.href}
                   className={cn(
                     'text-sm font-medium transition-colors hover:text-primary',
-                    pathname === item.href ? 'text-primary' : 'text-muted-foreground',
+                    pathname.startsWith(item.href) ? 'text-primary' : 'text-muted-foreground',
                   )}
                 >
                   {item.label}

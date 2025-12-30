@@ -10,6 +10,7 @@ import { AssetsModule } from './assets/assets.module'
 import { LiabilitiesModule } from './liabilities/liabilities.module'
 import { CashFlowItemsModule } from './cash-flow-items/cash-flow-items.module'
 import { DashboardModule } from './dashboard/dashboard.module'
+import { ScenariosModule } from './scenarios/scenarios.module'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PermissionGuard } from './authorization/guards/permission.guard'
 import { HouseholdGuard } from './authorization/guards/household.guard'
@@ -28,6 +29,7 @@ import configuration from './config/configuration'
     LiabilitiesModule,
     CashFlowItemsModule,
     DashboardModule,
+    ScenariosModule,
   ],
   controllers: [AppController],
   providers: [

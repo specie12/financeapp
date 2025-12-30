@@ -14,4 +14,16 @@ export type {
   InvestmentsResponse,
   InvestmentPortfolioSummary,
   InvestmentHoldingSummary,
+  // Scenario types
+  Scenario,
+  ScenarioOverride,
+  OverrideTargetType,
+  CreateScenarioDto,
+  UpdateScenarioDto,
+  CreateScenarioOverrideDto,
+  ScenarioProjectionResponse,
+  ScenarioComparisonResponse,
+  ScenarioComparisonItem,
+  YearlyProjectionSnapshot,
+  ProjectionSummary,
 } from '@finance-app/shared-types'

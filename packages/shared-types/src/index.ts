@@ -395,3 +395,100 @@ export interface InvestmentsResponse {
   summary: InvestmentPortfolioSummary
   holdings: InvestmentHoldingSummary[]
 }
+
+// ============================================
+// Scenario Types
+// ============================================
+
+export type OverrideTargetType = 'asset' | 'liability' | 'cash_flow_item'
+
+export interface ScenarioOverride {
+  id: string
+  targetType: OverrideTargetType
+  entityId: string
+  fieldName: string
+  value: string
+}
+
+export interface Scenario {
+  id: string
+  householdId: string
+  name: string
+  description: string | null
+  isBaseline: boolean
+  createdAt: Date
+  updatedAt: Date
+  overrides: ScenarioOverride[]
+}
+
+export interface CreateScenarioOverrideDto {
+  targetType: OverrideTargetType
+  entityId: string
+  fieldName: string
+  value: string
+}
+
+export interface CreateScenarioDto {
+  name: string
+  description?: string
+  isBaseline?: boolean
+  overrides?: CreateScenarioOverrideDto[]
+}
+
+export interface UpdateScenarioDto {
+  name?: string
+  description?: string
+  isBaseline?: boolean
+  overrides?: CreateScenarioOverrideDto[]
+}
+
+export interface CompareScenariosDto {
+  scenarioIds: string[]
+  horizonYears?: number
+}
+
+// Scenario Projection Types
+export interface YearlyProjectionSnapshot {
+  year: number
+  date: Date
+  totalAssetsCents: number
+  totalLiabilitiesCents: number
+  netWorthCents: number
+  totalIncomeCents: number
+  totalExpensesCents: number
+  debtPaymentsCents: number
+  netCashFlowCents: number
+}
+
+export interface ProjectionSummary {
+  startingNetWorthCents: number
+  endingNetWorthCents: number
+  netWorthChangeCents: number
+  netWorthChangePercent: number
+  totalIncomeOverPeriodCents: number
+  totalExpensesOverPeriodCents: number
+  totalDebtPaidCents: number
+  totalInterestPaidCents: number
+}
+
+export interface ScenarioProjectionResponse {
+  scenario: Scenario
+  startDate: Date
+  horizonYears: number
+  yearlySnapshots: YearlyProjectionSnapshot[]
+  summary: ProjectionSummary
+}
+
+export interface ScenarioComparisonItem {
+  scenario: Scenario
+  projection: {
+    startDate: Date
+    horizonYears: number
+    yearlySnapshots: YearlyProjectionSnapshot[]
+    summary: ProjectionSummary
+  }
+}
+
+export interface ScenarioComparisonResponse {
+  comparisons: ScenarioComparisonItem[]
+}
