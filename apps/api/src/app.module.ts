@@ -6,6 +6,7 @@ import { AppService } from './app.service'
 import { PrismaModule } from './prisma/prisma.module'
 import { AuthModule } from './auth/auth.module'
 import { AuthorizationModule } from './authorization/authorization.module'
+import { PlanLimitsModule } from './plan-limits/plan-limits.module'
 import { AssetsModule } from './assets/assets.module'
 import { LiabilitiesModule } from './liabilities/liabilities.module'
 import { CashFlowItemsModule } from './cash-flow-items/cash-flow-items.module'
@@ -25,6 +26,7 @@ import configuration from './config/configuration'
     PrismaModule,
     AuthModule,
     AuthorizationModule,
+    PlanLimitsModule,
     AssetsModule,
     LiabilitiesModule,
     CashFlowItemsModule,

@@ -91,13 +91,20 @@ enum HouseholdRole {
   viewer
 }
 
+enum PlanTier {
+  free
+  pro
+  premium
+}
+
 // =============================================================================
 // MODELS
 // =============================================================================
 
 model Household {
-  id   String @id @default(uuid()) @db.Uuid
-  name String
+  id       String   @id @default(uuid()) @db.Uuid
+  name     String
+  planTier PlanTier @default(free) @map("plan_tier")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

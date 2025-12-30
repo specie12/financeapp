@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { PlanLimitsService } from '../plan-limits/plan-limits.service'
 import {
   runProjection,
   generateAmortizationSchedule,
@@ -27,9 +28,14 @@ import Decimal from 'decimal.js'
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly planLimitsService: PlanLimitsService,
+  ) {}
 
   async getNetWorth(householdId: string, horizonYears = 5): Promise<NetWorthResponse> {
+    await this.planLimitsService.assertHorizonWithinLimit(householdId, horizonYears)
+
     const [assets, liabilities, cashFlowItems] = await Promise.all([
       this.prisma.asset.findMany({ where: { householdId }, orderBy: { createdAt: 'desc' } }),
       this.prisma.liability.findMany({ where: { householdId }, orderBy: { createdAt: 'desc' } }),

@@ -492,3 +492,23 @@ export interface ScenarioComparisonItem {
 export interface ScenarioComparisonResponse {
   comparisons: ScenarioComparisonItem[]
 }
+
+// ============================================
+// Plan Tier Types
+// ============================================
+
+export type PlanTier = 'free' | 'pro' | 'premium'
+
+export interface PlanLimits {
+  maxScenarios: number
+  maxHorizonYears: number
+}
+
+export interface PlanLimitError {
+  statusCode: 403
+  errorCode: 'SCENARIO_LIMIT_EXCEEDED' | 'HORIZON_LIMIT_EXCEEDED'
+  message: string
+  currentCount?: number
+  requested?: number
+  limit: number
+}

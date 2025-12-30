@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
+import { PlanLimitsService } from '../plan-limits/plan-limits.service'
 import {
   runProjection,
   type ProjectionInput,
@@ -24,9 +25,14 @@ import type {
 
 @Injectable()
 export class ScenariosService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly planLimitsService: PlanLimitsService,
+  ) {}
 
   async create(householdId: string, dto: CreateScenarioDto): Promise<ScenarioResponse> {
+    await this.planLimitsService.assertCanCreateScenario(householdId)
+
     const scenario = await this.prisma.scenario.create({
       data: {
         householdId,
@@ -120,6 +126,8 @@ export class ScenariosService {
     scenarioId: string,
     horizonYears = 5,
   ): Promise<ScenarioProjectionResponse> {
+    await this.planLimitsService.assertHorizonWithinLimit(householdId, horizonYears)
+
     const scenario = await this.findOne(householdId, scenarioId)
 
     const [assets, liabilities, cashFlowItems] = await Promise.all([
@@ -199,6 +207,8 @@ export class ScenariosService {
     scenarioIds: string[],
     horizonYears = 5,
   ): Promise<ScenarioComparisonResponse> {
+    await this.planLimitsService.assertHorizonWithinLimit(householdId, horizonYears)
+
     if (scenarioIds.length === 0) {
       throw new BadRequestException('At least one scenario ID is required')
     }
