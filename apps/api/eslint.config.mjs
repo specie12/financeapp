@@ -28,6 +28,8 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      // Disable consistent-type-imports for NestJS - DI requires actual imports at runtime
+      '@typescript-eslint/consistent-type-imports': 'off',
     },
   },
 )
