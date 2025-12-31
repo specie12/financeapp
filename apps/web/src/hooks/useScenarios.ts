@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createApiClient } from '@finance-app/api-client'
+import { createAuthenticatedApiClient } from '@/lib/auth'
 import type { Scenario, CreateScenarioDto, UpdateScenarioDto } from '@finance-app/shared-types'
 
 interface UseScenariosReturn {
@@ -20,13 +20,7 @@ export function useScenarios(accessToken: string | null): UseScenariosReturn {
   const [error, setError] = useState<string | null>(null)
 
   const getApiClient = useCallback(() => {
-    const apiClient = createApiClient({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-    })
-    if (accessToken) {
-      apiClient.setAccessToken(accessToken)
-    }
-    return apiClient
+    return createAuthenticatedApiClient(accessToken)
   }, [accessToken])
 
   const fetchScenarios = useCallback(async () => {

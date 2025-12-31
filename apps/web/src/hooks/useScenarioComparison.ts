@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { createApiClient } from '@finance-app/api-client'
+import { createAuthenticatedApiClient } from '@/lib/auth'
 import type { ScenarioComparisonResponse } from '@finance-app/shared-types'
 
 interface UseScenarioComparisonReturn {
@@ -33,11 +33,7 @@ export function useScenarioComparison(accessToken: string | null): UseScenarioCo
       setError(null)
 
       try {
-        const apiClient = createApiClient({
-          baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-        })
-        apiClient.setAccessToken(accessToken)
-
+        const apiClient = createAuthenticatedApiClient(accessToken)
         const response = await apiClient.scenarios.compare(scenarioIds, horizonYears)
         setComparison(response.data)
       } catch (err) {

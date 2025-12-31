@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createApiClient } from '@finance-app/api-client'
+import { createAuthenticatedApiClient } from '@/lib/auth'
 import type { LoanAmortizationResponse } from '@/lib/dashboard/types'
 
 interface UseLoanAmortizationReturn {
@@ -36,11 +36,7 @@ export function useLoanAmortization(
     setError(null)
 
     try {
-      const apiClient = createApiClient({
-        baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-      })
-      apiClient.setAccessToken(accessToken)
-
+      const apiClient = createAuthenticatedApiClient(accessToken)
       const response = await apiClient.dashboard.getLoanAmortization(loanId)
       setData(response.data)
     } catch (err) {

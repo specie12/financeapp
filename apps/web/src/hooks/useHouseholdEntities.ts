@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createApiClient } from '@finance-app/api-client'
+import { createAuthenticatedApiClient } from '@/lib/auth'
 import type { Asset, Liability, CashFlowItem } from '@finance-app/shared-types'
 
 interface UseHouseholdEntitiesReturn {
@@ -31,11 +31,7 @@ export function useHouseholdEntities(accessToken: string | null): UseHouseholdEn
     setError(null)
 
     try {
-      const apiClient = createApiClient({
-        baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-      })
-      apiClient.setAccessToken(accessToken)
-
+      const apiClient = createAuthenticatedApiClient(accessToken)
       const [assetsRes, liabilitiesRes, cashFlowItemsRes] = await Promise.all([
         apiClient.assets.list(),
         apiClient.liabilities.list(),

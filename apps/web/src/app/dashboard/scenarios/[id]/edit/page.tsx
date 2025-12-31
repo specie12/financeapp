@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
-import { createApiClient } from '@finance-app/api-client'
+import { createAuthenticatedApiClient } from '@/lib/auth'
 import { useScenarios } from '@/hooks/useScenarios'
 import { useHouseholdEntities } from '@/hooks/useHouseholdEntities'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
@@ -44,11 +44,7 @@ export default function EditScenarioPage() {
       setScenarioError(null)
 
       try {
-        const apiClient = createApiClient({
-          baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-        })
-        apiClient.setAccessToken(accessToken)
-
+        const apiClient = createAuthenticatedApiClient(accessToken)
         const response = await apiClient.scenarios.get(scenarioId)
         setScenario(response.data)
       } catch (err) {

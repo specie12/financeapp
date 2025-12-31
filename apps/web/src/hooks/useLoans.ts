@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createApiClient } from '@finance-app/api-client'
+import { createAuthenticatedApiClient } from '@/lib/auth'
 import type { LoansResponse } from '@/lib/dashboard/types'
 
 interface UseLoansReturn {
@@ -27,11 +27,7 @@ export function useLoans(accessToken: string | null): UseLoansReturn {
     setError(null)
 
     try {
-      const apiClient = createApiClient({
-        baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
-      })
-      apiClient.setAccessToken(accessToken)
-
+      const apiClient = createAuthenticatedApiClient(accessToken)
       const response = await apiClient.dashboard.getLoans()
       setData(response.data)
     } catch (err) {

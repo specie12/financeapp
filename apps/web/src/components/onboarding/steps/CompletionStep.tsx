@@ -17,9 +17,10 @@ export function CompletionStep({ state }: CompletionStepProps) {
   const preview = calculateDashboardPreview(state)
 
   const handleGoToDashboard = () => {
-    // Store the access token in localStorage for the dashboard to use
-    if (state.tokens?.accessToken) {
+    // Store tokens in localStorage for the dashboard to use
+    if (state.tokens) {
       localStorage.setItem('accessToken', state.tokens.accessToken)
+      localStorage.setItem('refreshToken', state.tokens.refreshToken)
     }
     router.push('/dashboard')
   }
