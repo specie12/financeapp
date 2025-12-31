@@ -24,6 +24,7 @@ export enum ResourceType {
   CASH_FLOW_ITEM = 'cashFlowItem',
   SCENARIO = 'scenario',
   SCENARIO_OVERRIDE = 'scenarioOverride',
+  GOAL = 'goal',
 
   // User-owned resources (indirect household access)
   ACCOUNT = 'account',

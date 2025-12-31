@@ -21,6 +21,8 @@ export class ResourceOwnershipService {
         return this.getScenarioHouseholdId(resourceId)
       case ResourceType.SCENARIO_OVERRIDE:
         return this.getScenarioOverrideHouseholdId(resourceId)
+      case ResourceType.GOAL:
+        return this.getGoalHouseholdId(resourceId)
       case ResourceType.ACCOUNT:
         return this.getAccountHouseholdId(resourceId)
       case ResourceType.CATEGORY:
@@ -104,5 +106,13 @@ export class ResourceOwnershipService {
       select: { scenario: { select: { householdId: true } } },
     })
     return override?.scenario?.householdId ?? null
+  }
+
+  private async getGoalHouseholdId(id: string): Promise<string | null> {
+    const resource = await this.prisma.goal.findUnique({
+      where: { id },
+      select: { householdId: true },
+    })
+    return resource?.householdId ?? null
   }
 }

@@ -13,6 +13,12 @@ import type {
   Asset,
   Liability,
   CashFlowItem,
+  Goal,
+  GoalType,
+  GoalStatus,
+  CreateGoalDto,
+  UpdateGoalDto,
+  GoalProgressResponse,
   ApiResponse,
   ApiErrorResponse,
   PaginatedResponse,
@@ -74,6 +80,11 @@ export interface LiabilityFilters extends PaginationParams {
 
 export interface CashFlowItemFilters extends PaginationParams {
   type?: CashFlowType
+}
+
+export interface GoalFilters extends PaginationParams {
+  type?: GoalType
+  status?: GoalStatus
 }
 
 // ============================================
@@ -528,6 +539,50 @@ export class ApiClient {
           horizonYears,
         },
       )
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Goals Endpoints
+  // ============================================
+
+  goals = {
+    list: async (filters?: GoalFilters): Promise<PaginatedResponse<Goal>> => {
+      const response = await this.client.get<PaginatedResponse<Goal>>('/goals', {
+        params: filters,
+      })
+      return response.data
+    },
+
+    get: async (id: string): Promise<ApiResponse<Goal>> => {
+      const response = await this.client.get<ApiResponse<Goal>>(`/goals/${id}`)
+      return response.data
+    },
+
+    create: async (data: CreateGoalDto): Promise<ApiResponse<Goal>> => {
+      const response = await this.client.post<ApiResponse<Goal>>('/goals', data)
+      return response.data
+    },
+
+    update: async (id: string, data: UpdateGoalDto): Promise<ApiResponse<Goal>> => {
+      const response = await this.client.patch<ApiResponse<Goal>>(`/goals/${id}`, data)
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/goals/${id}`)
+    },
+
+    getProgress: async (id: string): Promise<ApiResponse<GoalProgressResponse>> => {
+      const response = await this.client.get<ApiResponse<GoalProgressResponse>>(
+        `/goals/${id}/progress`,
+      )
+      return response.data
+    },
+
+    getAllProgress: async (): Promise<ApiResponse<GoalProgressResponse[]>> => {
+      const response = await this.client.get<ApiResponse<GoalProgressResponse[]>>('/goals/progress')
       return response.data
     },
   }
