@@ -28,8 +28,12 @@ export function ComparisonChart({ comparisons }: ComparisonChartProps) {
   const valueRange = maxValue - minValue || 1
 
   // Get years from first comparison (they should all be the same)
-  const years = comparisons[0].projection.yearlySnapshots.map((s) => s.year)
-  const horizonYears = years[years.length - 1]
+  const firstComparison = comparisons[0]
+  if (!firstComparison) {
+    return null
+  }
+  const years = firstComparison.projection.yearlySnapshots.map((s) => s.year)
+  const horizonYears = years[years.length - 1] ?? 1
 
   // Chart dimensions
   const width = 800
@@ -117,28 +121,32 @@ export function ComparisonChart({ comparisons }: ComparisonChartProps) {
           ))}
 
           {/* Lines for each scenario */}
-          {comparisons.map((comparison, i) => (
-            <path
-              key={comparison.scenario.id}
-              d={generatePath(comparison.projection.yearlySnapshots)}
-              fill="none"
-              stroke={COLORS[i % COLORS.length].line}
-              strokeWidth={2}
-            />
-          ))}
+          {comparisons.map((comparison, i) => {
+            const color = COLORS[i % COLORS.length] ?? COLORS[0]
+            return (
+              <path
+                key={comparison.scenario.id}
+                d={generatePath(comparison.projection.yearlySnapshots)}
+                fill="none"
+                stroke={color?.line}
+                strokeWidth={2}
+              />
+            )
+          })}
 
           {/* Dots for each data point */}
-          {comparisons.map((comparison, i) =>
-            comparison.projection.yearlySnapshots.map((snapshot) => (
+          {comparisons.map((comparison, i) => {
+            const color = COLORS[i % COLORS.length] ?? COLORS[0]
+            return comparison.projection.yearlySnapshots.map((snapshot) => (
               <circle
                 key={`${comparison.scenario.id}-${snapshot.year}`}
                 cx={xScale(snapshot.year)}
                 cy={yScale(snapshot.netWorthCents)}
                 r={3}
-                fill={COLORS[i % COLORS.length].line}
+                fill={color?.line}
               />
-            )),
-          )}
+            ))
+          })}
 
           {/* Axes */}
           <line
@@ -160,20 +168,20 @@ export function ComparisonChart({ comparisons }: ComparisonChartProps) {
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t">
-        {comparisons.map((comparison, i) => (
-          <div key={comparison.scenario.id} className="flex items-center gap-2">
-            <span
-              className="w-4 h-4 rounded"
-              style={{ backgroundColor: COLORS[i % COLORS.length].line }}
-            />
-            <span className="text-sm">
-              {comparison.scenario.name}
-              {comparison.scenario.isBaseline && (
-                <span className="text-xs text-muted-foreground ml-1">(baseline)</span>
-              )}
-            </span>
-          </div>
-        ))}
+        {comparisons.map((comparison, i) => {
+          const color = COLORS[i % COLORS.length] ?? COLORS[0]
+          return (
+            <div key={comparison.scenario.id} className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded" style={{ backgroundColor: color?.line }} />
+              <span className="text-sm">
+                {comparison.scenario.name}
+                {comparison.scenario.isBaseline && (
+                  <span className="text-xs text-muted-foreground ml-1">(baseline)</span>
+                )}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </DashboardCard>
   )

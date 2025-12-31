@@ -60,6 +60,12 @@ export const frequencySchema = z.enum([
 
 export const cashFlowTypeSchema = z.enum(['income', 'expense'])
 
+export const countrySchema = z.enum(['US', 'UK', 'CA'])
+
+export const goalTypeSchema = z.enum(['net_worth_target', 'savings_target', 'debt_freedom'])
+
+export const goalStatusSchema = z.enum(['active', 'achieved', 'paused'])
+
 // ============================================
 // User Schemas
 // ============================================
@@ -150,6 +156,7 @@ export const createAssetSchema = z.object({
   type: assetTypeSchema,
   currentValueCents: z.number().int().nonnegative('Value must be non-negative'),
   annualGrowthRatePercent: z.number().min(-100).max(1000).nullable().optional(),
+  dividendYieldPercent: z.number().min(0).max(100).nullable().optional(),
 })
 
 export const updateAssetSchema = createAssetSchema.partial()
@@ -187,6 +194,88 @@ export const createCashFlowItemSchema = z.object({
 })
 
 export const updateCashFlowItemSchema = createCashFlowItemSchema.partial()
+
+// ============================================
+// Goal Schemas
+// ============================================
+
+export const createGoalSchema = z.object({
+  type: goalTypeSchema,
+  name: z.string().min(1, 'Goal name is required').max(100),
+  targetAmountCents: z.number().int().positive('Target amount must be positive'),
+  targetDate: z.coerce.date().nullable().optional(),
+  linkedLiabilityId: z.string().uuid('Invalid liability ID').nullable().optional(),
+})
+
+export const updateGoalSchema = z.object({
+  type: goalTypeSchema.optional(),
+  name: z.string().min(1, 'Goal name is required').max(100).optional(),
+  targetAmountCents: z.number().int().positive('Target amount must be positive').optional(),
+  currentAmountCents: z
+    .number()
+    .int()
+    .nonnegative('Current amount must be non-negative')
+    .optional(),
+  targetDate: z.coerce.date().nullable().optional(),
+  status: goalStatusSchema.optional(),
+  linkedLiabilityId: z.string().uuid('Invalid liability ID').nullable().optional(),
+})
+
+// ============================================
+// Rent vs Buy Calculator Schemas
+// ============================================
+
+export const rentVsBuyRequestSchema = z.object({
+  startDate: z.coerce.date(),
+  projectionYears: z.number().int().min(1).max(30),
+  buy: z.object({
+    homePriceCents: z.number().int().positive('Home price must be positive'),
+    downPaymentPercent: z.number().min(0).max(100),
+    mortgageInterestRatePercent: z.number().min(0).max(25),
+    mortgageTermYears: z.number().int().min(1).max(40),
+    closingCostPercent: z.number().min(0).max(10),
+    homeownersInsuranceAnnualCents: z.number().int().nonnegative(),
+    hoaMonthlyDuesCents: z.number().int().nonnegative(),
+    propertyTaxRateOverride: z.number().min(0).max(10).optional(),
+    maintenanceRateOverride: z.number().min(0).max(10).optional(),
+  }),
+  rent: z.object({
+    monthlyRentCents: z.number().int().positive('Monthly rent must be positive'),
+    securityDepositMonths: z.number().min(0).max(12),
+    rentersInsuranceAnnualCents: z.number().int().nonnegative(),
+    rentIncreaseRateOverride: z.number().min(0).max(20).optional(),
+  }),
+  assumptions: z
+    .object({
+      homeAppreciationRatePercent: z.number().min(-10).max(20).optional(),
+      investmentReturnRatePercent: z.number().min(-20).max(30).optional(),
+      inflationRatePercent: z.number().min(0).max(15).optional(),
+      propertyTaxRatePercent: z.number().min(0).max(10).optional(),
+      maintenanceRatePercent: z.number().min(0).max(10).optional(),
+      rentIncreaseRatePercent: z.number().min(0).max(20).optional(),
+      marginalTaxRatePercent: z.number().min(0).max(50).optional(),
+      sellingCostPercent: z.number().min(0).max(15).optional(),
+    })
+    .optional(),
+})
+
+// ============================================
+// Loan Optimization Schemas
+// ============================================
+
+export const extraPaymentSchema = z.object({
+  paymentNumber: z.number().int().positive('Payment number must be positive'),
+  amountCents: z.number().int().positive('Amount must be positive'),
+})
+
+export const extraPaymentSimulationSchema = z.object({
+  extraPayments: z.array(extraPaymentSchema).min(1, 'At least one extra payment is required'),
+})
+
+export const recurringExtraPaymentSchema = z.object({
+  extraAmountCents: z.number().int().positive('Extra amount must be positive'),
+  startPaymentNumber: z.number().int().positive('Start payment number must be positive').optional(),
+})
 
 // ============================================
 // Query Schemas
@@ -250,6 +339,15 @@ export type CashFlowType = z.infer<typeof cashFlowTypeSchema>
 export type CreateCashFlowItemInput = z.infer<typeof createCashFlowItemSchema>
 export type UpdateCashFlowItemInput = z.infer<typeof updateCashFlowItemSchema>
 export type CashFlowItemQueryInput = z.infer<typeof cashFlowItemQuerySchema>
+export type Country = z.infer<typeof countrySchema>
+export type GoalType = z.infer<typeof goalTypeSchema>
+export type GoalStatus = z.infer<typeof goalStatusSchema>
+export type CreateGoalInput = z.infer<typeof createGoalSchema>
+export type UpdateGoalInput = z.infer<typeof updateGoalSchema>
+export type RentVsBuyRequestInput = z.infer<typeof rentVsBuyRequestSchema>
+export type ExtraPaymentInput = z.infer<typeof extraPaymentSchema>
+export type ExtraPaymentSimulationInput = z.infer<typeof extraPaymentSimulationSchema>
+export type RecurringExtraPaymentInput = z.infer<typeof recurringExtraPaymentSchema>
 
 // Re-export zod for convenience
 export { z } from 'zod'

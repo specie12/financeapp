@@ -7,8 +7,24 @@ export interface User {
   email: string
   firstName: string
   lastName: string
+  country: Country
   createdAt: Date
   updatedAt: Date
+}
+
+// ============================================
+// Country Types
+// ============================================
+
+export type Country = 'US' | 'UK' | 'CA'
+
+export const SUPPORTED_COUNTRIES: Country[] = ['US']
+export const COMING_SOON_COUNTRIES: Country[] = ['UK', 'CA']
+
+export const COUNTRY_NAMES: Record<Country, string> = {
+  US: 'United States',
+  UK: 'United Kingdom',
+  CA: 'Canada',
 }
 
 export interface Account {
@@ -76,6 +92,7 @@ export interface Asset {
   type: AssetType
   currentValueCents: number
   annualGrowthRatePercent: number | null
+  dividendYieldPercent: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -223,6 +240,7 @@ export interface CreateAssetDto {
   type: AssetType
   currentValueCents: number
   annualGrowthRatePercent?: number | null
+  dividendYieldPercent?: number | null
 }
 
 export interface CreateLiabilityDto {
@@ -511,4 +529,153 @@ export interface PlanLimitError {
   currentCount?: number
   requested?: number
   limit: number
+}
+
+// ============================================
+// Goal Types
+// ============================================
+
+export type GoalType = 'net_worth_target' | 'savings_target' | 'debt_freedom'
+
+export type GoalStatus = 'active' | 'achieved' | 'paused'
+
+export interface Goal {
+  id: string
+  householdId: string
+  type: GoalType
+  name: string
+  targetAmountCents: number
+  currentAmountCents: number
+  targetDate: Date | null
+  status: GoalStatus
+  linkedLiabilityId: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CreateGoalDto {
+  type: GoalType
+  name: string
+  targetAmountCents: number
+  targetDate?: Date | null
+  linkedLiabilityId?: string | null
+}
+
+export interface UpdateGoalDto {
+  type?: GoalType
+  name?: string
+  targetAmountCents?: number
+  currentAmountCents?: number
+  targetDate?: Date | null
+  status?: GoalStatus
+  linkedLiabilityId?: string | null
+}
+
+export interface GoalProgressResponse {
+  goal: Goal
+  progressPercent: number
+  remainingAmountCents: number
+  onTrack: boolean
+  projectedCompletionDate: Date | null
+  daysRemaining: number | null
+}
+
+// ============================================
+// Rent vs Buy Calculator Types
+// ============================================
+
+export interface RentVsBuyRequest {
+  startDate: Date
+  projectionYears: number
+  buy: {
+    homePriceCents: number
+    downPaymentPercent: number
+    mortgageInterestRatePercent: number
+    mortgageTermYears: number
+    closingCostPercent: number
+    homeownersInsuranceAnnualCents: number
+    hoaMonthlyDuesCents: number
+    propertyTaxRateOverride?: number
+    maintenanceRateOverride?: number
+  }
+  rent: {
+    monthlyRentCents: number
+    securityDepositMonths: number
+    rentersInsuranceAnnualCents: number
+    rentIncreaseRateOverride?: number
+  }
+  assumptions?: {
+    homeAppreciationRatePercent?: number
+    investmentReturnRatePercent?: number
+    inflationRatePercent?: number
+    propertyTaxRatePercent?: number
+    maintenanceRatePercent?: number
+    rentIncreaseRatePercent?: number
+    marginalTaxRatePercent?: number
+    sellingCostPercent?: number
+  }
+}
+
+// ============================================
+// Loan Optimization Types
+// ============================================
+
+export interface ExtraPayment {
+  paymentNumber: number
+  amountCents: number
+}
+
+export interface ExtraPaymentSimulationRequest {
+  extraPayments: ExtraPayment[]
+}
+
+export interface RecurringExtraPaymentRequest {
+  extraAmountCents: number
+  startPaymentNumber?: number
+}
+
+export interface LoanPayoffComparison {
+  originalPayoffDate: Date
+  newPayoffDate: Date
+  monthsSaved: number
+  interestSavedCents: number
+  totalPaymentsCents: number
+}
+
+export interface ExtraPaymentSimulationResponse {
+  loanId: string
+  comparison: LoanPayoffComparison
+  schedule: AmortizationEntry[]
+}
+
+// ============================================
+// Dividend & Investment Enhancement Types
+// ============================================
+
+export const DEFAULT_DIVIDEND_YIELDS: Record<AssetType, number> = {
+  investment: 2,
+  retirement_account: 2,
+  real_estate: 4,
+  bank_account: 4,
+  crypto: 0,
+  vehicle: 0,
+  other: 0,
+}
+
+export interface DividendProjection {
+  assetId: string
+  assetName: string
+  assetType: AssetType
+  valueCents: number
+  yieldPercent: number
+  annualDividendCents: number
+  monthlyDividendCents: number
+  isCustomYield: boolean
+}
+
+export interface EnhancedInvestmentsResponse extends InvestmentsResponse {
+  dividendProjections: DividendProjection[]
+  totalAnnualDividendsCents: number
+  totalMonthlyDividendsCents: number
+  goalProgress: GoalProgressResponse[]
 }

@@ -97,6 +97,24 @@ enum PlanTier {
   premium
 }
 
+enum Country {
+  US
+  UK
+  CA
+}
+
+enum GoalType {
+  net_worth_target
+  savings_target
+  debt_freedom
+}
+
+enum GoalStatus {
+  active
+  achieved
+  paused
+}
+
 // =============================================================================
 // MODELS
 // =============================================================================
@@ -114,6 +132,7 @@ model Household {
   liabilities   Liability[]
   cashFlowItems CashFlowItem[]
   scenarios     Scenario[]
+  goals         Goal[]
 
   @@map("households")
 }
@@ -124,6 +143,7 @@ model User {
   passwordHash String        @map("password_hash")
   firstName    String        @map("first_name")
   lastName     String        @map("last_name")
+  country      Country       @default(US)
   householdId  String        @map("household_id") @db.Uuid
   household    Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
   role         HouseholdRole @default(owner)
@@ -249,6 +269,7 @@ model Asset {
   type                    AssetType
   currentValueCents       Int       @map("current_value_cents")
   annualGrowthRatePercent Decimal?  @map("annual_growth_rate_percent") @db.Decimal(5, 2)
+  dividendYieldPercent    Decimal?  @map("dividend_yield_percent") @db.Decimal(5, 2)
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -279,6 +300,7 @@ model Liability {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   scenarioOverrides ScenarioOverride[]
+  goals             Goal[]
 
   @@index([householdId])
   @@index([type])
@@ -353,4 +375,26 @@ model ScenarioOverride {
   @@index([liabilityId])
   @@index([cashFlowItemId])
   @@map("scenario_overrides")
+}
+
+model Goal {
+  id                 String      @id @default(uuid()) @db.Uuid
+  householdId        String      @map("household_id") @db.Uuid
+  household          Household   @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  type               GoalType
+  name               String
+  targetAmountCents  Int         @map("target_amount_cents")
+  currentAmountCents Int         @default(0) @map("current_amount_cents")
+  targetDate         DateTime?   @map("target_date") @db.Date
+  status             GoalStatus  @default(active)
+  linkedLiabilityId  String?     @map("linked_liability_id") @db.Uuid
+  linkedLiability    Liability?  @relation(fields: [linkedLiabilityId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([householdId])
+  @@index([type])
+  @@index([status])
+  @@map("goals")
 }

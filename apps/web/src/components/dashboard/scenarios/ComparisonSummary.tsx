@@ -18,7 +18,6 @@ export function ComparisonSummary({ comparisons }: ComparisonSummaryProps) {
     ...comparisons.map((c) => c.projection.summary.endingNetWorthCents),
   )
   const bestChange = Math.max(...comparisons.map((c) => c.projection.summary.netWorthChangeCents))
-  const _lowestDebt = Math.min(...comparisons.map((c) => c.projection.summary.totalDebtPaidCents))
 
   return (
     <DashboardCard title="Summary Comparison" description="Key metrics across all scenarios">

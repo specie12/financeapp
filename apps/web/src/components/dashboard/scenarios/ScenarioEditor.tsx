@@ -68,7 +68,10 @@ export function ScenarioEditor({
         if (!overrides[override.entityId]) {
           overrides[override.entityId] = {}
         }
-        overrides[override.entityId][override.fieldName] = override.value
+        const entityOverrides = overrides[override.entityId]
+        if (entityOverrides) {
+          entityOverrides[override.fieldName] = override.value
+        }
       }
     }
     return overrides
