@@ -37,11 +37,9 @@ export function NavigationButtons({
         ) : (
           <div />
         )}
-        {onNext && (
-          <Button type="submit" onClick={onNext} disabled={isLoading || isNextDisabled}>
-            {isLoading ? 'Please wait...' : nextLabel}
-          </Button>
-        )}
+        <Button type="submit" onClick={onNext} disabled={isLoading || isNextDisabled}>
+          {isLoading ? 'Please wait...' : nextLabel}
+        </Button>
       </div>
       {showSkip && onSkip && (
         <Button

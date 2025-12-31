@@ -57,8 +57,11 @@ export function ExpensesStep({ expenses, onSetExpenses, onNext, onBack }: Expens
                         type="number"
                         placeholder="0"
                         className="pl-7"
-                        {...field}
+                        value={field.value || ''}
                         onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                        ref={field.ref}
                       />
                     </div>
                   </FormControl>

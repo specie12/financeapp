@@ -10,12 +10,11 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UsePipes,
 } from '@nestjs/common'
 import { CashFlowItemsService } from './cash-flow-items.service'
-import { type CreateCashFlowItemDto } from './dto/create-cash-flow-item.dto'
-import { type UpdateCashFlowItemDto } from './dto/update-cash-flow-item.dto'
-import { type CashFlowItemQueryDto } from './dto/cash-flow-item-query.dto'
+import { CreateCashFlowItemDto } from './dto/create-cash-flow-item.dto'
+import { UpdateCashFlowItemDto } from './dto/update-cash-flow-item.dto'
+import { CashFlowItemQueryDto } from './dto/cash-flow-item-query.dto'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import {
   createCashFlowItemSchema,
@@ -35,9 +34,9 @@ export class CashFlowItemsController {
 
   @Post()
   @RequirePermission(Permission.CREATE)
-  @UsePipes(new ZodValidationPipe(createCashFlowItemSchema))
   async create(
-    @Body() createCashFlowItemDto: CreateCashFlowItemDto,
+    @Body(new ZodValidationPipe(createCashFlowItemSchema))
+    createCashFlowItemDto: CreateCashFlowItemDto,
     @CurrentUser('householdId') householdId: string,
   ): Promise<ApiResponse<CashFlowItem>> {
     const item = await this.cashFlowItemsService.create(householdId, createCashFlowItemDto)

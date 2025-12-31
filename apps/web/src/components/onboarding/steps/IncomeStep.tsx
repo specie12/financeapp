@@ -156,8 +156,11 @@ export function IncomeStep({
                             <Input
                               type="number"
                               placeholder="5000"
-                              {...field}
+                              value={field.value || ''}
                               onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                              onBlur={field.onBlur}
+                              name={field.name}
+                              ref={field.ref}
                             />
                           </FormControl>
                           <FormMessage />

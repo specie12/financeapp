@@ -219,7 +219,21 @@ export function AssetsDebtsStep({
       onNext()
     } catch (error) {
       console.error('Failed to save onboarding data:', error)
-      setError('Failed to save your data. Please try again.')
+      // Extract detailed error message
+      let errorMessage = 'Failed to save your data. Please try again.'
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as {
+          response?: { data?: { message?: string | string[]; errors?: string[] } }
+        }
+        const apiMessage = axiosError.response?.data?.message
+        const apiErrors = axiosError.response?.data?.errors
+        if (apiErrors && apiErrors.length > 0) {
+          errorMessage = apiErrors.join(', ')
+        } else if (apiMessage) {
+          errorMessage = Array.isArray(apiMessage) ? apiMessage.join(', ') : apiMessage
+        }
+      }
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -329,8 +343,11 @@ export function AssetsDebtsStep({
                               <Input
                                 type="number"
                                 placeholder="0"
-                                {...field}
+                                value={field.value || ''}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
                               />
                             </FormControl>
                             <FormMessage />
@@ -474,8 +491,11 @@ export function AssetsDebtsStep({
                               <Input
                                 type="number"
                                 placeholder="0"
-                                {...field}
+                                value={field.value || ''}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
                               />
                             </FormControl>
                             <FormMessage />
@@ -495,8 +515,11 @@ export function AssetsDebtsStep({
                                 type="number"
                                 step="0.1"
                                 placeholder="0"
-                                {...field}
+                                value={field.value || ''}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
                               />
                             </FormControl>
                             <FormMessage />
@@ -513,8 +536,11 @@ export function AssetsDebtsStep({
                               <Input
                                 type="number"
                                 placeholder="0"
-                                {...field}
+                                value={field.value || ''}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onBlur={field.onBlur}
+                                name={field.name}
+                                ref={field.ref}
                               />
                             </FormControl>
                             <FormMessage />

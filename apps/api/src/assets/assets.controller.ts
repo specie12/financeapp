@@ -10,12 +10,11 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UsePipes,
 } from '@nestjs/common'
 import { AssetsService } from './assets.service'
-import { type CreateAssetDto } from './dto/create-asset.dto'
-import { type UpdateAssetDto } from './dto/update-asset.dto'
-import { type AssetQueryDto } from './dto/asset-query.dto'
+import { CreateAssetDto } from './dto/create-asset.dto'
+import { UpdateAssetDto } from './dto/update-asset.dto'
+import { AssetQueryDto } from './dto/asset-query.dto'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import { createAssetSchema, updateAssetSchema, assetQuerySchema } from '@finance-app/validation'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
@@ -31,9 +30,8 @@ export class AssetsController {
 
   @Post()
   @RequirePermission(Permission.CREATE)
-  @UsePipes(new ZodValidationPipe(createAssetSchema))
   async create(
-    @Body() createAssetDto: CreateAssetDto,
+    @Body(new ZodValidationPipe(createAssetSchema)) createAssetDto: CreateAssetDto,
     @CurrentUser('householdId') householdId: string,
   ): Promise<ApiResponse<Asset>> {
     const asset = await this.assetsService.create(householdId, createAssetDto)

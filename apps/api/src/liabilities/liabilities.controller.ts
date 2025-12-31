@@ -10,12 +10,11 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
-  UsePipes,
 } from '@nestjs/common'
 import { LiabilitiesService } from './liabilities.service'
-import { type CreateLiabilityDto } from './dto/create-liability.dto'
-import { type UpdateLiabilityDto } from './dto/update-liability.dto'
-import { type LiabilityQueryDto } from './dto/liability-query.dto'
+import { CreateLiabilityDto } from './dto/create-liability.dto'
+import { UpdateLiabilityDto } from './dto/update-liability.dto'
+import { LiabilityQueryDto } from './dto/liability-query.dto'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import {
   createLiabilitySchema,
@@ -35,9 +34,8 @@ export class LiabilitiesController {
 
   @Post()
   @RequirePermission(Permission.CREATE)
-  @UsePipes(new ZodValidationPipe(createLiabilitySchema))
   async create(
-    @Body() createLiabilityDto: CreateLiabilityDto,
+    @Body(new ZodValidationPipe(createLiabilitySchema)) createLiabilityDto: CreateLiabilityDto,
     @CurrentUser('householdId') householdId: string,
   ): Promise<ApiResponse<Liability>> {
     const liability = await this.liabilitiesService.create(householdId, createLiabilityDto)
