@@ -1,11 +1,18 @@
-import type { AuthUser, AuthTokens, Frequency } from '@finance-app/shared-types'
+import type { AuthUser, AuthTokens, Frequency, Country, GoalType } from '@finance-app/shared-types'
 import type { IncomeItem, AssetItem, LiabilityItem } from './schemas'
 
 // ============================================
 // Onboarding State Types
 // ============================================
 
-export type OnboardingStep = 1 | 2 | 3 | 4 | 5
+export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+
+export interface OnboardingGoal {
+  type: GoalType
+  name: string
+  targetAmountCents: number
+  targetDate?: Date | null
+}
 
 export interface MonthlyExpenses {
   housing: number
@@ -24,7 +31,13 @@ export interface OnboardingState {
   user: AuthUser | null
   tokens: AuthTokens | null
 
-  // Financial data (Steps 2-4)
+  // Country (Step 2)
+  country: Country
+
+  // Goals (Step 4)
+  goals: OnboardingGoal[]
+
+  // Financial data (Steps 5-7)
   incomeItems: IncomeItem[]
   expenses: MonthlyExpenses
   assets: AssetItem[]
@@ -40,6 +53,10 @@ export type OnboardingAction =
   | { type: 'NEXT_STEP' }
   | { type: 'PREV_STEP' }
   | { type: 'SET_USER'; user: AuthUser; tokens: AuthTokens }
+  | { type: 'SET_COUNTRY'; country: Country }
+  | { type: 'ADD_GOAL'; goal: OnboardingGoal }
+  | { type: 'UPDATE_GOAL'; index: number; goal: OnboardingGoal }
+  | { type: 'REMOVE_GOAL'; index: number }
   | { type: 'ADD_INCOME'; income: IncomeItem }
   | { type: 'UPDATE_INCOME'; index: number; income: IncomeItem }
   | { type: 'REMOVE_INCOME'; index: number }

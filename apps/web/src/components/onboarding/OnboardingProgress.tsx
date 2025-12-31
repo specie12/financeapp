@@ -9,9 +9,18 @@ interface OnboardingProgressProps {
   totalSteps?: number
 }
 
-const STEP_LABELS = ['Account', 'Income', 'Expenses', 'Assets', 'Complete']
+const STEP_LABELS = [
+  'Account',
+  'Country',
+  'Connect',
+  'Goals',
+  'Income',
+  'Expenses',
+  'Assets',
+  'Complete',
+]
 
-export function OnboardingProgress({ currentStep, totalSteps = 5 }: OnboardingProgressProps) {
+export function OnboardingProgress({ currentStep, totalSteps = 8 }: OnboardingProgressProps) {
   const progress = ((currentStep - 1) / (totalSteps - 1)) * 100
 
   return (

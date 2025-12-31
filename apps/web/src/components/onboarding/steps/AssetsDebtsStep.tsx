@@ -10,6 +10,7 @@ import {
   type LiabilityItem,
   type IncomeItem,
 } from '@/lib/onboarding/schemas'
+import type { OnboardingGoal } from '@/lib/onboarding/types'
 import { StepContainer } from '../shared/StepContainer'
 import { NavigationButtons } from '../shared/NavigationButtons'
 import { Button } from '@/components/ui/button'
@@ -68,6 +69,7 @@ interface AssetsDebtsStepProps {
   tokens: AuthTokens | null
   incomeItems: IncomeItem[]
   expenses: MonthlyExpenses
+  goals?: OnboardingGoal[]
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   isLoading: boolean

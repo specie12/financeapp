@@ -3,6 +3,9 @@
 import { useOnboarding } from '@/hooks/useOnboarding'
 import { OnboardingProgress } from './OnboardingProgress'
 import { AccountStep } from './steps/AccountStep'
+import { CountryStep } from './steps/CountryStep'
+import { AccountConnectionStep } from './steps/AccountConnectionStep'
+import { GoalsStep } from './steps/GoalsStep'
 import { IncomeStep } from './steps/IncomeStep'
 import { ExpensesStep } from './steps/ExpensesStep'
 import { AssetsDebtsStep } from './steps/AssetsDebtsStep'
@@ -29,6 +32,30 @@ export function OnboardingWizard() {
 
       case 2:
         return (
+          <CountryStep
+            country={state.country}
+            onSetCountry={actions.setCountry}
+            onNext={actions.nextStep}
+            onBack={actions.prevStep}
+          />
+        )
+
+      case 3:
+        return <AccountConnectionStep onNext={actions.nextStep} onBack={actions.prevStep} />
+
+      case 4:
+        return (
+          <GoalsStep
+            goals={state.goals}
+            onAddGoal={actions.addGoal}
+            onRemoveGoal={actions.removeGoal}
+            onNext={actions.nextStep}
+            onBack={actions.prevStep}
+          />
+        )
+
+      case 5:
+        return (
           <IncomeStep
             incomeItems={state.incomeItems}
             onAddIncome={actions.addIncome}
@@ -39,7 +66,7 @@ export function OnboardingWizard() {
           />
         )
 
-      case 3:
+      case 6:
         return (
           <ExpensesStep
             expenses={state.expenses}
@@ -49,7 +76,7 @@ export function OnboardingWizard() {
           />
         )
 
-      case 4:
+      case 7:
         return (
           <AssetsDebtsStep
             assets={state.assets}
@@ -64,13 +91,14 @@ export function OnboardingWizard() {
             tokens={state.tokens}
             incomeItems={state.incomeItems}
             expenses={state.expenses}
+            goals={state.goals}
             setLoading={actions.setLoading}
             setError={actions.setError}
             isLoading={state.isLoading}
           />
         )
 
-      case 5:
+      case 8:
         return <CompletionStep state={state} />
 
       default:

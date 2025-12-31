@@ -6,9 +6,10 @@ import type {
   OnboardingAction,
   OnboardingStep,
   MonthlyExpenses,
+  OnboardingGoal,
 } from '@/lib/onboarding/types'
 import type { IncomeItem, AssetItem, LiabilityItem } from '@/lib/onboarding/schemas'
-import type { AuthUser, AuthTokens } from '@finance-app/shared-types'
+import type { AuthUser, AuthTokens, Country } from '@finance-app/shared-types'
 import {
   canProceedToStep,
   isStep1Complete,
@@ -26,6 +27,8 @@ const initialState: OnboardingState = {
   error: null,
   user: null,
   tokens: null,
+  country: 'US',
+  goals: [],
   incomeItems: [],
   expenses: {
     housing: 0,
@@ -48,7 +51,7 @@ function onboardingReducer(state: OnboardingState, action: OnboardingAction): On
       return { ...state, currentStep: action.step }
 
     case 'NEXT_STEP':
-      if (state.currentStep < 5) {
+      if (state.currentStep < 8) {
         return { ...state, currentStep: (state.currentStep + 1) as OnboardingStep }
       }
       return state
@@ -61,6 +64,24 @@ function onboardingReducer(state: OnboardingState, action: OnboardingAction): On
 
     case 'SET_USER':
       return { ...state, user: action.user, tokens: action.tokens }
+
+    case 'SET_COUNTRY':
+      return { ...state, country: action.country }
+
+    case 'ADD_GOAL':
+      return { ...state, goals: [...state.goals, action.goal] }
+
+    case 'UPDATE_GOAL':
+      return {
+        ...state,
+        goals: state.goals.map((item, idx) => (idx === action.index ? action.goal : item)),
+      }
+
+    case 'REMOVE_GOAL':
+      return {
+        ...state,
+        goals: state.goals.filter((_, idx) => idx !== action.index),
+      }
 
     case 'ADD_INCOME':
       return { ...state, incomeItems: [...state.incomeItems, action.income] }
@@ -159,6 +180,24 @@ export function useOnboarding() {
     dispatch({ type: 'SET_USER', user, tokens })
   }, [])
 
+  // Country Actions
+  const setCountry = useCallback((country: Country) => {
+    dispatch({ type: 'SET_COUNTRY', country })
+  }, [])
+
+  // Goal Actions
+  const addGoal = useCallback((goal: OnboardingGoal) => {
+    dispatch({ type: 'ADD_GOAL', goal })
+  }, [])
+
+  const updateGoal = useCallback((index: number, goal: OnboardingGoal) => {
+    dispatch({ type: 'UPDATE_GOAL', index, goal })
+  }, [])
+
+  const removeGoal = useCallback((index: number) => {
+    dispatch({ type: 'REMOVE_GOAL', index })
+  }, [])
+
   // Income Actions
   const addIncome = useCallback((income: IncomeItem) => {
     dispatch({ type: 'ADD_INCOME', income })
@@ -239,6 +278,10 @@ export function useOnboarding() {
       nextStep,
       prevStep,
       setUser,
+      setCountry,
+      addGoal,
+      updateGoal,
+      removeGoal,
       addIncome,
       updateIncome,
       removeIncome,
