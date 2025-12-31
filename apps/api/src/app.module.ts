@@ -13,6 +13,7 @@ import { CashFlowItemsModule } from './cash-flow-items/cash-flow-items.module'
 import { DashboardModule } from './dashboard/dashboard.module'
 import { ScenariosModule } from './scenarios/scenarios.module'
 import { GoalsModule } from './goals/goals.module'
+import { CalculatorsModule } from './calculators/calculators.module'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PermissionGuard } from './authorization/guards/permission.guard'
 import { HouseholdGuard } from './authorization/guards/household.guard'
@@ -34,6 +35,7 @@ import configuration from './config/configuration'
     DashboardModule,
     ScenariosModule,
     GoalsModule,
+    CalculatorsModule,
   ],
   controllers: [AppController],
   providers: [

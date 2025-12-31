@@ -44,7 +44,9 @@ import type {
   UpdateScenarioDto,
   ScenarioProjectionResponse,
   ScenarioComparisonResponse,
+  RentVsBuyRequest,
 } from '@finance-app/shared-types'
+import type { RentVsBuyResult } from '@finance-app/finance-engine'
 
 // ============================================
 // Types
@@ -583,6 +585,20 @@ export class ApiClient {
 
     getAllProgress: async (): Promise<ApiResponse<GoalProgressResponse[]>> => {
       const response = await this.client.get<ApiResponse<GoalProgressResponse[]>>('/goals/progress')
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Calculators Endpoints
+  // ============================================
+
+  calculators = {
+    rentVsBuy: async (request: RentVsBuyRequest): Promise<ApiResponse<RentVsBuyResult>> => {
+      const response = await this.client.post<ApiResponse<RentVsBuyResult>>(
+        '/calculators/rent-vs-buy',
+        request,
+      )
       return response.data
     },
   }
