@@ -18,6 +18,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@rollup/rollup-win32-x64-msvc": "^4.54.0",
     "@types/node": "^22.10.2",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
