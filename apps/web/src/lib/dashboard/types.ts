@@ -14,6 +14,15 @@ export type {
   InvestmentsResponse,
   InvestmentPortfolioSummary,
   InvestmentHoldingSummary,
+  // Loan optimization types
+  LoanSimulationRequest,
+  LoanSimulationResponse,
+  LoanSimulationSummary,
+  LoanSimulationSavings,
+  // Enhanced investments types
+  EnhancedInvestmentsResponse,
+  DividendProjection,
+  GoalProgressSummary,
   // Scenario types
   Scenario,
   ScenarioOverride,

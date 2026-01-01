@@ -648,6 +648,36 @@ export interface ExtraPaymentSimulationResponse {
   schedule: AmortizationEntry[]
 }
 
+export interface LoanSimulationRequest {
+  extraMonthlyPaymentCents: number
+  oneTimePaymentCents: number
+  oneTimePaymentMonth: number
+  useBiweekly: boolean
+}
+
+export interface LoanSimulationSummary {
+  monthlyPaymentCents: number
+  totalPaymentsCents: number
+  totalInterestCents: number
+  payoffMonth: number
+  payoffDate: Date
+}
+
+export interface LoanSimulationSavings {
+  interestSavedCents: number
+  monthsSaved: number
+  totalSavedCents: number
+}
+
+export interface LoanSimulationResponse {
+  loan: LoanDetail
+  original: LoanSimulationSummary
+  modified: LoanSimulationSummary
+  savings: LoanSimulationSavings
+  originalSchedule: AmortizationEntry[]
+  modifiedSchedule: AmortizationEntry[]
+}
+
 // ============================================
 // Dividend & Investment Enhancement Types
 // ============================================
@@ -673,9 +703,21 @@ export interface DividendProjection {
   isCustomYield: boolean
 }
 
+export interface GoalProgressSummary {
+  goalId: string
+  goalName: string
+  goalType: GoalType
+  targetAmountCents: number
+  currentAmountCents: number
+  progressPercent: number
+  remainingCents: number
+  onTrack: boolean
+  projectedCompletionDate: Date | null
+}
+
 export interface EnhancedInvestmentsResponse extends InvestmentsResponse {
   dividendProjections: DividendProjection[]
   totalAnnualDividendsCents: number
   totalMonthlyDividendsCents: number
-  goalProgress: GoalProgressResponse[]
+  goalProgress: GoalProgressSummary[]
 }

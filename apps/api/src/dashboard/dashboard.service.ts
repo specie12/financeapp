@@ -4,11 +4,13 @@ import { PlanLimitsService } from '../plan-limits/plan-limits.service'
 import {
   runProjection,
   generateAmortizationSchedule,
+  generateAmortizationScheduleWithExtras,
   type ProjectionInput,
   type ProjectionAsset,
   type ProjectionLiability,
   type ProjectionCashFlowItem,
   type Cents,
+  type ExtraPayment,
 } from '@finance-app/finance-engine'
 import type {
   NetWorthResponse,
@@ -23,7 +25,13 @@ import type {
   InvestmentsResponse,
   HoldingSummary,
   PortfolioSummary,
+  LoanSimulationRequest,
+  LoanSimulationResponse,
+  EnhancedInvestmentsResponse,
+  DividendProjection,
+  GoalProgressSummary,
 } from './types'
+import type { AssetType } from '@finance-app/shared-types'
 import Decimal from 'decimal.js'
 
 @Injectable()
@@ -311,6 +319,274 @@ export class DashboardService {
     }
 
     return { summary, holdings }
+  }
+
+  async getEnhancedInvestments(householdId: string): Promise<EnhancedInvestmentsResponse> {
+    // Get base investments data
+    const baseResponse = await this.getInvestments(householdId)
+
+    // Get investment assets with dividend yield info
+    const investmentAssets = await this.prisma.asset.findMany({
+      where: {
+        householdId,
+        type: { in: ['investment', 'retirement_account', 'real_estate', 'bank_account'] },
+      },
+      orderBy: { currentValueCents: 'desc' },
+    })
+
+    // Default dividend yields by asset type
+    const defaultYields: Record<string, number> = {
+      investment: 2,
+      retirement_account: 2,
+      real_estate: 4,
+      bank_account: 4,
+      crypto: 0,
+      vehicle: 0,
+      other: 0,
+    }
+
+    // Calculate dividend projections
+    const dividendProjections: DividendProjection[] = investmentAssets.map((asset) => {
+      const yieldPercent = asset.dividendYieldPercent
+        ? Number(asset.dividendYieldPercent)
+        : (defaultYields[asset.type] ?? 0)
+      const annualDividendCents = Math.round(
+        (asset.currentValueCents * yieldPercent) / 100,
+      ) as Cents
+      const monthlyDividendCents = Math.round(annualDividendCents / 12) as Cents
+
+      return {
+        assetId: asset.id,
+        assetName: asset.name,
+        assetType: asset.type as AssetType,
+        valueCents: asset.currentValueCents as Cents,
+        yieldPercent,
+        annualDividendCents,
+        monthlyDividendCents,
+        isCustomYield: asset.dividendYieldPercent !== null,
+      }
+    })
+
+    const totalAnnualDividendsCents = dividendProjections.reduce(
+      (sum, p) => sum + p.annualDividendCents,
+      0,
+    ) as Cents
+    const totalMonthlyDividendsCents = dividendProjections.reduce(
+      (sum, p) => sum + p.monthlyDividendCents,
+      0,
+    ) as Cents
+
+    // Get goals with investment-related types
+    const goals = await this.prisma.goal.findMany({
+      where: {
+        householdId,
+        type: { in: ['net_worth_target', 'savings_target'] },
+        status: 'active',
+      },
+    })
+
+    const goalProgress: GoalProgressSummary[] = goals.map((goal) => {
+      const progressPercent =
+        goal.targetAmountCents > 0
+          ? new Decimal(goal.currentAmountCents)
+              .dividedBy(goal.targetAmountCents)
+              .times(100)
+              .toDecimalPlaces(1)
+              .toNumber()
+          : 0
+
+      const remainingCents = Math.max(0, goal.targetAmountCents - goal.currentAmountCents) as Cents
+
+      // Calculate projected completion date based on current investment growth
+      let projectedCompletionDate: Date | null = null
+      let onTrack = false
+
+      if (goal.targetDate) {
+        const now = new Date()
+        const targetDate = new Date(goal.targetDate)
+        const daysRemaining = Math.max(
+          0,
+          Math.ceil((targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+        )
+
+        if (daysRemaining > 0 && remainingCents > 0) {
+          // Estimate monthly savings needed
+          const monthsRemaining = daysRemaining / 30
+          const monthlySavingsNeeded = remainingCents / monthsRemaining
+
+          // If monthly dividends cover at least 50% of needed savings, consider on track
+          onTrack = totalMonthlyDividendsCents >= monthlySavingsNeeded * 0.5
+          projectedCompletionDate = targetDate
+        } else if (remainingCents === 0) {
+          onTrack = true
+        }
+      }
+
+      return {
+        goalId: goal.id,
+        goalName: goal.name,
+        goalType: goal.type as 'net_worth_target' | 'savings_target' | 'debt_freedom',
+        targetAmountCents: goal.targetAmountCents as Cents,
+        currentAmountCents: goal.currentAmountCents as Cents,
+        progressPercent,
+        remainingCents,
+        onTrack,
+        projectedCompletionDate,
+      }
+    })
+
+    return {
+      ...baseResponse,
+      dividendProjections,
+      totalAnnualDividendsCents,
+      totalMonthlyDividendsCents,
+      goalProgress,
+    }
+  }
+
+  async simulateLoanPayoff(
+    householdId: string,
+    loanId: string,
+    request: LoanSimulationRequest,
+  ): Promise<LoanSimulationResponse> {
+    const liability = await this.prisma.liability.findFirst({
+      where: { id: loanId, householdId },
+    })
+
+    if (!liability) {
+      throw new NotFoundException('Loan not found')
+    }
+
+    const termMonths = liability.termMonths ?? 360
+    const principalCents = liability.currentBalanceCents as Cents
+    const interestRate = Number(liability.interestRatePercent)
+    const startDate = new Date()
+
+    // Generate original schedule
+    const originalSchedule = generateAmortizationSchedule({
+      principalCents,
+      annualInterestRatePercent: interestRate,
+      termMonths,
+      startDate,
+    })
+
+    // Build extra payments array based on request
+    const extraPayments: ExtraPayment[] = []
+
+    // Add recurring monthly extra payments
+    if (request.extraMonthlyPaymentCents > 0) {
+      for (let i = 1; i <= termMonths; i++) {
+        extraPayments.push({
+          paymentNumber: i,
+          amountCents: request.extraMonthlyPaymentCents as Cents,
+        })
+      }
+    }
+
+    // Add one-time payment
+    if (request.oneTimePaymentCents > 0 && request.oneTimePaymentMonth > 0) {
+      extraPayments.push({
+        paymentNumber: request.oneTimePaymentMonth,
+        amountCents: request.oneTimePaymentCents as Cents,
+      })
+    }
+
+    // Handle bi-weekly payments
+    // Bi-weekly = 26 payments per year, which equals an extra monthly payment
+    if (request.useBiweekly) {
+      // Bi-weekly adds the equivalent of 1 extra monthly payment per year
+      // distributed across all months (1/12 of monthly payment as extra each month)
+      const extraFromBiweekly = Math.round(originalSchedule.monthlyPaymentCents / 12) as Cents
+      for (let i = 1; i <= termMonths; i++) {
+        const existingExtra = extraPayments.find((p) => p.paymentNumber === i)
+        if (existingExtra) {
+          existingExtra.amountCents = (existingExtra.amountCents + extraFromBiweekly) as Cents
+        } else {
+          extraPayments.push({
+            paymentNumber: i,
+            amountCents: extraFromBiweekly,
+          })
+        }
+      }
+    }
+
+    // Generate modified schedule with extra payments
+    const modifiedSchedule = generateAmortizationScheduleWithExtras({
+      principalCents,
+      annualInterestRatePercent: interestRate,
+      termMonths,
+      startDate,
+      extraPayments,
+    })
+
+    // Calculate effective monthly payment for modified schedule
+    const modifiedEffectiveMonthly = (originalSchedule.monthlyPaymentCents +
+      request.extraMonthlyPaymentCents +
+      (request.useBiweekly ? Math.round(originalSchedule.monthlyPaymentCents / 12) : 0)) as Cents
+
+    // Build loan detail
+    const loan: LoanDetail = {
+      id: liability.id,
+      name: liability.name,
+      type: liability.type,
+      principalCents: liability.principalCents as Cents,
+      currentBalanceCents: liability.currentBalanceCents as Cents,
+      interestRatePercent: interestRate,
+      minimumPaymentCents: liability.minimumPaymentCents as Cents,
+      termMonths: liability.termMonths,
+      startDate: liability.startDate,
+      estimatedPayoffDate: originalSchedule.payoffDate,
+    }
+
+    // Convert schedules to response format
+    const mapScheduleEntry = (entry: {
+      paymentNumber: number
+      paymentDate: Date
+      beginningBalanceCents: Cents
+      scheduledPaymentCents: Cents
+      principalCents: Cents
+      interestCents: Cents
+      endingBalanceCents: Cents
+      cumulativePrincipalCents: Cents
+      cumulativeInterestCents: Cents
+    }): AmortizationEntry => ({
+      paymentNumber: entry.paymentNumber,
+      paymentDate: entry.paymentDate,
+      beginningBalanceCents: entry.beginningBalanceCents,
+      scheduledPaymentCents: entry.scheduledPaymentCents,
+      principalCents: entry.principalCents,
+      interestCents: entry.interestCents,
+      endingBalanceCents: entry.endingBalanceCents,
+      cumulativePrincipalCents: entry.cumulativePrincipalCents,
+      cumulativeInterestCents: entry.cumulativeInterestCents,
+    })
+
+    return {
+      loan,
+      original: {
+        monthlyPaymentCents: originalSchedule.monthlyPaymentCents,
+        totalPaymentsCents: originalSchedule.totalPaymentsCents,
+        totalInterestCents: originalSchedule.totalInterestCents,
+        payoffMonth: originalSchedule.actualPayoffMonth,
+        payoffDate: originalSchedule.payoffDate,
+      },
+      modified: {
+        monthlyPaymentCents: modifiedEffectiveMonthly,
+        totalPaymentsCents: modifiedSchedule.totalPaymentsCents,
+        totalInterestCents: modifiedSchedule.totalInterestCents,
+        payoffMonth: modifiedSchedule.actualPayoffMonth,
+        payoffDate: modifiedSchedule.payoffDate,
+      },
+      savings: {
+        interestSavedCents: (originalSchedule.totalInterestCents -
+          modifiedSchedule.totalInterestCents) as Cents,
+        monthsSaved: originalSchedule.actualPayoffMonth - modifiedSchedule.actualPayoffMonth,
+        totalSavedCents: (originalSchedule.totalPaymentsCents -
+          modifiedSchedule.totalPaymentsCents) as Cents,
+      },
+      originalSchedule: originalSchedule.schedule.map(mapScheduleEntry),
+      modifiedSchedule: modifiedSchedule.schedule.map(mapScheduleEntry),
+    }
   }
 
   private groupAssetsByType(

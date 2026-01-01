@@ -39,6 +39,9 @@ import type {
   LoansResponse,
   LoanAmortizationResponse,
   InvestmentsResponse,
+  EnhancedInvestmentsResponse,
+  LoanSimulationRequest,
+  LoanSimulationResponse,
   Scenario,
   CreateScenarioDto,
   UpdateScenarioDto,
@@ -484,6 +487,24 @@ export class ApiClient {
     getInvestments: async (): Promise<ApiResponse<InvestmentsResponse>> => {
       const response =
         await this.client.get<ApiResponse<InvestmentsResponse>>('/dashboard/investments')
+      return response.data
+    },
+
+    getEnhancedInvestments: async (): Promise<ApiResponse<EnhancedInvestmentsResponse>> => {
+      const response = await this.client.get<ApiResponse<EnhancedInvestmentsResponse>>(
+        '/dashboard/investments/enhanced',
+      )
+      return response.data
+    },
+
+    simulateLoanPayoff: async (
+      loanId: string,
+      request: LoanSimulationRequest,
+    ): Promise<ApiResponse<LoanSimulationResponse>> => {
+      const response = await this.client.post<ApiResponse<LoanSimulationResponse>>(
+        `/dashboard/loans/${loanId}/simulate`,
+        request,
+      )
       return response.data
     },
   }

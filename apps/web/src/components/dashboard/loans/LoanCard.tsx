@@ -33,7 +33,7 @@ export function LoanCard({ loan }: LoanCardProps) {
           </div>
           <Link href={`/dashboard/loans/${loan.id}`}>
             <Button variant="outline" size="sm">
-              View Schedule
+              Optimize
             </Button>
           </Link>
         </div>

@@ -1,14 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useLoanAmortization } from '@/hooks/useLoanAmortization'
+import { useLoanOptimization } from '@/hooks/useLoanOptimization'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { StatCard } from '@/components/dashboard/shared/StatCard'
-import { AmortizationTable } from '@/components/dashboard/loans'
+import { AmortizationTable, LoanOptimizationPanel } from '@/components/dashboard/loans'
 import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   formatCents,
   formatPercentPlain,
@@ -27,6 +29,22 @@ export default function LoanDetailPage() {
   }, [])
 
   const { data, isLoading, error, refetch } = useLoanAmortization(accessToken, loanId)
+  const { simulate } = useLoanOptimization(accessToken)
+
+  const handleSimulate = useCallback(
+    async (
+      id: string,
+      request: {
+        extraMonthlyPaymentCents: number
+        oneTimePaymentCents: number
+        oneTimePaymentMonth: number
+        useBiweekly: boolean
+      },
+    ) => {
+      return simulate(id, request)
+    },
+    [simulate],
+  )
 
   if (!accessToken) {
     return (
@@ -130,7 +148,18 @@ export default function LoanDetailPage() {
         />
       </div>
 
-      <AmortizationTable schedule={schedule} monthlyPaymentCents={monthlyPaymentCents} />
+      <Tabs defaultValue="optimize" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="optimize">Optimize Payoff</TabsTrigger>
+          <TabsTrigger value="schedule">Full Schedule</TabsTrigger>
+        </TabsList>
+        <TabsContent value="optimize" className="mt-6">
+          <LoanOptimizationPanel loan={loan} onSimulate={handleSimulate} />
+        </TabsContent>
+        <TabsContent value="schedule" className="mt-6">
+          <AmortizationTable schedule={schedule} monthlyPaymentCents={monthlyPaymentCents} />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

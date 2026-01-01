@@ -1,3 +1,6 @@
 export { LoansSummary } from './LoansSummary'
 export { LoanCard } from './LoanCard'
 export { AmortizationTable } from './AmortizationTable'
+export { LoanOptimizationPanel } from './LoanOptimizationPanel'
+export { InterestSavingsCard } from './InterestSavingsCard'
+export { PayoffComparisonChart } from './PayoffComparisonChart'

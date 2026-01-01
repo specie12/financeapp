@@ -1,3 +1,5 @@
 export * from './net-worth.types'
 export * from './loans.types'
 export * from './investments.types'
+export * from './loan-optimization.types'
+export * from './enhanced-investments.types'
