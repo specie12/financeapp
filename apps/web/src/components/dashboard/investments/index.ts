@@ -1,3 +1,5 @@
 export { PortfolioSummary } from './PortfolioSummary'
 export { HoldingsList } from './HoldingsList'
 export { AllocationChart } from './AllocationChart'
+export { DividendProjectionCard } from './DividendProjectionCard'
+export { InvestmentGoalsPanel } from './InvestmentGoalsPanel'

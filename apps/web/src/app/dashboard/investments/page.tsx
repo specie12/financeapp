@@ -1,10 +1,16 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useInvestments } from '@/hooks/useInvestments'
+import { useEnhancedInvestments } from '@/hooks/useEnhancedInvestments'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
-import { PortfolioSummary, HoldingsList, AllocationChart } from '@/components/dashboard/investments'
+import {
+  PortfolioSummary,
+  HoldingsList,
+  AllocationChart,
+  DividendProjectionCard,
+  InvestmentGoalsPanel,
+} from '@/components/dashboard/investments'
 
 export default function InvestmentsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -14,7 +20,7 @@ export default function InvestmentsPage() {
     setAccessToken(token)
   }, [])
 
-  const { data, isLoading, error, refetch } = useInvestments(accessToken)
+  const { data, isLoading, error, refetch } = useEnhancedInvestments(accessToken)
 
   if (!accessToken) {
     return (
@@ -67,10 +73,23 @@ export default function InvestmentsPage() {
           onboarding to see them here.
         </p>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <HoldingsList holdings={data.holdings} />
-          <AllocationChart holdings={data.holdings} />
-        </div>
+        <>
+          {/* Dividend & Goals Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DividendProjectionCard
+              projections={data.dividendProjections}
+              totalAnnualCents={data.totalAnnualDividendsCents}
+              totalMonthlyCents={data.totalMonthlyDividendsCents}
+            />
+            <InvestmentGoalsPanel goals={data.goalProgress} />
+          </div>
+
+          {/* Holdings & Allocation Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <HoldingsList holdings={data.holdings} />
+            <AllocationChart holdings={data.holdings} />
+          </div>
+        </>
       )}
     </div>
   )
