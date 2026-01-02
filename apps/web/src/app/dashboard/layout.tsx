@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { clearTokens, getAccessToken, createAuthenticatedApiClient } from '@/lib/auth'
 
 const navItems = [
   { href: '/dashboard/net-worth', label: 'Net Worth' },
@@ -14,6 +16,21 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    try {
+      const token = getAccessToken()
+      if (token) {
+        const apiClient = createAuthenticatedApiClient(token)
+        await apiClient.auth.logout()
+      }
+    } catch {
+      // Ignore errors - we're logging out anyway
+    }
+    clearTokens()
+    router.push('/login')
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,6 +54,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               ))}
             </nav>
+            <Button variant="ghost" onClick={handleSignOut}>
+              Sign Out
+            </Button>
           </div>
         </div>
       </header>

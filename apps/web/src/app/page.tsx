@@ -14,10 +14,10 @@ export default function Home() {
           Get Started
         </Link>
         <Link
-          href="/dashboard"
+          href="/login"
           className="rounded-lg border border-gray-300 px-6 py-3 font-medium hover:bg-gray-50 transition-colors"
         >
-          Go to Dashboard
+          Sign In
         </Link>
       </div>
     </main>

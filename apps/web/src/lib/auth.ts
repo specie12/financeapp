@@ -57,9 +57,9 @@ export function createAuthenticatedApiClient(accessToken: string | null): ApiCli
     onTokenRefresh: refreshAccessToken,
     onAuthError: () => {
       clearTokens()
-      // Redirect to onboarding/login
+      // Redirect to login
       if (typeof window !== 'undefined') {
-        window.location.href = '/onboarding'
+        window.location.href = '/login'
       }
     },
   })
