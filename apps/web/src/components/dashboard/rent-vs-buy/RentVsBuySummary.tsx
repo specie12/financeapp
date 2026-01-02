@@ -1,10 +1,10 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { RentVsBuyResult } from '@finance-app/finance-engine'
+import type { RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 interface RentVsBuySummaryProps {
-  result: RentVsBuyResult
+  result: RentVsBuyResultWithAffordability
 }
 
 function formatCurrency(cents: number): string {
@@ -16,7 +16,8 @@ function formatCurrency(cents: number): string {
 }
 
 export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
-  const { summary } = result
+  const { summary } = result.calculation
+  const projectionYears = result.calculation.input.projectionYears
   const isBuyBetter = summary.recommendation === 'buy'
   const isRentBetter = summary.recommendation === 'rent'
 
@@ -43,7 +44,7 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
         </CardHeader>
         <CardContent>
           <p className="text-center text-lg text-muted-foreground">
-            After {result.input.projectionYears} years, your net worth would be{' '}
+            After {projectionYears} years, your net worth would be{' '}
             <span className="font-bold">
               {formatCurrency(Math.abs(summary.netWorthAdvantageCents))}
             </span>{' '}
@@ -111,9 +112,7 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatCurrency(summary.totalRentCostsCents)}</p>
-            <p className="text-xs text-muted-foreground">
-              Over {result.input.projectionYears} years
-            </p>
+            <p className="text-xs text-muted-foreground">Over {projectionYears} years</p>
           </CardContent>
         </Card>
       </div>

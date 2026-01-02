@@ -5,8 +5,8 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import { rentVsBuyRequestSchema } from '@finance-app/validation'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
 import { Permission } from '../authorization/interfaces/permission.interface'
-import type { ApiResponse } from '@finance-app/shared-types'
-import type { RentVsBuyResult } from '@finance-app/finance-engine'
+import { CurrentUser } from '../auth/decorators/current-user.decorator'
+import type { ApiResponse, RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 @Controller('calculators')
 export class CalculatorsController {
@@ -14,10 +14,14 @@ export class CalculatorsController {
 
   @Post('rent-vs-buy')
   @RequirePermission(Permission.READ)
-  calculate(
+  async calculate(
+    @CurrentUser('householdId') householdId: string,
     @Body(new ZodValidationPipe(rentVsBuyRequestSchema)) dto: RentVsBuyDto,
-  ): ApiResponse<RentVsBuyResult> {
-    const result = this.calculatorsService.calculateRentVsBuy(dto)
+  ): Promise<ApiResponse<RentVsBuyResultWithAffordability>> {
+    const result = await this.calculatorsService.calculateRentVsBuyWithAffordability(
+      householdId,
+      dto,
+    )
     return {
       success: true,
       data: result,

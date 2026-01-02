@@ -48,8 +48,8 @@ import type {
   ScenarioProjectionResponse,
   ScenarioComparisonResponse,
   RentVsBuyRequest,
+  RentVsBuyResultWithAffordability,
 } from '@finance-app/shared-types'
-import type { RentVsBuyResult } from '@finance-app/finance-engine'
 
 // ============================================
 // Types
@@ -615,8 +615,10 @@ export class ApiClient {
   // ============================================
 
   calculators = {
-    rentVsBuy: async (request: RentVsBuyRequest): Promise<ApiResponse<RentVsBuyResult>> => {
-      const response = await this.client.post<ApiResponse<RentVsBuyResult>>(
+    rentVsBuy: async (
+      request: RentVsBuyRequest,
+    ): Promise<ApiResponse<RentVsBuyResultWithAffordability>> => {
+      const response = await this.client.post<ApiResponse<RentVsBuyResultWithAffordability>>(
         '/calculators/rent-vs-buy',
         request,
       )

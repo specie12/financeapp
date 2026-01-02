@@ -1,10 +1,9 @@
 import { useState, useCallback } from 'react'
 import { createApiClient } from '@finance-app/api-client'
-import type { RentVsBuyRequest } from '@finance-app/shared-types'
-import type { RentVsBuyResult } from '@finance-app/finance-engine'
+import type { RentVsBuyRequest, RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 interface UseRentVsBuyReturn {
-  result: RentVsBuyResult | null
+  result: RentVsBuyResultWithAffordability | null
   isLoading: boolean
   error: string | null
   calculate: (request: RentVsBuyRequest) => Promise<void>
@@ -12,7 +11,7 @@ interface UseRentVsBuyReturn {
 }
 
 export function useRentVsBuy(accessToken: string | null): UseRentVsBuyReturn {
-  const [result, setResult] = useState<RentVsBuyResult | null>(null)
+  const [result, setResult] = useState<RentVsBuyResultWithAffordability | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

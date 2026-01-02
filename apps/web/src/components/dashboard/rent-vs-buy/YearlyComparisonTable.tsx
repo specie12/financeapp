@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import type { RentVsBuyResult } from '@finance-app/finance-engine'
+import type { RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 interface YearlyComparisonTableProps {
-  result: RentVsBuyResult
+  result: RentVsBuyResultWithAffordability
 }
 
 function formatCurrency(cents: number): string {
@@ -19,7 +19,7 @@ function formatCurrency(cents: number): string {
 
 export function YearlyComparisonTable({ result }: YearlyComparisonTableProps) {
   const [showAll, setShowAll] = useState(false)
-  const { yearlyComparisons } = result
+  const { yearlyComparisons } = result.calculation
 
   const displayedYears = showAll ? yearlyComparisons : yearlyComparisons.slice(0, 6)
 

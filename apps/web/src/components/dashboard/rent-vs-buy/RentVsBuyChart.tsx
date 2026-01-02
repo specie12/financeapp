@@ -1,10 +1,10 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import type { RentVsBuyResult } from '@finance-app/finance-engine'
+import type { RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 interface RentVsBuyChartProps {
-  result: RentVsBuyResult
+  result: RentVsBuyResultWithAffordability
 }
 
 function formatCurrency(cents: number): string {
@@ -24,7 +24,7 @@ const COLORS = {
 }
 
 export function RentVsBuyChart({ result }: RentVsBuyChartProps) {
-  const { yearlyComparisons, summary } = result
+  const { yearlyComparisons, summary } = result.calculation
 
   if (yearlyComparisons.length === 0) {
     return null
@@ -86,7 +86,8 @@ export function RentVsBuyChart({ result }: RentVsBuyChartProps) {
       <CardHeader>
         <CardTitle>Net Worth Over Time</CardTitle>
         <CardDescription>
-          Comparison of your net worth if you buy vs rent over {result.input.projectionYears} years
+          Comparison of your net worth if you buy vs rent over{' '}
+          {result.calculation.input.projectionYears} years
         </CardDescription>
       </CardHeader>
       <CardContent>

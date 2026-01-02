@@ -9,6 +9,7 @@ import {
   RentVsBuySummary,
   RentVsBuyChart,
   YearlyComparisonTable,
+  AffordabilityCard,
 } from '@/components/dashboard/rent-vs-buy'
 
 export default function RentVsBuyPage() {
@@ -56,6 +57,8 @@ export default function RentVsBuyPage() {
             <h2 className="text-2xl font-bold mb-6">Results</h2>
             <RentVsBuySummary result={result} />
           </div>
+
+          <AffordabilityCard affordability={result.affordability} />
 
           <RentVsBuyChart result={result} />
 

@@ -617,6 +617,109 @@ export interface RentVsBuyRequest {
 }
 
 // ============================================
+// Affordability Analysis Types
+// ============================================
+
+export interface AffordabilityThresholds {
+  /** Maximum housing cost as percentage of gross income (default 28%) */
+  housingCostMaxPercent: number
+  /** Maximum total debt as percentage of gross income (default 36%) */
+  totalDebtMaxPercent: number
+  /** Maximum rent as percentage of gross income (default 30%) */
+  rentMaxPercent: number
+}
+
+export interface AffordabilityAnalysis {
+  /** Whether user has income data available */
+  hasIncomeData: boolean
+  /** Gross monthly income in cents */
+  grossMonthlyIncomeCents: number
+  /** Existing monthly debt payments in cents (excluding new mortgage) */
+  existingDebtPaymentsCents: number
+
+  // Buy scenario affordability
+  buy: {
+    /** Monthly housing cost (PITI + HOA) in cents */
+    monthlyHousingCostCents: number
+    /** Housing cost as percentage of income */
+    housingCostPercent: number
+    /** Is housing cost within 28% threshold */
+    isHousingAffordable: boolean
+    /** Total monthly debt (housing + existing) as percentage of income */
+    totalDebtPercent: number
+    /** Is total debt within 36% threshold */
+    isTotalDebtAffordable: boolean
+    /** Maximum affordable home price based on income */
+    maxAffordableHomePriceCents: number
+  }
+
+  // Rent scenario affordability
+  rent: {
+    /** Monthly rent cost in cents */
+    monthlyRentCents: number
+    /** Rent as percentage of income */
+    rentPercent: number
+    /** Is rent within 30% threshold */
+    isAffordable: boolean
+    /** Maximum affordable monthly rent based on income */
+    maxAffordableRentCents: number
+  }
+
+  /** Thresholds used for analysis */
+  thresholds: AffordabilityThresholds
+}
+
+export interface RentVsBuyResultWithAffordability {
+  /** Core rent vs buy calculation result */
+  calculation: {
+    input: RentVsBuyRequest
+    effectiveAssumptions: {
+      propertyAppreciationRatePercent: number
+      maintenanceRatePercent: number
+      propertyTaxRatePercent: number
+      marginalTaxRatePercent: number
+      investmentReturnRatePercent: number
+      rentIncreaseRatePercent: number
+      inflationRatePercent: number
+      sellingCostPercent: number
+    }
+    yearlyComparisons: Array<{
+      year: number
+      date: string
+      buyNetWorthCents: number
+      rentNetWorthCents: number
+      netWorthDifferenceCents: number
+      buyAnnualCostCents: number
+      rentAnnualCostCents: number
+      buyIsBetterThisYear: boolean
+    }>
+    summary: {
+      initialBuyCostsCents: number
+      initialRentCostsCents: number
+      totalBuyCostsCents: number
+      totalRentCostsCents: number
+      finalHomeEquityCents: number
+      finalInvestmentBalanceCents: number
+      finalBuyNetWorthCents: number
+      finalRentNetWorthCents: number
+      netWorthAdvantageCents: number
+      breakEvenYear: number | null
+      recommendation: 'buy' | 'rent' | 'neutral'
+      yearsBuyingIsBetter: number
+      yearsRentingIsBetter: number
+      totalMortgageInterestPaidCents: number
+      totalPropertyTaxesPaidCents: number
+      totalMaintenancePaidCents: number
+      totalTaxSavingsCents: number
+      totalRentPaidCents: number
+      totalInvestmentGainsCents: number
+    }
+  }
+  /** Affordability analysis based on user income */
+  affordability: AffordabilityAnalysis | null
+}
+
+// ============================================
 // Loan Optimization Types
 // ============================================
 
