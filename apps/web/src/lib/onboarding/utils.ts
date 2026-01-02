@@ -106,7 +106,7 @@ export function calculateTotalAssets(assets: AssetItem[]): number {
  * Calculate total liabilities balance
  */
 export function calculateTotalLiabilities(liabilities: LiabilityItem[]): number {
-  return liabilities.reduce((total, liability) => total + liability.balance, 0)
+  return liabilities.reduce((total, liability) => total + liability.currentBalance, 0)
 }
 
 /**

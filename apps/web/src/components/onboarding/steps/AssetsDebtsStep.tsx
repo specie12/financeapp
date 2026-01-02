@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -36,6 +36,84 @@ import { generateId, formatDollars, dollarsToCents } from '@/lib/onboarding/util
 import { ASSET_QUICK_ADD, LIABILITY_QUICK_ADD, type MonthlyExpenses } from '@/lib/onboarding/types'
 import { createApiClient } from '@finance-app/api-client'
 import type { AuthTokens, AssetType, LiabilityType } from '@finance-app/shared-types'
+
+// Default terms by liability type (in months)
+const DEFAULT_TERMS: Record<LiabilityType, number> = {
+  mortgage: 360, // 30 years
+  auto_loan: 60, // 5 years
+  student_loan: 120, // 10 years
+  credit_card: 60, // 5 years (payoff target)
+  personal_loan: 36, // 3 years
+  other: 60, // 5 years
+}
+
+// Default interest rates by liability type
+const DEFAULT_RATES: Record<LiabilityType, number> = {
+  mortgage: 6.5,
+  auto_loan: 7.5,
+  student_loan: 5.5,
+  credit_card: 22,
+  personal_loan: 12,
+  other: 10,
+}
+
+// Term options by type
+const MORTGAGE_TERMS = [
+  { value: 180, label: '15 years' },
+  { value: 240, label: '20 years' },
+  { value: 360, label: '30 years' },
+]
+
+const CREDIT_CARD_TARGETS = [
+  { value: 24, label: '2 years' },
+  { value: 36, label: '3 years' },
+  { value: 60, label: '5 years' },
+  { value: 84, label: '7 years' },
+]
+
+const AUTO_LOAN_TERMS = [
+  { value: 36, label: '3 years' },
+  { value: 48, label: '4 years' },
+  { value: 60, label: '5 years' },
+  { value: 72, label: '6 years' },
+]
+
+const STUDENT_LOAN_TERMS = [
+  { value: 120, label: '10 years' },
+  { value: 180, label: '15 years' },
+  { value: 240, label: '20 years' },
+  { value: 300, label: '25 years' },
+]
+
+const PERSONAL_LOAN_TERMS = [
+  { value: 24, label: '2 years' },
+  { value: 36, label: '3 years' },
+  { value: 48, label: '4 years' },
+  { value: 60, label: '5 years' },
+]
+
+// Helper to calculate monthly payment using PMT formula
+function calculateMonthlyPayment(
+  principal: number,
+  annualRate: number,
+  termMonths: number,
+): number {
+  if (termMonths <= 0 || principal <= 0) return 0
+  if (annualRate === 0) return Math.round((principal / termMonths) * 100) / 100
+
+  const monthlyRate = annualRate / 12 / 100
+  const payment =
+    (principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths))) /
+    (Math.pow(1 + monthlyRate, termMonths) - 1)
+  return Math.round(payment * 100) / 100
+}
+
+// Helper to calculate start date based on months paid
+function calculateStartDate(_termMonths: number, monthsPaid: number): Date {
+  const startDate = new Date()
+  startDate.setMonth(startDate.getMonth() - monthsPaid)
+  return startDate
+}
 
 const ASSET_TYPE_LABELS: Record<AssetType, string> = {
   real_estate: 'Real Estate',
@@ -94,6 +172,7 @@ export function AssetsDebtsStep({
 }: AssetsDebtsStepProps) {
   const [isAddingAsset, setIsAddingAsset] = useState(false)
   const [isAddingLiability, setIsAddingLiability] = useState(false)
+  const [timeInputMode, setTimeInputMode] = useState<'paid' | 'remaining'>('paid')
 
   const assetForm = useForm<Omit<AssetItem, 'id'>>({
     resolver: zodResolver(assetItemSchema.omit({ id: true })),
@@ -109,11 +188,60 @@ export function AssetsDebtsStep({
     defaultValues: {
       name: '',
       type: 'credit_card',
-      balance: 0,
-      interestRate: 0,
+      originalBalance: 0,
+      currentBalance: 0,
+      interestRate: DEFAULT_RATES.credit_card,
       minimumPayment: 0,
+      termMonths: DEFAULT_TERMS.credit_card,
+      monthsPaid: 0,
     },
   })
+
+  // Watch form values for auto-calculation
+  const watchedType = liabilityForm.watch('type')
+  const watchedCurrentBalance = liabilityForm.watch('currentBalance')
+  const watchedInterestRate = liabilityForm.watch('interestRate')
+  const watchedTermMonths = liabilityForm.watch('termMonths')
+  const watchedMonthsPaid = liabilityForm.watch('monthsPaid')
+
+  // Auto-calculate monthly payment when relevant fields change
+  useEffect(() => {
+    if (watchedCurrentBalance > 0 && watchedTermMonths && watchedTermMonths > 0) {
+      const remainingMonths = watchedTermMonths - (watchedMonthsPaid || 0)
+      if (remainingMonths > 0) {
+        const calculatedPayment = calculateMonthlyPayment(
+          watchedCurrentBalance,
+          watchedInterestRate || 0,
+          remainingMonths,
+        )
+        liabilityForm.setValue('minimumPayment', calculatedPayment)
+      }
+    }
+  }, [
+    watchedCurrentBalance,
+    watchedInterestRate,
+    watchedTermMonths,
+    watchedMonthsPaid,
+    liabilityForm,
+  ])
+
+  // Get term options based on liability type
+  const getTermOptions = useCallback((type: LiabilityType) => {
+    switch (type) {
+      case 'mortgage':
+        return MORTGAGE_TERMS
+      case 'credit_card':
+        return CREDIT_CARD_TARGETS
+      case 'auto_loan':
+        return AUTO_LOAN_TERMS
+      case 'student_loan':
+        return STUDENT_LOAN_TERMS
+      case 'personal_loan':
+        return PERSONAL_LOAN_TERMS
+      default:
+        return PERSONAL_LOAN_TERMS
+    }
+  }, [])
 
   const handleAddAsset = (data: Omit<AssetItem, 'id'>) => {
     onAddAsset({ ...data, id: generateId() })
@@ -134,9 +262,30 @@ export function AssetsDebtsStep({
   }
 
   const handleQuickAddLiability = (name: string, type: string) => {
+    const liabilityType = type as LiabilityType
     liabilityForm.setValue('name', name)
-    liabilityForm.setValue('type', type as LiabilityType)
+    liabilityForm.setValue('type', liabilityType)
+    liabilityForm.setValue('interestRate', DEFAULT_RATES[liabilityType])
+    liabilityForm.setValue('termMonths', DEFAULT_TERMS[liabilityType])
+    liabilityForm.setValue('monthsPaid', 0)
+    liabilityForm.setValue('originalBalance', 0)
+    liabilityForm.setValue('currentBalance', 0)
+    liabilityForm.setValue('minimumPayment', 0)
+    setTimeInputMode('paid')
     setIsAddingLiability(true)
+  }
+
+  // Handle type change to update defaults
+  const handleTypeChange = (newType: LiabilityType) => {
+    liabilityForm.setValue('type', newType)
+    liabilityForm.setValue('interestRate', DEFAULT_RATES[newType])
+    liabilityForm.setValue('termMonths', DEFAULT_TERMS[newType])
+    liabilityForm.setValue('monthsPaid', 0)
+    // For credit cards, original = current
+    if (newType === 'credit_card') {
+      const currentBalance = liabilityForm.getValues('currentBalance')
+      liabilityForm.setValue('originalBalance', currentBalance)
+    }
   }
 
   const handleFinish = async () => {
@@ -204,15 +353,20 @@ export function AssetsDebtsStep({
 
       // Create liabilities
       for (const liability of liabilities) {
+        const termMonths = liability.termMonths ?? DEFAULT_TERMS[liability.type]
+        const monthsPaid = liability.monthsPaid ?? 0
+        const startDate = calculateStartDate(termMonths, monthsPaid)
+
         promises.push(
           apiClient.liabilities.create({
             name: liability.name,
             type: liability.type,
-            principalCents: dollarsToCents(liability.balance),
-            currentBalanceCents: dollarsToCents(liability.balance),
+            principalCents: dollarsToCents(liability.originalBalance),
+            currentBalanceCents: dollarsToCents(liability.currentBalance),
             interestRatePercent: liability.interestRate,
             minimumPaymentCents: dollarsToCents(liability.minimumPayment),
-            startDate: new Date(),
+            termMonths: termMonths,
+            startDate: startDate,
           }),
         )
       }
@@ -410,30 +564,55 @@ export function AssetsDebtsStep({
 
           {liabilities.length > 0 && (
             <div className="space-y-2 mb-3">
-              {liabilities.map((liability, index) => (
-                <Card key={liability.id}>
-                  <CardContent className="py-2 px-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{liability.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {LIABILITY_TYPE_LABELS[liability.type]} -{' '}
-                          {formatDollars(liability.balance)} at {liability.interestRate}%
-                        </p>
+              {liabilities.map((liability, index) => {
+                const paidOffPercent =
+                  liability.originalBalance > 0
+                    ? ((liability.originalBalance - liability.currentBalance) /
+                        liability.originalBalance) *
+                      100
+                    : 0
+                const remainingMonths = (liability.termMonths ?? 0) - (liability.monthsPaid ?? 0)
+
+                return (
+                  <Card key={liability.id}>
+                    <CardContent className="py-2 px-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium">{liability.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {LIABILITY_TYPE_LABELS[liability.type]} -{' '}
+                            {formatDollars(liability.currentBalance)}
+                            {liability.originalBalance !== liability.currentBalance && (
+                              <span> of {formatDollars(liability.originalBalance)}</span>
+                            )}{' '}
+                            at {liability.interestRate}%
+                          </p>
+                          {paidOffPercent > 0 && (
+                            <p className="text-xs text-green-600">
+                              {paidOffPercent.toFixed(1)}% paid off
+                              {remainingMonths > 0 && ` • ${remainingMonths} months remaining`}
+                            </p>
+                          )}
+                          {remainingMonths > 0 && paidOffPercent === 0 && (
+                            <p className="text-xs text-muted-foreground">
+                              {remainingMonths} months remaining
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRemoveLiability(index)}
+                          className="text-destructive"
+                        >
+                          Remove
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onRemoveLiability(index)}
-                        className="text-destructive"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
 
@@ -445,27 +624,31 @@ export function AssetsDebtsStep({
                     onSubmit={liabilityForm.handleSubmit(handleAddLiability)}
                     className="space-y-3"
                   >
-                    <FormField
-                      control={liabilityForm.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Debt Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Chase Credit Card" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    {/* Name and Type */}
                     <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={liabilityForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Debt Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="e.g., Chase Credit Card" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                       <FormField
                         control={liabilityForm.control}
                         name="type"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select
+                              onValueChange={(value) => handleTypeChange(value as LiabilityType)}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue />
@@ -483,18 +666,27 @@ export function AssetsDebtsStep({
                           </FormItem>
                         )}
                       />
+                    </div>
+
+                    {/* Balance fields - different for credit cards */}
+                    {watchedType === 'credit_card' ? (
                       <FormField
                         control={liabilityForm.control}
-                        name="balance"
+                        name="currentBalance"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Balance ($)</FormLabel>
+                            <FormLabel>Current Balance ($)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
                                 placeholder="0"
                                 value={field.value || ''}
-                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0
+                                  field.onChange(value)
+                                  // For credit cards, original = current
+                                  liabilityForm.setValue('originalBalance', value)
+                                }}
                                 onBlur={field.onBlur}
                                 name={field.name}
                                 ref={field.ref}
@@ -504,7 +696,153 @@ export function AssetsDebtsStep({
                           </FormItem>
                         )}
                       />
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={liabilityForm.control}
+                          name="originalBalance"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Original Loan Amount ($)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={liabilityForm.control}
+                          name="currentBalance"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Current Balance ($)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={field.value || ''}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                  onBlur={field.onBlur}
+                                  name={field.name}
+                                  ref={field.ref}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    {/* Term and Time fields */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <FormField
+                        control={liabilityForm.control}
+                        name="termMonths"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>
+                              {watchedType === 'credit_card' ? 'Payoff Target' : 'Loan Term'}
+                            </FormLabel>
+                            <Select
+                              onValueChange={(value) => field.onChange(parseInt(value))}
+                              value={
+                                field.value?.toString() || DEFAULT_TERMS[watchedType].toString()
+                              }
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {getTermOptions(watchedType).map((option) => (
+                                  <SelectItem key={option.value} value={option.value.toString()}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Months paid/remaining - hide for credit cards */}
+                      {watchedType !== 'credit_card' && (
+                        <div className="space-y-2">
+                          <div className="flex gap-2 text-sm">
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="radio"
+                                checked={timeInputMode === 'paid'}
+                                onChange={() => setTimeInputMode('paid')}
+                                className="h-3 w-3"
+                              />
+                              Months paid
+                            </label>
+                            <label className="flex items-center gap-1 cursor-pointer">
+                              <input
+                                type="radio"
+                                checked={timeInputMode === 'remaining'}
+                                onChange={() => setTimeInputMode('remaining')}
+                                className="h-3 w-3"
+                              />
+                              Remaining
+                            </label>
+                          </div>
+                          <FormField
+                            control={liabilityForm.control}
+                            name="monthsPaid"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={watchedTermMonths || 360}
+                                    placeholder="0"
+                                    value={
+                                      timeInputMode === 'paid'
+                                        ? field.value || ''
+                                        : (watchedTermMonths || 0) - (field.value || 0) || ''
+                                    }
+                                    onChange={(e) => {
+                                      const value = parseInt(e.target.value) || 0
+                                      if (timeInputMode === 'paid') {
+                                        field.onChange(value)
+                                      } else {
+                                        field.onChange((watchedTermMonths || 0) - value)
+                                      }
+                                    }}
+                                    onBlur={field.onBlur}
+                                    name={field.name}
+                                    ref={field.ref}
+                                  />
+                                </FormControl>
+                                <p className="text-xs text-muted-foreground">
+                                  {timeInputMode === 'paid'
+                                    ? `${(watchedTermMonths || 0) - (field.value || 0)} months remaining`
+                                    : `${field.value || 0} months already paid`}
+                                </p>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
                     </div>
+
+                    {/* Interest Rate and Monthly Payment */}
                     <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={liabilityForm.control}
@@ -533,11 +871,11 @@ export function AssetsDebtsStep({
                         name="minimumPayment"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Min Payment ($)</FormLabel>
+                            <FormLabel>Monthly Payment ($)</FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
-                                placeholder="0"
+                                placeholder="Auto-calculated"
                                 value={field.value || ''}
                                 onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                                 onBlur={field.onBlur}
@@ -545,11 +883,15 @@ export function AssetsDebtsStep({
                                 ref={field.ref}
                               />
                             </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                              Auto-calculated, edit if needed
+                            </p>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
+
                     <div className="flex gap-2">
                       <Button type="submit" size="sm">
                         Add Debt
@@ -561,6 +903,7 @@ export function AssetsDebtsStep({
                         onClick={() => {
                           liabilityForm.reset()
                           setIsAddingLiability(false)
+                          setTimeInputMode('paid')
                         }}
                       >
                         Cancel

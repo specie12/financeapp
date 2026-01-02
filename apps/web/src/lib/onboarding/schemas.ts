@@ -76,9 +76,12 @@ export const liabilityItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Name is required'),
   type: liabilityTypeSchema,
-  balance: z.number().positive('Balance must be positive'),
+  originalBalance: z.number().positive('Original balance must be positive'),
+  currentBalance: z.number().positive('Current balance must be positive'),
   interestRate: z.number().min(0, 'Rate cannot be negative').max(100, 'Rate cannot exceed 100%'),
   minimumPayment: z.number().min(0, 'Payment cannot be negative'),
+  termMonths: z.number().min(1).max(600).optional(), // Up to 50 years
+  monthsPaid: z.number().min(0).optional(),
 })
 
 export const assetsDebtsStepSchema = z.object({
