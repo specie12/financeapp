@@ -4,7 +4,12 @@ import { type CreateGoalDto } from './dto/create-goal.dto'
 import { type UpdateGoalDto } from './dto/update-goal.dto'
 import { type GoalQueryDto } from './dto/goal-query.dto'
 import { type Goal, type GoalType, type GoalStatus } from '@prisma/client'
-import { type GoalProgressResponse } from '@finance-app/shared-types'
+import {
+  type GoalProgressResponse,
+  type GoalProgressWithInsights,
+  type GoalMilestone,
+  type GoalInsights,
+} from '@finance-app/shared-types'
 
 interface PaginatedResult<T> {
   data: T[]
@@ -216,5 +221,121 @@ export class GoalsService {
     })
 
     return Promise.all(goals.map((goal) => this.getProgress(goal.id, householdId)))
+  }
+
+  /**
+   * Calculate monthly savings rate from cash flow items
+   */
+  private async calculateMonthlySavingsRate(householdId: string): Promise<number> {
+    const cashFlowItems = await this.prisma.cashFlowItem.findMany({
+      where: { householdId },
+    })
+
+    let monthlyIncome = 0
+    let monthlyExpenses = 0
+
+    for (const item of cashFlowItems) {
+      // Convert to monthly amount based on frequency
+      let monthlyAmount = item.amountCents
+      switch (item.frequency) {
+        case 'weekly':
+          monthlyAmount = (item.amountCents * 52) / 12
+          break
+        case 'biweekly':
+          monthlyAmount = (item.amountCents * 26) / 12
+          break
+        case 'monthly':
+          monthlyAmount = item.amountCents
+          break
+        case 'quarterly':
+          monthlyAmount = item.amountCents / 3
+          break
+        case 'annually':
+          monthlyAmount = item.amountCents / 12
+          break
+        case 'one_time':
+          monthlyAmount = 0 // One-time items don't contribute to monthly rate
+          break
+      }
+
+      if (item.type === 'income') {
+        monthlyIncome += monthlyAmount
+      } else {
+        monthlyExpenses += monthlyAmount
+      }
+    }
+
+    return Math.round(monthlyIncome - monthlyExpenses)
+  }
+
+  /**
+   * Calculate milestone status for a goal
+   */
+  private calculateMilestones(progressPercent: number): GoalMilestone[] {
+    const milestonePercents: Array<25 | 50 | 75 | 100> = [25, 50, 75, 100]
+    return milestonePercents.map((percent) => ({
+      percent,
+      reached: progressPercent >= percent,
+    }))
+  }
+
+  /**
+   * Get goal progress with additional insights
+   */
+  async getProgressWithInsights(
+    id: string,
+    householdId: string,
+  ): Promise<GoalProgressWithInsights> {
+    const progress = await this.getProgress(id, householdId)
+    const currentMonthlySavingsRateCents = await this.calculateMonthlySavingsRate(householdId)
+
+    // Calculate months to goal based on current savings rate
+    let monthsToGoal: number | null = null
+    let monthlySavingsNeededCents = 0
+    let isAheadOfSchedule = false
+
+    if (progress.remainingAmountCents > 0) {
+      // Calculate monthly savings needed based on target date
+      if (progress.daysRemaining !== null && progress.daysRemaining > 0) {
+        const monthsRemaining = progress.daysRemaining / 30.44 // Average days per month
+        monthlySavingsNeededCents = Math.ceil(progress.remainingAmountCents / monthsRemaining)
+
+        // Check if ahead of schedule
+        if (currentMonthlySavingsRateCents > 0) {
+          isAheadOfSchedule = currentMonthlySavingsRateCents >= monthlySavingsNeededCents
+        }
+      }
+
+      // Calculate months to goal at current savings rate
+      if (currentMonthlySavingsRateCents > 0) {
+        monthsToGoal = Math.ceil(progress.remainingAmountCents / currentMonthlySavingsRateCents)
+      }
+    }
+
+    const milestones = this.calculateMilestones(progress.progressPercent)
+
+    const insights: GoalInsights = {
+      monthlySavingsNeededCents,
+      currentMonthlySavingsRateCents,
+      milestones,
+      isAheadOfSchedule,
+      monthsToGoal,
+    }
+
+    return {
+      ...progress,
+      insights,
+    }
+  }
+
+  /**
+   * Get all goals with insights
+   */
+  async getAllProgressWithInsights(householdId: string): Promise<GoalProgressWithInsights[]> {
+    const goals = await this.prisma.goal.findMany({
+      where: { householdId, status: 'active' },
+    })
+
+    return Promise.all(goals.map((goal) => this.getProgressWithInsights(goal.id, householdId)))
   }
 }

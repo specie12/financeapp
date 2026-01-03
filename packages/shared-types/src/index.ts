@@ -580,6 +580,24 @@ export interface GoalProgressResponse {
   daysRemaining: number | null
 }
 
+// Goal Insights Types
+export interface GoalMilestone {
+  percent: 25 | 50 | 75 | 100
+  reached: boolean
+}
+
+export interface GoalInsights {
+  monthlySavingsNeededCents: number
+  currentMonthlySavingsRateCents: number
+  milestones: GoalMilestone[]
+  isAheadOfSchedule: boolean
+  monthsToGoal: number | null
+}
+
+export interface GoalProgressWithInsights extends GoalProgressResponse {
+  insights: GoalInsights
+}
+
 // ============================================
 // Rent vs Buy Calculator Types
 // ============================================

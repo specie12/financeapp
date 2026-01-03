@@ -19,6 +19,7 @@ import type {
   CreateGoalDto,
   UpdateGoalDto,
   GoalProgressResponse,
+  GoalProgressWithInsights,
   ApiResponse,
   ApiErrorResponse,
   PaginatedResponse,
@@ -606,6 +607,19 @@ export class ApiClient {
 
     getAllProgress: async (): Promise<ApiResponse<GoalProgressResponse[]>> => {
       const response = await this.client.get<ApiResponse<GoalProgressResponse[]>>('/goals/progress')
+      return response.data
+    },
+
+    getInsights: async (id: string): Promise<ApiResponse<GoalProgressWithInsights>> => {
+      const response = await this.client.get<ApiResponse<GoalProgressWithInsights>>(
+        `/goals/${id}/insights`,
+      )
+      return response.data
+    },
+
+    getAllInsights: async (): Promise<ApiResponse<GoalProgressWithInsights[]>> => {
+      const response =
+        await this.client.get<ApiResponse<GoalProgressWithInsights[]>>('/goals/insights')
       return response.data
     },
   }

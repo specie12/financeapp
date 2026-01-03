@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNetWorth } from '@/hooks/useNetWorth'
+import { useGoals } from '@/hooks/useGoals'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import {
@@ -10,6 +11,7 @@ import {
   LiabilityBreakdown,
   NetWorthProjection,
 } from '@/components/dashboard/net-worth'
+import { GoalsSummaryCard, MilestoneCelebration } from '@/components/dashboard/goals'
 
 export default function NetWorthPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -21,6 +23,7 @@ export default function NetWorthPage() {
   }, [])
 
   const { data, isLoading, error, refetch } = useNetWorth(accessToken, 5)
+  const { goals } = useGoals(accessToken)
 
   if (!accessToken) {
     return (
@@ -76,6 +79,14 @@ export default function NetWorthPage() {
       </div>
 
       <NetWorthProjection projection={data.projection} />
+
+      {/* Net Worth Goals */}
+      {goals.length > 0 && (
+        <GoalsSummaryCard goals={goals} title="Net Worth Goals" filterType="net_worth_target" />
+      )}
+
+      {/* Milestone Celebration Dialog */}
+      <MilestoneCelebration goals={goals} />
     </div>
   )
 }

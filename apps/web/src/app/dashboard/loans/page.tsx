@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useLoans } from '@/hooks/useLoans'
+import { useGoals } from '@/hooks/useGoals'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { LoansSummary, LoanCard } from '@/components/dashboard/loans'
+import { GoalsSummaryCard, MilestoneCelebration } from '@/components/dashboard/goals'
 
 export default function LoansPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -15,6 +17,7 @@ export default function LoansPage() {
   }, [])
 
   const { data, isLoading, error, refetch } = useLoans(accessToken)
+  const { goals } = useGoals(accessToken)
 
   if (!accessToken) {
     return (
@@ -72,6 +75,14 @@ export default function LoansPage() {
           ))}
         </div>
       )}
+
+      {/* Debt Freedom Goals */}
+      {goals.length > 0 && (
+        <GoalsSummaryCard goals={goals} title="Debt Freedom Goals" filterType="debt_freedom" />
+      )}
+
+      {/* Milestone Celebration Dialog */}
+      <MilestoneCelebration goals={goals} />
     </div>
   )
 }

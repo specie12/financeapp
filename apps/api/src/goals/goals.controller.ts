@@ -25,6 +25,7 @@ import {
   type ApiResponse,
   type PaginatedResponse,
   type GoalProgressResponse,
+  type GoalProgressWithInsights,
 } from '@finance-app/shared-types'
 import { type Goal } from '@prisma/client'
 
@@ -77,6 +78,18 @@ export class GoalsController {
     }
   }
 
+  @Get('insights')
+  @RequirePermission(Permission.READ)
+  async getAllInsights(
+    @CurrentUser('householdId') householdId: string,
+  ): Promise<ApiResponse<GoalProgressWithInsights[]>> {
+    const insights = await this.goalsService.getAllProgressWithInsights(householdId)
+    return {
+      success: true,
+      data: insights,
+    }
+  }
+
   @Get(':id')
   @RequirePermission(Permission.READ)
   @ResourceId({ type: ResourceType.GOAL, idParam: 'id' })
@@ -102,6 +115,20 @@ export class GoalsController {
     return {
       success: true,
       data: progress,
+    }
+  }
+
+  @Get(':id/insights')
+  @RequirePermission(Permission.READ)
+  @ResourceId({ type: ResourceType.GOAL, idParam: 'id' })
+  async getInsights(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser('householdId') householdId: string,
+  ): Promise<ApiResponse<GoalProgressWithInsights>> {
+    const insights = await this.goalsService.getProgressWithInsights(id, householdId)
+    return {
+      success: true,
+      data: insights,
     }
   }
 
