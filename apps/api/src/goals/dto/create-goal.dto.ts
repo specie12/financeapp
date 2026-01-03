@@ -6,4 +6,5 @@ export class CreateGoalDto implements CreateGoalInput {
   targetAmountCents!: number
   targetDate?: Date | null
   linkedLiabilityId?: string | null
+  linkedAssetIds?: string[]
 }

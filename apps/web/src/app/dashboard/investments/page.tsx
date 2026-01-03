@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useEnhancedInvestments } from '@/hooks/useEnhancedInvestments'
+import { useGoals } from '@/hooks/useGoals'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import {
@@ -9,8 +10,8 @@ import {
   HoldingsList,
   AllocationChart,
   DividendProjectionCard,
-  InvestmentGoalsPanel,
 } from '@/components/dashboard/investments'
+import { GoalsSummaryCard } from '@/components/dashboard/goals'
 
 export default function InvestmentsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -21,6 +22,7 @@ export default function InvestmentsPage() {
   }, [])
 
   const { data, isLoading, error, refetch } = useEnhancedInvestments(accessToken)
+  const { goals } = useGoals(accessToken)
 
   if (!accessToken) {
     return (
@@ -81,7 +83,7 @@ export default function InvestmentsPage() {
               totalAnnualCents={data.totalAnnualDividendsCents}
               totalMonthlyCents={data.totalMonthlyDividendsCents}
             />
-            <InvestmentGoalsPanel goals={data.goalProgress} />
+            <GoalsSummaryCard goals={goals} title="Investment Goals" filterType="savings_target" />
           </div>
 
           {/* Holdings & Allocation Section */}

@@ -9,11 +9,11 @@ import { AssetList } from '@/components/settings/finances/AssetList'
 import { LiabilityList } from '@/components/settings/finances/LiabilityList'
 import { CashFlowList } from '@/components/settings/finances/CashFlowList'
 import { GoalList } from '@/components/settings/finances/GoalList'
-import type { Goal } from '@finance-app/shared-types'
+import type { GoalProgressResponse } from '@finance-app/shared-types'
 
 export default function SettingsFinancesPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [goals, setGoals] = useState<Goal[]>([])
+  const [goals, setGoals] = useState<GoalProgressResponse[]>([])
   const [goalsLoading, setGoalsLoading] = useState(true)
 
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function SettingsFinancesPage() {
     setGoalsLoading(true)
     try {
       const apiClient = createAuthenticatedApiClient(accessToken)
-      const response = await apiClient.goals.list({ limit: 100 })
+      const response = await apiClient.goals.getAllProgress()
       setGoals(response.data)
     } catch (err) {
       console.error('Failed to fetch goals:', err)

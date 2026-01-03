@@ -8,4 +8,5 @@ export class UpdateGoalDto implements UpdateGoalInput {
   targetDate?: Date | null
   status?: GoalStatus
   linkedLiabilityId?: string | null
+  linkedAssetIds?: string[]
 }

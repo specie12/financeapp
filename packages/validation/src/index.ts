@@ -205,6 +205,7 @@ export const createGoalSchema = z.object({
   targetAmountCents: z.number().int().positive('Target amount must be positive'),
   targetDate: z.coerce.date().nullable().optional(),
   linkedLiabilityId: z.string().uuid('Invalid liability ID').nullable().optional(),
+  linkedAssetIds: z.array(z.string().uuid('Invalid asset ID')).optional(),
 })
 
 export const updateGoalSchema = z.object({
@@ -219,6 +220,7 @@ export const updateGoalSchema = z.object({
   targetDate: z.coerce.date().nullable().optional(),
   status: goalStatusSchema.optional(),
   linkedLiabilityId: z.string().uuid('Invalid liability ID').nullable().optional(),
+  linkedAssetIds: z.array(z.string().uuid('Invalid asset ID')).optional(),
 })
 
 // ============================================

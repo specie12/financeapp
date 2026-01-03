@@ -31,6 +31,7 @@ export class GoalsService {
         targetAmountCents: dto.targetAmountCents,
         targetDate: dto.targetDate ?? null,
         linkedLiabilityId: dto.linkedLiabilityId ?? null,
+        linkedAssetIds: dto.linkedAssetIds ?? [],
       },
     })
   }
@@ -98,6 +99,7 @@ export class GoalsService {
         ...(dto.targetDate !== undefined && { targetDate: dto.targetDate }),
         ...(dto.status !== undefined && { status: dto.status as GoalStatus }),
         ...(dto.linkedLiabilityId !== undefined && { linkedLiabilityId: dto.linkedLiabilityId }),
+        ...(dto.linkedAssetIds !== undefined && { linkedAssetIds: dto.linkedAssetIds }),
       },
       include: {
         linkedLiability: true,
@@ -134,15 +136,28 @@ export class GoalsService {
       currentAmountCents =
         (assets._sum.currentValueCents ?? 0) - (liabilities._sum.currentBalanceCents ?? 0)
     } else if (goal.type === 'savings_target') {
-      // Calculate total savings (bank accounts + investments)
-      const savings = await this.prisma.asset.aggregate({
-        where: {
-          householdId,
-          type: { in: ['bank_account', 'investment'] },
-        },
-        _sum: { currentValueCents: true },
-      })
-      currentAmountCents = savings._sum.currentValueCents ?? 0
+      // Calculate savings from linked assets if specified, otherwise all savings accounts
+      if (goal.linkedAssetIds && goal.linkedAssetIds.length > 0) {
+        // Sum only the linked assets
+        const savings = await this.prisma.asset.aggregate({
+          where: {
+            householdId,
+            id: { in: goal.linkedAssetIds },
+          },
+          _sum: { currentValueCents: true },
+        })
+        currentAmountCents = savings._sum.currentValueCents ?? 0
+      } else {
+        // Fallback: sum all bank accounts + investments
+        const savings = await this.prisma.asset.aggregate({
+          where: {
+            householdId,
+            type: { in: ['bank_account', 'investment'] },
+          },
+          _sum: { currentValueCents: true },
+        })
+        currentAmountCents = savings._sum.currentValueCents ?? 0
+      }
     } else if (goal.type === 'debt_freedom' && goal.linkedLiabilityId) {
       // For debt freedom, current amount is how much has been paid off
       const liability = await this.prisma.liability.findUnique({
@@ -204,6 +219,7 @@ export class GoalsService {
         targetDate: goal.targetDate,
         status: goal.status as 'active' | 'achieved' | 'paused',
         linkedLiabilityId: goal.linkedLiabilityId,
+        linkedAssetIds: goal.linkedAssetIds,
         createdAt: goal.createdAt,
         updatedAt: goal.updatedAt,
       },

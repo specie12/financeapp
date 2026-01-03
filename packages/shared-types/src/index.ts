@@ -549,6 +549,7 @@ export interface Goal {
   targetDate: Date | null
   status: GoalStatus
   linkedLiabilityId: string | null
+  linkedAssetIds: string[]
   createdAt: Date
   updatedAt: Date
 }
@@ -559,6 +560,7 @@ export interface CreateGoalDto {
   targetAmountCents: number
   targetDate?: Date | null
   linkedLiabilityId?: string | null
+  linkedAssetIds?: string[]
 }
 
 export interface UpdateGoalDto {
@@ -569,6 +571,7 @@ export interface UpdateGoalDto {
   targetDate?: Date | null
   status?: GoalStatus
   linkedLiabilityId?: string | null
+  linkedAssetIds?: string[]
 }
 
 export interface GoalProgressResponse {

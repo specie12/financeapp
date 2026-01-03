@@ -389,6 +389,7 @@ model Goal {
   status             GoalStatus  @default(active)
   linkedLiabilityId  String?     @map("linked_liability_id") @db.Uuid
   linkedLiability    Liability?  @relation(fields: [linkedLiabilityId], references: [id], onDelete: SetNull)
+  linkedAssetIds     String[]    @default([]) @map("linked_asset_ids") @db.Uuid
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

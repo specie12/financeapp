@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { Goal, GoalType, CreateGoalDto, Liability } from '@finance-app/shared-types'
+import type { Goal, GoalType, CreateGoalDto, Liability, Asset } from '@finance-app/shared-types'
 import { createAuthenticatedApiClient } from '@/lib/auth'
 import {
   Dialog,
@@ -56,25 +56,32 @@ export function GoalModal({ open, onOpenChange, goal, onSuccess, accessToken }: 
   const [targetAmount, setTargetAmount] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [linkedLiabilityId, setLinkedLiabilityId] = useState<string | null>(null)
+  const [linkedAssetIds, setLinkedAssetIds] = useState<string[]>([])
   const [liabilities, setLiabilities] = useState<Liability[]>([])
+  const [assets, setAssets] = useState<Asset[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch liabilities for debt freedom goals
+  // Fetch liabilities and assets when modal opens
   useEffect(() => {
-    const fetchLiabilities = async () => {
+    const fetchData = async () => {
       if (!accessToken) return
       try {
         const apiClient = createAuthenticatedApiClient(accessToken)
-        const response = await apiClient.liabilities.list({ limit: 100 })
-        setLiabilities(response.data)
+        const [liabilitiesRes, assetsRes] = await Promise.all([
+          apiClient.liabilities.list({ limit: 100 }),
+          apiClient.assets.list({ limit: 100 }),
+        ])
+        setLiabilities(liabilitiesRes.data)
+        // Filter to only bank accounts and investments for savings goals
+        setAssets(assetsRes.data.filter((a) => ['bank_account', 'investment'].includes(a.type)))
       } catch (err) {
-        console.error('Failed to fetch liabilities:', err)
+        console.error('Failed to fetch data:', err)
       }
     }
 
     if (open) {
-      fetchLiabilities()
+      fetchData()
     }
   }, [accessToken, open])
 
@@ -85,12 +92,14 @@ export function GoalModal({ open, onOpenChange, goal, onSuccess, accessToken }: 
       setTargetAmount((goal.targetAmountCents / 100).toString())
       setTargetDate(goal.targetDate ? new Date(goal.targetDate).toISOString().slice(0, 10) : '')
       setLinkedLiabilityId(goal.linkedLiabilityId)
+      setLinkedAssetIds(goal.linkedAssetIds || [])
     } else {
       setName('')
       setType('savings_target')
       setTargetAmount('')
       setTargetDate('')
       setLinkedLiabilityId(null)
+      setLinkedAssetIds([])
     }
     setError(null)
   }, [goal, open])
@@ -124,6 +133,7 @@ export function GoalModal({ open, onOpenChange, goal, onSuccess, accessToken }: 
         targetAmountCents: Math.round(amountNum * 100),
         targetDate: targetDate ? new Date(targetDate) : null,
         linkedLiabilityId: type === 'debt_freedom' ? linkedLiabilityId : null,
+        linkedAssetIds: type === 'savings_target' ? linkedAssetIds : [],
       }
 
       if (isEditing && goal) {
@@ -150,6 +160,13 @@ export function GoalModal({ open, onOpenChange, goal, onSuccess, accessToken }: 
       // Set target to principal amount (total debt to pay off)
       setTargetAmount((liability.principalCents / 100).toString())
     }
+  }
+
+  // Toggle asset selection for savings goals
+  const handleAssetToggle = (assetId: string) => {
+    setLinkedAssetIds((prev) =>
+      prev.includes(assetId) ? prev.filter((id) => id !== assetId) : [...prev, assetId],
+    )
   }
 
   return (
@@ -203,6 +220,39 @@ export function GoalModal({ open, onOpenChange, goal, onSuccess, accessToken }: 
                 required
               />
             </div>
+
+            {type === 'savings_target' && assets.length > 0 && (
+              <div className="grid gap-2">
+                <Label>Select Accounts to Track (Optional)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  Choose specific accounts to track, or leave empty to track all savings
+                </p>
+                <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                  {assets.map((asset) => (
+                    <label
+                      key={asset.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={linkedAssetIds.includes(asset.id)}
+                        onChange={() => handleAssetToggle(asset.id)}
+                        className="rounded border-gray-300"
+                      />
+                      <span className="flex-1">{asset.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ${(asset.currentValueCents / 100).toLocaleString()}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {linkedAssetIds.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {linkedAssetIds.length} account{linkedAssetIds.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+              </div>
+            )}
 
             {type === 'debt_freedom' && (
               <div className="grid gap-2">

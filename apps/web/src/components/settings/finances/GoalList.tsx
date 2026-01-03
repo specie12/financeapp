@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { Goal, GoalType } from '@finance-app/shared-types'
+import type { Goal, GoalType, GoalProgressResponse } from '@finance-app/shared-types'
 import { createAuthenticatedApiClient } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -10,7 +10,7 @@ import { GoalModal } from './GoalModal'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 
 interface GoalListProps {
-  goals: Goal[]
+  goals: GoalProgressResponse[]
   onRefresh: () => void
   accessToken: string | null
 }
@@ -24,24 +24,24 @@ const GOAL_TYPE_LABELS: Record<GoalType, string> = {
 export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
-  const [deletingGoal, setDeletingGoal] = useState<Goal | null>(null)
+  const [deletingGoal, setDeletingGoal] = useState<GoalProgressResponse | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
 
   // Group goals by type
   const goalsByType = goals.reduce(
-    (acc, goal) => {
-      const type = goal.type
+    (acc, item) => {
+      const type = item.goal.type
       if (!acc[type]) {
         acc[type] = []
       }
-      acc[type].push(goal)
+      acc[type].push(item)
       return acc
     },
-    {} as Record<GoalType, Goal[]>,
+    {} as Record<GoalType, GoalProgressResponse[]>,
   )
 
-  const activeGoals = goals.filter((g) => g.status === 'active')
-  const achievedGoals = goals.filter((g) => g.status === 'achieved')
+  const activeGoals = goals.filter((g) => g.goal.status === 'active')
+  const achievedGoals = goals.filter((g) => g.goal.status === 'achieved')
 
   const handleEdit = (goal: Goal) => {
     setEditingGoal(goal)
@@ -59,7 +59,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
     setIsDeleting(true)
     try {
       const apiClient = createAuthenticatedApiClient(accessToken)
-      await apiClient.goals.delete(deletingGoal.id)
+      await apiClient.goals.delete(deletingGoal.goal.id)
       onRefresh()
       setDeletingGoal(null)
     } catch (err) {
@@ -72,11 +72,6 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
   const handleModalSuccess = () => {
     onRefresh()
     setEditingGoal(null)
-  }
-
-  const calculateProgress = (goal: Goal): number => {
-    if (goal.targetAmountCents <= 0) return 0
-    return Math.min(100, Math.round((goal.currentAmountCents / goal.targetAmountCents) * 100))
   }
 
   const formatTargetDate = (date: Date | null): string => {
@@ -112,8 +107,8 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
                 {GOAL_TYPE_LABELS[type as GoalType] || type}
               </h4>
               <div className="space-y-2">
-                {typeGoals.map((goal) => {
-                  const progress = calculateProgress(goal)
+                {typeGoals.map((item) => {
+                  const { goal, progressPercent } = item
                   const isAchieved = goal.status === 'achieved'
 
                   return (
@@ -137,7 +132,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
                             variant="ghost"
                             size="sm"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => setDeletingGoal(goal)}
+                            onClick={() => setDeletingGoal(item)}
                           >
                             Delete
                           </Button>
@@ -154,15 +149,15 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
                             className={
                               isAchieved
                                 ? 'text-green-600 font-medium'
-                                : progress >= 75
+                                : progressPercent >= 75
                                   ? 'text-blue-600'
                                   : 'text-muted-foreground'
                             }
                           >
-                            {progress}%{isAchieved && ' - Achieved!'}
+                            {progressPercent}%{isAchieved && ' - Achieved!'}
                           </span>
                         </div>
-                        <Progress value={progress} className="h-2" />
+                        <Progress value={progressPercent} className="h-2" />
                       </div>
                     </div>
                   )
@@ -185,7 +180,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
         open={!!deletingGoal}
         onOpenChange={(open) => !open && setDeletingGoal(null)}
         title="Delete Goal"
-        description={`Are you sure you want to delete "${deletingGoal?.name}"? This action cannot be undone.`}
+        description={`Are you sure you want to delete "${deletingGoal?.goal.name}"? This action cannot be undone.`}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
       />

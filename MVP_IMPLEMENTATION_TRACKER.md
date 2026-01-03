@@ -7,21 +7,23 @@
 ## Table of Contents
 
 1. [Implementation Status Overview](#implementation-status-overview)
-2. [Flow 1: Financial Data Management](#flow-1-financial-data-management) ← **START HERE**
+2. [Flow 1: Financial Data Management](#flow-1-financial-data-management) ← COMPLETE
 3. [Flow 2: Bank Connection (Plaid Integration)](#flow-2-bank-connection-plaid-integration) ← Later
-4. [Database Schema Changes](#database-schema-changes)
-5. [File Locations Reference](#file-locations-reference)
-6. [How to Resume](#how-to-resume)
-7. [Completed Features (Archive)](#completed-features-archive)
+4. [Flow 3: Goals Feature Fixes](#flow-3-goals-feature-fixes) ← **CURRENT**
+5. [Database Schema Changes](#database-schema-changes)
+6. [File Locations Reference](#file-locations-reference)
+7. [How to Resume](#how-to-resume)
+8. [Completed Features (Archive)](#completed-features-archive)
 
 ---
 
 ## Implementation Status Overview
 
-| Flow                      | Status      | Progress | Priority |
-| ------------------------- | ----------- | -------- | -------- |
-| Financial Data Management | ✅ COMPLETE | 100%     | DONE     |
-| Bank Connection (Plaid)   | ⏸️ DEFERRED | 0%       | Later    |
+| Flow                      | Status         | Progress | Priority |
+| ------------------------- | -------------- | -------- | -------- |
+| Financial Data Management | ✅ COMPLETE    | 100%     | DONE     |
+| Bank Connection (Plaid)   | ⏸️ DEFERRED    | 0%       | Later    |
+| Goals Feature Fixes       | 🔧 IN PROGRESS | 0%       | HIGH     |
 
 **Note**: Bank Connection (Plaid) is deferred until Plaid API credentials are set up.
 
@@ -457,8 +459,158 @@ Sign up → Select country → Connect accounts OR manual setup → Set goals �
 
 ---
 
+---
+
+## Flow 3: Goals Feature Fixes
+
+### Status: 🔧 IN PROGRESS | **PRIORITY: HIGH**
+
+### Issues Identified
+
+| Issue                                     | Description                                                                                  | Root Cause                                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| 1. Asset linking for savings goals        | Users can't select which account to track for savings goals (emergency fund, vacation, etc.) | Only `linkedLiabilityId` exists; no `linkedAssetId` field                                |
+| 2. Goals not visible in Settings          | After creating goals in Settings, they don't appear in the list                              | Settings uses `goals.list()` which returns stale data; should use `getAllProgress()`     |
+| 3. Edit/Delete not working properly       | Goals should be editable/deletable                                                           | Refresh logic may have issues after CRUD operations                                      |
+| 4. Investment goals progress not updating | Progress bars in Investment page don't reflect goal changes                                  | InvestmentGoalsPanel uses separate `GoalProgressSummary` from `getEnhancedInvestments()` |
+
+### Implementation Phases
+
+#### Phase 3A: Add Asset Linking to Goals ⬜
+
+**Goal**: Allow savings_target goals to link to a specific asset/account
+
+**Database Changes**:
+
+- [ ] Add `linkedAssetId` field to Goal model in `schema.prisma`
+- [ ] Run migration: `pnpm db:migrate`
+
+**Backend Changes**:
+
+- [ ] Update `CreateGoalDto` to include `linkedAssetId`
+- [ ] Update `UpdateGoalDto` to include `linkedAssetId`
+- [ ] Update validation schema in `packages/validation/src/index.ts`
+- [ ] Update `goals.service.ts` `getProgress()` to calculate from linked asset if present
+
+**Frontend Changes**:
+
+- [ ] Update `GoalModal.tsx` to show asset selector for `savings_target` goals
+- [ ] Fetch assets list and display in dropdown
+- [ ] Update `CreateGoalDto` type in shared-types
+
+**Key Files**:
+
+```
+apps/api/prisma/schema.prisma
+apps/api/src/goals/dto/create-goal.dto.ts
+apps/api/src/goals/dto/update-goal.dto.ts
+apps/api/src/goals/goals.service.ts (lines 136-145)
+apps/web/src/components/settings/finances/GoalModal.tsx
+packages/shared-types/src/index.ts (CreateGoalDto, Goal)
+packages/validation/src/index.ts (createGoalSchema)
+```
+
+#### Phase 3B: Fix Goals Display in Settings ⬜
+
+**Goal**: Goals should appear in Settings list after creation
+
+**Root Cause**: Settings page uses `goals.list()` which returns basic Goal objects with stale `currentAmountCents`. Should use `getAllProgress()` for calculated values.
+
+**Changes**:
+
+- [ ] Update `apps/web/src/app/dashboard/settings/page.tsx`:
+  - Change `apiClient.goals.list()` to `apiClient.goals.getAllProgress()`
+  - Update state type from `Goal[]` to `GoalProgressResponse[]`
+- [ ] Update `GoalList.tsx` props to accept `GoalProgressResponse[]`
+- [ ] Use calculated `progressPercent` instead of manual calculation
+
+**Key Files**:
+
+```
+apps/web/src/app/dashboard/settings/page.tsx (lines 27-39)
+apps/web/src/components/settings/finances/GoalList.tsx
+```
+
+#### Phase 3C: Verify Edit/Delete Functionality ⬜
+
+**Goal**: Ensure goals can be edited and deleted properly
+
+**Verification**:
+
+- [ ] Verify `GoalModal.tsx` correctly populates form when editing
+- [ ] Verify `apiClient.goals.update()` is called on edit
+- [ ] Verify `apiClient.goals.delete()` is called on delete
+- [ ] Verify `onRefresh()` is called after both operations
+- [ ] Test refresh properly updates the list
+
+**Key Files**:
+
+```
+apps/web/src/components/settings/finances/GoalList.tsx (handleEdit, handleDelete)
+apps/web/src/components/settings/finances/GoalModal.tsx (handleSubmit)
+```
+
+#### Phase 3D: Fix Investment Goals Panel ⬜
+
+**Goal**: Investment page goal cards should reflect real-time progress
+
+**Root Cause**: `InvestmentGoalsPanel` uses `GoalProgressSummary[]` from `getEnhancedInvestments()` which may have stale data or different calculation logic.
+
+**Option A - Use Goals API (Recommended)**:
+
+- [ ] Update `InvestmentGoalsPanel` to use `useGoals` hook directly
+- [ ] Filter for relevant goal types (savings_target, net_worth_target)
+- [ ] Use `GoalProgressWithInsights` for consistent progress display
+
+**Option B - Fix Dashboard Service**:
+
+- [ ] Update `dashboard.service.ts` `getEnhancedInvestments()` to call `goalsService.getAllProgress()`
+- [ ] Ensure same calculation logic is used
+
+**Key Files**:
+
+```
+apps/web/src/components/dashboard/investments/InvestmentGoalsPanel.tsx
+apps/web/src/app/dashboard/investments/page.tsx
+apps/api/src/dashboard/dashboard.service.ts (lines 388-436)
+apps/web/src/hooks/useGoals.ts
+```
+
+### Key Files Summary
+
+```
+MODIFIED FILES:
+apps/api/prisma/schema.prisma                          # Add linkedAssetId
+apps/api/src/goals/dto/create-goal.dto.ts              # Add linkedAssetId
+apps/api/src/goals/dto/update-goal.dto.ts              # Add linkedAssetId
+apps/api/src/goals/goals.service.ts                    # Update progress calc
+apps/web/src/app/dashboard/settings/page.tsx           # Use getAllProgress
+apps/web/src/app/dashboard/investments/page.tsx        # Fix goals panel
+apps/web/src/components/settings/finances/GoalList.tsx # Accept progress data
+apps/web/src/components/settings/finances/GoalModal.tsx # Add asset selector
+apps/web/src/components/dashboard/investments/InvestmentGoalsPanel.tsx
+packages/shared-types/src/index.ts                      # Update types
+packages/validation/src/index.ts                        # Update schema
+```
+
+### How to Resume
+
+If Claude gets stuck, provide this prompt:
+
+```
+Please read MVP_IMPLEMENTATION_TRACKER.md and look at Flow 3: Goals Feature Fixes.
+Resume from the last incomplete task marked with ⬜.
+Current issues:
+1. Asset linking for savings goals (Phase 3A)
+2. Goals not visible in Settings (Phase 3B)
+3. Edit/Delete verification (Phase 3C)
+4. Investment goals panel fix (Phase 3D)
+```
+
+---
+
 ## Last Updated
 
-- **Date**: January 2, 2026
-- **Status**: Flow 1 (Financial Data Management) COMPLETE
-- **Next Action**: Flow 2 (Bank Connection) when Plaid API keys are available
+- **Date**: January 3, 2026
+- **Status**: Flow 3 (Goals Feature Fixes) IN PROGRESS
+- **Next Action**: Complete Phase 3A-3D fixes
