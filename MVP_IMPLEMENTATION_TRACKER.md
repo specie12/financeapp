@@ -1,293 +1,217 @@
 # MVP Implementation Tracker
 
-> **Purpose**: This document tracks all MVP implementation progress. If Claude gets stuck or context is lost, refer to this document to resume from where we stopped.
+> **Purpose**: This document tracks implementation progress. If Claude gets stuck or context is lost, refer to this document to resume.
 
 ---
 
 ## Table of Contents
 
 1. [Implementation Status Overview](#implementation-status-overview)
-2. [Flow 1: Onboarding](#flow-1-onboarding)
-3. [Flow 2: Mortgage vs Rent (Rent vs Buy)](#flow-2-mortgage-vs-rent-rent-vs-buy)
-4. [Flow 3: Loan Optimization](#flow-3-loan-optimization)
-5. [Flow 4: Investment Overview](#flow-4-investment-overview)
-6. [Commit Strategy](#commit-strategy)
-7. [File Locations Reference](#file-locations-reference)
+2. [Flow 1: Financial Data Management](#flow-1-financial-data-management) ← **START HERE**
+3. [Flow 2: Bank Connection (Plaid Integration)](#flow-2-bank-connection-plaid-integration) ← Later
+4. [Database Schema Changes](#database-schema-changes)
+5. [File Locations Reference](#file-locations-reference)
+6. [How to Resume](#how-to-resume)
+7. [Completed Features (Archive)](#completed-features-archive)
 
 ---
 
 ## Implementation Status Overview
 
-| Flow                | Status      | Progress | Last Commit                     |
-| ------------------- | ----------- | -------- | ------------------------------- |
-| Onboarding          | ✅ COMPLETE | 100%     | a798df0                         |
-| Rent vs Buy         | ✅ COMPLETE | 100%     | dd68e89                         |
-| Loan Optimization   | ✅ COMPLETE | 100%     | (uncommitted - ready to commit) |
-| Investment Overview | ✅ COMPLETE | 100%     | (uncommitted - ready to commit) |
+| Flow                      | Status      | Progress | Priority |
+| ------------------------- | ----------- | -------- | -------- |
+| Financial Data Management | ✅ COMPLETE | 100%     | DONE     |
+| Bank Connection (Plaid)   | ⏸️ DEFERRED | 0%       | Later    |
+
+**Note**: Bank Connection (Plaid) is deferred until Plaid API credentials are set up.
 
 ---
 
-## Flow 1: Onboarding
+## Flow 1: Financial Data Management
 
 ### Status: ✅ COMPLETE
+
+### Goal
+
+Allow users to edit, add, and delete assets, debts, income, and expenses after initial onboarding setup.
 
 ### Flow Description
 
 ```
-Sign up → Select country → Connect accounts OR manual setup → Set goals → Land on Net Worth Dashboard
+User goes to Settings → Manages Finances tab →
+Sees list of assets/liabilities/income/expenses →
+Can edit (modal), add new, or delete existing items
 ```
 
-### Implemented Steps
+### Implementation Phases
 
-- [x] Step 1: Account Registration (Sign Up)
-- [x] Step 2: Country Selection (US, UK, CA)
-- [x] Step 3: Account Connection (Manual setup available, Bank "Coming Soon")
-- [x] Step 4: Set Financial Goals
-- [x] Step 5: Income Information
-- [x] Step 6: Monthly Expenses
-- [x] Step 7: Assets & Debts
-- [x] Step 8: Completion → Dashboard redirect
+#### Phase 1A: Settings Page Structure ✅
+
+- [x] Create `apps/web/src/app/dashboard/settings/page.tsx`
+- [x] Create `apps/web/src/app/dashboard/settings/layout.tsx`
+- [x] Add Settings link to dashboard navigation
+- [x] Create settings tabs navigation
+
+#### Phase 1B: UI Components ✅
+
+- [x] Add `dialog.tsx` component (Radix UI Dialog)
+- [x] Add `alert-dialog.tsx` component (confirmation dialogs)
+- [x] Add `badge.tsx` component (status badges)
+
+#### Phase 1C: Asset Management ✅
+
+- [x] Create `AssetList.tsx` - List all assets with edit/delete buttons
+- [x] Create `AssetModal.tsx` - Modal form for adding/editing
+- [x] Implement delete with confirmation via `DeleteConfirmDialog`
+
+#### Phase 1D: Liability Management ✅
+
+- [x] Create `LiabilityList.tsx` - List all liabilities with edit/delete
+- [x] Create `LiabilityModal.tsx` - Modal form for adding/editing
+- [x] Implement delete with confirmation
+- [x] Include loan calculation helpers (auto-calculate payment)
+
+#### Phase 1E: Cash Flow Management ✅
+
+- [x] Create `CashFlowList.tsx` - List income and expenses
+- [x] Create `CashFlowModal.tsx` - Modal for adding/editing
+- [x] Implement delete with confirmation
+- [x] Group by type (income vs expense)
+
+#### Phase 1F: Integration & Polish ✅
+
+- [x] Add refetch after create/update/delete
+- [x] Add loading states
+- [x] Handle empty states
+- [x] TypeScript compilation verified
 
 ### Key Files
 
-- `apps/web/src/app/onboarding/page.tsx` - Main entry
-- `apps/web/src/components/onboarding/OnboardingWizard.tsx` - Wizard component
-- `apps/web/src/hooks/useOnboarding.ts` - State management
-- `apps/web/src/components/onboarding/steps/` - All step components
+```
+NEW FILES:
+apps/web/src/app/dashboard/settings/
+├── page.tsx
+├── layout.tsx
+└── finances/
+    └── page.tsx
 
-### Future Enhancements (Post-MVP)
+apps/web/src/components/settings/
+├── SettingsNav.tsx
+└── finances/
+    ├── FinanceDataManager.tsx
+    ├── AssetList.tsx
+    ├── LiabilityList.tsx
+    ├── CashFlowList.tsx
+    ├── EditAssetModal.tsx
+    ├── EditLiabilityModal.tsx
+    ├── EditCashFlowModal.tsx
+    ├── AddItemModal.tsx
+    ├── DeleteConfirmDialog.tsx
+    └── LinkedBadge.tsx
 
-- [ ] Bank account connection via Plaid
-- [ ] Progress recovery on page refresh
-- [ ] Session persistence for draft data
+apps/web/src/components/ui/
+├── dialog.tsx
+├── alert-dialog.tsx
+└── badge.tsx
+
+apps/web/src/hooks/useFinanceManagement.ts
+
+MODIFIED FILES:
+apps/web/src/app/dashboard/layout.tsx (add Settings nav link)
+```
+
+### Form Reuse Strategy
+
+Extract form logic from `AssetsDebtsStep.tsx` for reuse:
+
+- Asset form fields: name, type, value, growth rate, dividend yield
+- Liability form fields: name, type, original balance, current balance, interest rate, minimum payment, term
+- Cash flow form fields: name, type, amount, frequency, start/end date
 
 ---
 
-## Flow 2: Mortgage vs Rent (Rent vs Buy)
+## Database Schema Changes
 
-### Status: ✅ COMPLETE (Uncommitted files)
+### New Models (For Future Plaid Integration)
 
-### Flow Description
+```prisma
+enum PlaidConnectionStatus {
+  pending
+  connected
+  error
+  disconnected
+}
 
-```
-Enter mortgage terms → Enter rent details → Adjust assumptions → See results
-```
+enum DataSource {
+  manual
+  plaid
+}
 
-### Features Implemented
+model BankConnection {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  householdId        String                 @map("household_id") @db.Uuid
+  household          Household              @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  institutionId      String                 @map("institution_id")
+  institutionName    String                 @map("institution_name")
+  accessTokenHash    String                 @map("access_token_hash")
+  itemId             String                 @unique @map("item_id")
+  status             PlaidConnectionStatus  @default(connected)
+  lastSyncAt         DateTime?              @map("last_sync_at")
+  errorCode          String?                @map("error_code")
+  errorMessage       String?                @map("error_message")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+  linkedAccounts     LinkedAccount[]
 
-- [x] Buy scenario inputs (home price, down payment, interest rate, loan term, closing costs, insurance, HOA, property tax, maintenance)
-- [x] Rent scenario inputs (monthly rent, security deposit, renters insurance, rent increase rate)
-- [x] Advanced assumptions (8 configurable: appreciation, investment return, inflation, taxes, etc.)
-- [x] Results: Monthly cost comparison
-- [x] Results: 5-30 year projection chart
-- [x] Results: Net worth impact visualization
-- [x] Results: Year-by-year comparison table
-- [x] Key insights (opportunity cost, tax savings, equity buildup)
-- [x] Break-even year calculation
+  @@index([householdId])
+  @@map("bank_connections")
+}
 
-### Key Files (UNCOMMITTED)
+model LinkedAccount {
+  id                    String           @id @default(uuid()) @db.Uuid
+  bankConnectionId      String           @map("bank_connection_id") @db.Uuid
+  bankConnection        BankConnection   @relation(fields: [bankConnectionId], references: [id], onDelete: Cascade)
+  plaidAccountId        String           @map("plaid_account_id")
+  accountName           String           @map("account_name")
+  accountMask           String?          @map("account_mask")
+  accountType           String           @map("account_type")
+  accountSubtype        String?          @map("account_subtype")
+  assetId               String?          @unique @map("asset_id") @db.Uuid
+  asset                 Asset?           @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  liabilityId           String?          @unique @map("liability_id") @db.Uuid
+  liability             Liability?       @relation(fields: [liabilityId], references: [id], onDelete: SetNull)
+  currentBalanceCents   Int              @map("current_balance_cents")
+  availableBalanceCents Int?             @map("available_balance_cents")
+  lastBalanceUpdateAt   DateTime         @map("last_balance_update_at")
+  isManualOverride      Boolean          @default(false) @map("is_manual_override")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
 
-```
-apps/api/src/calculators/
-├── calculators.module.ts
-├── calculators.controller.ts
-├── calculators.service.ts
-└── rent-vs-buy.dto.ts
-
-apps/web/src/app/dashboard/rent-vs-buy/
-└── page.tsx
-
-apps/web/src/components/dashboard/rent-vs-buy/
-├── index.ts
-├── RentVsBuyForm.tsx
-├── RentVsBuySummary.tsx
-├── RentVsBuyChart.tsx
-└── YearlyComparisonTable.tsx
-
-apps/web/src/hooks/useRentVsBuy.ts
-packages/api-client/src/index.ts (modified)
-apps/api/src/app.module.ts (modified)
-apps/web/src/app/dashboard/layout.tsx (modified)
-```
-
-### ACTION NEEDED
-
-- [ ] **COMMIT**: All rent-vs-buy files are ready to commit
-
----
-
-## Flow 3: Loan Optimization
-
-### Status: ✅ COMPLETE
-
-### Flow Description
-
-```
-View loans → Simulate extra payments → See interest saved + payoff timeline
-```
-
-### Implemented Features
-
-- [x] Loans page with loan cards (`apps/web/src/app/dashboard/loans/page.tsx`)
-- [x] Loans summary component (`LoansSummary.tsx`)
-- [x] Individual loan cards (`LoanCard.tsx`)
-- [x] Amortization table (`AmortizationTable.tsx`)
-- [x] Backend endpoints: GET /dashboard/loans, GET /dashboard/loans/:id/amortization
-- [x] Finance engine: `generateAmortizationScheduleWithExtras()`, `analyzeEarlyPayoff()`, `calculateInterestSaved()`
-
-#### Phase 3A: Extra Payment Simulation UI ✅
-
-- [x] Create `LoanOptimizationPanel.tsx` component
-  - Extra monthly payment input slider
-  - One-time extra payment input
-  - Bi-weekly payment toggle
-- [x] Create `PayoffComparisonChart.tsx` component
-  - Compare original vs accelerated payoff timeline
-  - Show interest saved visually
-- [x] Create `InterestSavingsCard.tsx` component
-  - Total interest saved
-  - Time saved (months/years)
-  - New payoff date
-
-#### Phase 3B: Backend Enhancement ✅
-
-- [x] Add endpoint: POST /dashboard/loans/:id/simulate
-  - Input: extra payment amount, one-time payment, bi-weekly toggle
-  - Output: new amortization schedule, interest saved, new payoff date
-- [x] Add types for simulation request/response in shared-types
-
-#### Phase 3C: Integration ✅
-
-- [x] Create `useLoanOptimization.ts` hook
-- [x] Update loan detail page with tabs (Optimize Payoff / Full Schedule)
-- [x] Added tabs component using @radix-ui/react-tabs
-
-### Key Files (UNCOMMITTED)
-
-```
-CREATED:
-- apps/web/src/components/dashboard/loans/LoanOptimizationPanel.tsx ✅
-- apps/web/src/components/dashboard/loans/PayoffComparisonChart.tsx ✅
-- apps/web/src/components/dashboard/loans/InterestSavingsCard.tsx ✅
-- apps/web/src/hooks/useLoanOptimization.ts ✅
-- apps/api/src/dashboard/types/loan-optimization.types.ts ✅
-- apps/web/src/components/ui/tabs.tsx ✅
-
-MODIFIED:
-- apps/api/src/dashboard/dashboard.controller.ts (added simulate endpoint) ✅
-- apps/api/src/dashboard/dashboard.service.ts (added simulate logic) ✅
-- apps/web/src/app/dashboard/loans/[id]/page.tsx (added tabs + optimization panel) ✅
-- apps/web/src/components/dashboard/loans/index.ts (exports) ✅
-- packages/api-client/src/index.ts (added simulateLoanPayoff method) ✅
-- packages/shared-types/src/index.ts (added LoanSimulation types) ✅
+  @@unique([bankConnectionId, plaidAccountId])
+  @@map("linked_accounts")
+}
 ```
 
----
+### Modifications to Existing Models (When Adding Plaid)
 
-## Flow 4: Investment Overview
+Add to `Asset`:
 
-### Status: ✅ COMPLETE
-
-### Flow Description
-
-```
-View portfolio → See allocation → See projected dividend income → Compare vs goals
+```prisma
+dataSource    DataSource    @default(manual) @map("data_source")
+linkedAccount LinkedAccount?
 ```
 
-### Implemented Features
+Add to `Liability`:
 
-- [x] Investments page with portfolio summary (`apps/web/src/app/dashboard/investments/page.tsx`)
-- [x] Portfolio summary cards (`PortfolioSummary.tsx`)
-- [x] Holdings list (`HoldingsList.tsx`)
-- [x] Allocation pie chart (`AllocationChart.tsx`)
-- [x] Backend: GET /dashboard/investments
-- [x] Finance engine: `calculateDividendsByPeriod()`, `calculateTotalDividends()`, `aggregateByPeriod()`
-
-#### Phase 4A: Dividend Income Projection UI ✅
-
-- [x] Create `DividendProjectionCard.tsx` component
-  - Monthly projected dividend income
-  - Annual projected dividend income
-  - Dividend yield per asset breakdown
-
-#### Phase 4B: Goals Comparison ✅
-
-- [x] Create `InvestmentGoalsPanel.tsx` component
-  - Links to existing savings/net worth goals
-  - Progress towards investment-related goals
-  - On-track indicator
-  - Progress bars with percentages
-
-#### Phase 4C/4D: Enhanced Backend ✅
-
-- [x] Add endpoint: GET /dashboard/investments/enhanced
-  - Returns: base investments + dividend projections + goal progress
-- [x] Added enhanced investments types to shared-types
-- [x] Added `useEnhancedInvestments.ts` hook
-
-### Key Files (UNCOMMITTED)
-
-```
-CREATED:
-- apps/web/src/components/dashboard/investments/DividendProjectionCard.tsx ✅
-- apps/web/src/components/dashboard/investments/InvestmentGoalsPanel.tsx ✅
-- apps/web/src/hooks/useEnhancedInvestments.ts ✅
-- apps/api/src/dashboard/types/enhanced-investments.types.ts ✅
-
-MODIFIED:
-- apps/api/src/dashboard/dashboard.controller.ts (added enhanced investments endpoint) ✅
-- apps/api/src/dashboard/dashboard.service.ts (added getEnhancedInvestments method) ✅
-- apps/web/src/app/dashboard/investments/page.tsx (uses enhanced investments hook) ✅
-- apps/web/src/components/dashboard/investments/index.ts (exports) ✅
-- packages/api-client/src/index.ts (added getEnhancedInvestments method) ✅
-- packages/shared-types/src/index.ts (added enhanced types) ✅
+```prisma
+dataSource    DataSource    @default(manual) @map("data_source")
+linkedAccount LinkedAccount?
 ```
 
----
+Add to `Household`:
 
-## Commit Strategy
-
-### Commit 1: Rent vs Buy Feature ✅ (READY)
-
-```bash
-git add apps/api/src/calculators/ apps/web/src/app/dashboard/rent-vs-buy/ apps/web/src/components/dashboard/rent-vs-buy/ apps/web/src/hooks/useRentVsBuy.ts packages/api-client/src/index.ts apps/api/src/app.module.ts apps/web/src/app/dashboard/layout.tsx
-git commit -m "feat: Add Rent vs Buy calculator with comparison chart and insights"
-```
-
-### Commit 2: Loan Optimization - Phase 3A (Frontend)
-
-```bash
-git commit -m "feat(loans): Add extra payment simulation UI components"
-```
-
-### Commit 3: Loan Optimization - Phase 3B (Backend)
-
-```bash
-git commit -m "feat(api): Add loan payoff simulation endpoint"
-```
-
-### Commit 4: Loan Optimization - Phase 3C (Integration)
-
-```bash
-git commit -m "feat(loans): Integrate loan optimization with simulation API"
-```
-
-### Commit 5: Investment Projections - Phase 4A
-
-```bash
-git commit -m "feat(investments): Add dividend projection components"
-```
-
-### Commit 6: Investment Goals - Phase 4B
-
-```bash
-git commit -m "feat(investments): Add goals comparison panel"
-```
-
-### Commit 7: Investment Enhancement - Phase 4C/4D
-
-```bash
-git commit -m "feat(investments): Add portfolio performance and backend projections"
+```prisma
+bankConnections BankConnection[]
 ```
 
 ---
@@ -298,51 +222,51 @@ git commit -m "feat(investments): Add portfolio performance and backend projecti
 
 ```
 apps/api/src/
-├── app.module.ts                    # Main module (imports all modules)
-├── calculators/                     # Rent vs Buy calculator module
-├── dashboard/
-│   ├── dashboard.controller.ts      # All dashboard endpoints
-│   ├── dashboard.service.ts         # Business logic
-│   └── types/
-│       ├── loans.types.ts           # Loan type definitions
-│       └── investments.types.ts     # Investment type definitions
-└── prisma/schema.prisma             # Database schema
+├── app.module.ts                    # Register PlaidModule (later)
+├── plaid/                           # NEW - Plaid integration (later)
+│   ├── plaid.module.ts
+│   ├── plaid.controller.ts
+│   ├── plaid.service.ts
+│   └── plaid-encryption.service.ts
+├── assets/                          # Existing - no changes needed
+├── liabilities/                     # Existing - no changes needed
+└── prisma/schema.prisma             # Add new models (later)
 ```
 
 ### Web (Frontend)
 
 ```
 apps/web/src/
-├── app/
-│   ├── onboarding/page.tsx          # Onboarding entry
-│   └── dashboard/
-│       ├── layout.tsx               # Dashboard layout with nav
-│       ├── loans/page.tsx           # Loans page
-│       ├── investments/page.tsx     # Investments page
-│       └── rent-vs-buy/page.tsx     # Rent vs Buy page
+├── app/dashboard/
+│   ├── layout.tsx                   # Add Settings nav link
+│   └── settings/                    # NEW - Settings pages
+│       ├── page.tsx
+│       ├── layout.tsx
+│       └── finances/page.tsx
 ├── components/
-│   ├── onboarding/                  # All onboarding components
-│   └── dashboard/
-│       ├── loans/                   # Loan components
-│       ├── investments/             # Investment components
-│       └── rent-vs-buy/             # Rent vs Buy components
+│   ├── plaid/                       # NEW - Plaid components (later)
+│   │   ├── PlaidLinkButton.tsx
+│   │   └── BankConnectionCard.tsx
+│   ├── settings/                    # NEW - Settings components
+│   │   └── finances/
+│   │       ├── AssetList.tsx
+│   │       ├── EditAssetModal.tsx
+│   │       └── ...
+│   ├── ui/                          # Add dialog, alert-dialog, badge
+│   └── onboarding/steps/
+│       └── AccountConnectionStep.tsx # Modify - add Plaid Link (later)
 └── hooks/
-    ├── useOnboarding.ts
-    ├── useLoans.ts
-    ├── useLoanAmortization.ts
-    ├── useInvestments.ts
-    └── useRentVsBuy.ts
+    ├── usePlaidLink.ts              # NEW (later)
+    └── useFinanceManagement.ts      # NEW
 ```
 
 ### Shared Packages
 
 ```
 packages/
-├── api-client/src/index.ts          # API client with all endpoints
-├── finance-engine/src/
-│   ├── amortization/                # Loan calculations
-│   └── investment/                  # Investment calculations
-└── shared-types/src/                # Shared TypeScript types
+├── api-client/src/index.ts          # Add plaid endpoints (later)
+├── shared-types/src/index.ts        # Add Plaid types (later)
+└── validation/src/index.ts          # Add validation schemas
 ```
 
 ---
@@ -353,23 +277,188 @@ If Claude gets stuck or loses context, provide this prompt:
 
 ```
 Please read the file MVP_IMPLEMENTATION_TRACKER.md in the project root.
-This file contains the current implementation status of our 4 MVP flows.
-Resume from the last incomplete task marked with 🟡 or 🔴.
+This file tracks the Financial Data Management and Bank Connection features.
+Resume from the last incomplete task marked with ⬜.
+Current status:
+- Flow 1 (Data Management): Check Phase 1A-1F  ← START HERE
+- Flow 2 (Bank Connection): Check Phase 2A-2F  ← Later (needs Plaid API keys)
 ```
+
+---
+
+## Dependencies to Install
+
+### Frontend (for Flow 1)
+
+```bash
+cd apps/web && pnpm add @radix-ui/react-dialog @radix-ui/react-alert-dialog
+```
+
+### Backend (for Flow 2 - Later)
+
+```bash
+cd apps/api && pnpm add plaid
+```
+
+### Frontend (for Flow 2 - Later)
+
+```bash
+cd apps/web && pnpm add react-plaid-link
+```
+
+---
+
+## Flow 2: Bank Connection (Plaid Integration)
+
+### Status: ⏸️ DEFERRED | **PRIORITY: LATER**
+
+> **Prerequisite**: Set up Plaid developer account and obtain API credentials before starting this flow.
+
+### Goal
+
+Allow users to connect bank accounts, investment accounts, and mortgage accounts to auto-extract balances via Plaid.
+
+### Flow Description
+
+```
+User clicks "Connect Bank" → Plaid Link opens → User authenticates →
+Plaid returns token → Backend exchanges token → Accounts synced →
+Assets/Liabilities created automatically
+```
+
+### Implementation Phases
+
+#### Phase 2A: Database Schema ⬜
+
+- [ ] Add `BankConnection` model to schema
+- [ ] Add `LinkedAccount` model to schema
+- [ ] Add `DataSource` enum (manual | plaid)
+- [ ] Add `dataSource` field to Asset model
+- [ ] Add `dataSource` field to Liability model
+- [ ] Run migration
+
+#### Phase 2B: Backend Plaid Module ⬜
+
+- [ ] Install `plaid` npm package
+- [ ] Create `apps/api/src/plaid/plaid.module.ts`
+- [ ] Create `apps/api/src/plaid/plaid.controller.ts`
+- [ ] Create `apps/api/src/plaid/plaid.service.ts`
+- [ ] Create `apps/api/src/plaid/plaid-encryption.service.ts`
+- [ ] Add DTOs for link token and exchange token
+- [ ] Register module in `app.module.ts`
+
+#### Phase 2C: Plaid Endpoints ⬜
+
+- [ ] `POST /plaid/link-token` - Create Plaid Link token
+- [ ] `POST /plaid/exchange-token` - Exchange public token for access token
+- [ ] `GET /plaid/connections` - List bank connections
+- [ ] `DELETE /plaid/connections/:id` - Remove connection
+- [ ] `POST /plaid/connections/:id/sync` - Manual sync trigger
+
+#### Phase 2D: Account Mapping Logic ⬜
+
+- [ ] Map Plaid checking/savings → Asset (bank_account)
+- [ ] Map Plaid credit_card → Liability (credit_card)
+- [ ] Map Plaid mortgage → Liability (mortgage)
+- [ ] Map Plaid auto loan → Liability (auto_loan)
+- [ ] Map Plaid investment → Asset (investment)
+- [ ] Auto-create entities on sync
+
+#### Phase 2E: Frontend Plaid Integration ⬜
+
+- [ ] Install `react-plaid-link` package
+- [ ] Create `PlaidLinkButton.tsx` component
+- [ ] Create `usePlaidLink.ts` hook
+- [ ] Update `AccountConnectionStep.tsx` (replace "Coming Soon")
+- [ ] Add plaid endpoints to API client
+
+#### Phase 2F: Bank Connections UI ⬜
+
+- [ ] Create `BankConnectionCard.tsx` component
+- [ ] Create `LinkedAccountsList.tsx` component
+- [ ] Show connection status (connected/error)
+- [ ] Show last sync time
+
+### Key Files (Plaid)
+
+```
+NEW FILES:
+apps/api/src/plaid/
+├── plaid.module.ts
+├── plaid.controller.ts
+├── plaid.service.ts
+├── plaid-encryption.service.ts
+└── dto/
+    ├── create-link-token.dto.ts
+    └── exchange-token.dto.ts
+
+apps/web/src/components/plaid/
+├── PlaidLinkButton.tsx
+├── BankConnectionCard.tsx
+└── LinkedAccountsList.tsx
+
+apps/web/src/hooks/usePlaidLink.ts
+
+MODIFIED FILES:
+apps/api/prisma/schema.prisma
+apps/api/src/app.module.ts
+apps/web/src/components/onboarding/steps/AccountConnectionStep.tsx
+packages/api-client/src/index.ts
+packages/shared-types/src/index.ts
+```
+
+### Environment Variables Required
+
+```
+PLAID_CLIENT_ID=your_client_id
+PLAID_SECRET=your_secret_key
+PLAID_ENV=sandbox
+PLAID_TOKEN_ENCRYPTION_KEY=32-byte-hex-string
+```
+
+### Account Type Mapping Reference
+
+| Plaid Account Type  | Our Entity | Our Type      |
+| ------------------- | ---------- | ------------- |
+| depository:checking | Asset      | bank_account  |
+| depository:savings  | Asset      | bank_account  |
+| investment:\*       | Asset      | investment    |
+| credit:credit card  | Liability  | credit_card   |
+| loan:mortgage       | Liability  | mortgage      |
+| loan:auto           | Liability  | auto_loan     |
+| loan:student        | Liability  | student_loan  |
+| loan:personal       | Liability  | personal_loan |
+
+---
+
+## Completed Features (Archive)
+
+> These features were completed in the initial MVP. Kept for historical reference.
+
+### Onboarding ✅ COMPLETE
+
+```
+Sign up → Select country → Connect accounts OR manual setup → Set goals → Land on Net Worth Dashboard
+```
+
+- Account Registration, Country Selection, Manual Setup, Goals, Income, Expenses, Assets & Debts
+
+### Rent vs Buy Calculator ✅ COMPLETE
+
+- Buy/Rent scenario inputs, Advanced assumptions, 5-30 year projections, Break-even calculation
+
+### Loan Optimization ✅ COMPLETE
+
+- Extra payment simulation, Payoff comparison charts, Interest savings visualization
+
+### Investment Overview ✅ COMPLETE
+
+- Portfolio summary, Dividend projections, Goals progress tracking
 
 ---
 
 ## Last Updated
 
-- **Date**: January 1, 2025
-- **Last Action**: Completed ALL 4 MVP Flows - all types passing
-- **Next Action**: Commit all uncommitted files (Loan Optimization + Investment Overview)
-
-## Summary
-
-All 4 MVP flows are now COMPLETE:
-
-1. ✅ Onboarding - Sign up, country selection, account connection, goals
-2. ✅ Rent vs Buy - Calculator with comparison charts and insights
-3. ✅ Loan Optimization - Extra payment simulation with savings visualization
-4. ✅ Investment Overview - Dividend projections, goals progress tracking
+- **Date**: January 2, 2026
+- **Status**: Flow 1 (Financial Data Management) COMPLETE
+- **Next Action**: Flow 2 (Bank Connection) when Plaid API keys are available
