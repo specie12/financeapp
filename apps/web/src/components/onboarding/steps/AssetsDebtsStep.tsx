@@ -108,6 +108,31 @@ function calculateMonthlyPayment(
   return Math.round(payment * 100) / 100
 }
 
+// Helper to calculate remaining balance using amortization
+function calculateRemainingBalance(
+  originalPrincipal: number,
+  annualRate: number,
+  termMonths: number,
+  monthsPaid: number,
+): number {
+  if (monthsPaid <= 0 || termMonths <= 0 || originalPrincipal <= 0) return originalPrincipal
+  if (monthsPaid >= termMonths) return 0
+  if (annualRate === 0) {
+    // Simple linear paydown for 0% loans
+    return Math.round(originalPrincipal * (1 - monthsPaid / termMonths) * 100) / 100
+  }
+
+  const monthlyRate = annualRate / 12 / 100
+  const payment = calculateMonthlyPayment(originalPrincipal, annualRate, termMonths)
+
+  // Remaining balance = PV of remaining payments
+  const remainingMonths = termMonths - monthsPaid
+  const remainingBalance =
+    (payment * (1 - Math.pow(1 + monthlyRate, -remainingMonths))) / monthlyRate
+
+  return Math.round(remainingBalance * 100) / 100
+}
+
 // Helper to calculate start date based on months paid
 function calculateStartDate(_termMonths: number, monthsPaid: number): Date {
   const startDate = new Date()
@@ -199,10 +224,36 @@ export function AssetsDebtsStep({
 
   // Watch form values for auto-calculation
   const watchedType = liabilityForm.watch('type')
+  const watchedOriginalBalance = liabilityForm.watch('originalBalance')
   const watchedCurrentBalance = liabilityForm.watch('currentBalance')
   const watchedInterestRate = liabilityForm.watch('interestRate')
   const watchedTermMonths = liabilityForm.watch('termMonths')
   const watchedMonthsPaid = liabilityForm.watch('monthsPaid')
+
+  // Auto-calculate current balance based on original balance and months paid (for non-credit-card loans)
+  useEffect(() => {
+    if (
+      watchedType !== 'credit_card' &&
+      watchedOriginalBalance > 0 &&
+      watchedTermMonths &&
+      watchedTermMonths > 0
+    ) {
+      const calculatedBalance = calculateRemainingBalance(
+        watchedOriginalBalance,
+        watchedInterestRate || 0,
+        watchedTermMonths,
+        watchedMonthsPaid || 0,
+      )
+      liabilityForm.setValue('currentBalance', calculatedBalance)
+    }
+  }, [
+    watchedOriginalBalance,
+    watchedInterestRate,
+    watchedTermMonths,
+    watchedMonthsPaid,
+    watchedType,
+    liabilityForm,
+  ])
 
   // Auto-calculate monthly payment when relevant fields change
   useEffect(() => {

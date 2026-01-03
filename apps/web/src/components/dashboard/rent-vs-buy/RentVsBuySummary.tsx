@@ -17,9 +17,15 @@ function formatCurrency(cents: number): string {
 
 export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
   const { summary } = result.calculation
+  const { affordability } = result
   const projectionYears = result.calculation.input.projectionYears
   const isBuyBetter = summary.recommendation === 'buy'
   const isRentBetter = summary.recommendation === 'rent'
+
+  // Affordability status
+  const buyAffordable =
+    affordability?.buy.isHousingAffordable && affordability?.buy.isTotalDebtAffordable
+  const rentAffordable = affordability?.rent.isAffordable
 
   return (
     <div className="space-y-6">
@@ -57,6 +63,31 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
           {summary.breakEvenYear && (
             <p className="text-center text-sm text-muted-foreground mt-2">
               Break-even point: Year {summary.breakEvenYear}
+            </p>
+          )}
+          {/* Affordability status integrated into recommendation */}
+          {affordability && (
+            <p className="text-center text-sm mt-3">
+              {isBuyBetter && buyAffordable && (
+                <span className="text-green-600 font-medium">
+                  Good news: This is affordable based on your income.
+                </span>
+              )}
+              {isBuyBetter && !buyAffordable && (
+                <span className="text-amber-600 font-medium">
+                  Note: This may stretch your budget. See affordability details below.
+                </span>
+              )}
+              {isRentBetter && rentAffordable && (
+                <span className="text-green-600 font-medium">
+                  Good news: This is affordable based on your income.
+                </span>
+              )}
+              {isRentBetter && !rentAffordable && (
+                <span className="text-amber-600 font-medium">
+                  Note: This may stretch your budget. Consider a lower rent.
+                </span>
+              )}
             </p>
           )}
         </CardContent>
