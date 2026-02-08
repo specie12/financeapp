@@ -12,6 +12,8 @@ import type {
   LoanSimulationRequest,
   LoanSimulationResponse,
   EnhancedInvestmentsResponse,
+  CashFlowSummaryResponse,
+  BudgetStatusResponse,
 } from './types'
 
 @Controller('dashboard')
@@ -89,6 +91,31 @@ export class DashboardController {
     @Body() request: LoanSimulationRequest,
   ): Promise<ApiResponse<LoanSimulationResponse>> {
     const data = await this.dashboardService.simulateLoanPayoff(householdId, id, request)
+    return {
+      success: true,
+      data,
+    }
+  }
+
+  @Get('cash-flow')
+  @RequirePermission(Permission.READ)
+  async getCashFlow(
+    @CurrentUser('householdId') householdId: string,
+  ): Promise<ApiResponse<CashFlowSummaryResponse>> {
+    const data = await this.dashboardService.getCashFlow(householdId)
+    return {
+      success: true,
+      data,
+    }
+  }
+
+  @Get('budget-status')
+  @RequirePermission(Permission.READ)
+  async getBudgetStatus(
+    @CurrentUser('householdId') householdId: string,
+    @Query('period') period?: string,
+  ): Promise<ApiResponse<BudgetStatusResponse>> {
+    const data = await this.dashboardService.getBudgetStatus(householdId, period)
     return {
       success: true,
       data,

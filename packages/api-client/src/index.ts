@@ -50,6 +50,8 @@ import type {
   ScenarioComparisonResponse,
   RentVsBuyRequest,
   RentVsBuyResultWithAffordability,
+  CashFlowSummaryResponse,
+  BudgetStatusResponse,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -505,6 +507,22 @@ export class ApiClient {
       const response = await this.client.post<ApiResponse<LoanSimulationResponse>>(
         `/dashboard/loans/${loanId}/simulate`,
         request,
+      )
+      return response.data
+    },
+
+    getCashFlow: async (): Promise<ApiResponse<CashFlowSummaryResponse>> => {
+      const response =
+        await this.client.get<ApiResponse<CashFlowSummaryResponse>>('/dashboard/cash-flow')
+      return response.data
+    },
+
+    getBudgetStatus: async (period?: string): Promise<ApiResponse<BudgetStatusResponse>> => {
+      const response = await this.client.get<ApiResponse<BudgetStatusResponse>>(
+        '/dashboard/budget-status',
+        {
+          params: period ? { period } : undefined,
+        },
       )
       return response.data
     },

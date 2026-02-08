@@ -8,6 +8,9 @@ import { clearTokens, getAccessToken, createAuthenticatedApiClient } from '@/lib
 
 const navItems = [
   { href: '/dashboard/net-worth', label: 'Net Worth' },
+  { href: '/dashboard/budget', label: 'Budget' },
+  { href: '/dashboard/transactions', label: 'Transactions' },
+  { href: '/dashboard/cash-flow', label: 'Cash Flow' },
   { href: '/dashboard/goals', label: 'Goals' },
   { href: '/dashboard/loans', label: 'Loans' },
   { href: '/dashboard/investments', label: 'Investments' },

@@ -299,6 +299,18 @@ export const transactionQuerySchema = paginationSchema.merge(dateRangeSchema).ex
   type: transactionTypeSchema.optional(),
 })
 
+export const accountQuerySchema = paginationSchema.extend({
+  type: accountTypeSchema.optional(),
+})
+
+export const categoryQuerySchema = paginationSchema.extend({
+  type: transactionTypeSchema.optional(),
+})
+
+export const budgetQuerySchema = paginationSchema.extend({
+  period: budgetPeriodSchema.optional(),
+})
+
 export const assetQuerySchema = paginationSchema.extend({
   type: assetTypeSchema.optional(),
 })
@@ -328,6 +340,11 @@ export type UpdateBudgetInput = z.infer<typeof updateBudgetSchema>
 export type PaginationInput = z.infer<typeof paginationSchema>
 export type DateRangeInput = z.infer<typeof dateRangeSchema>
 export type TransactionQueryInput = z.infer<typeof transactionQuerySchema>
+export type AccountType = z.infer<typeof accountTypeSchema>
+export type AccountQueryInput = z.infer<typeof accountQuerySchema>
+export type CategoryQueryInput = z.infer<typeof categoryQuerySchema>
+export type BudgetPeriod = z.infer<typeof budgetPeriodSchema>
+export type BudgetQueryInput = z.infer<typeof budgetQuerySchema>
 export type AssetType = z.infer<typeof assetTypeSchema>
 export type CreateAssetInput = z.infer<typeof createAssetSchema>
 export type UpdateAssetInput = z.infer<typeof updateAssetSchema>

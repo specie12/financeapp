@@ -30,7 +30,12 @@ import type {
   EnhancedInvestmentsResponse,
   DividendProjection,
   GoalProgressSummary,
+  CashFlowSummaryResponse,
+  CashFlowItemSummary,
+  BudgetStatusResponse,
+  BudgetStatusItem,
 } from './types'
+import type { Frequency, BudgetPeriod } from '@prisma/client'
 import type { AssetType } from '@finance-app/shared-types'
 import Decimal from 'decimal.js'
 
@@ -586,6 +591,165 @@ export class DashboardService {
       },
       originalSchedule: originalSchedule.schedule.map(mapScheduleEntry),
       modifiedSchedule: modifiedSchedule.schedule.map(mapScheduleEntry),
+    }
+  }
+
+  private static readonly MONTHLY_MULTIPLIERS: Record<Frequency, number> = {
+    one_time: 0,
+    weekly: 52 / 12,
+    biweekly: 26 / 12,
+    monthly: 1,
+    quarterly: 1 / 3,
+    annually: 1 / 12,
+  }
+
+  async getCashFlow(householdId: string): Promise<CashFlowSummaryResponse> {
+    const cashFlowItems = await this.prisma.cashFlowItem.findMany({
+      where: { householdId },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const items: CashFlowItemSummary[] = cashFlowItems.map((item) => {
+      const multiplier = DashboardService.MONTHLY_MULTIPLIERS[item.frequency as Frequency] ?? 0
+      const monthlyAmountCents = Math.round(item.amountCents * multiplier)
+
+      return {
+        id: item.id,
+        name: item.name,
+        type: item.type as 'income' | 'expense',
+        frequency: item.frequency as Frequency,
+        originalAmountCents: item.amountCents,
+        monthlyAmountCents,
+      }
+    })
+
+    const totalMonthlyIncomeCents = items
+      .filter((i) => i.type === 'income')
+      .reduce((sum, i) => sum + i.monthlyAmountCents, 0)
+
+    const totalMonthlyExpensesCents = items
+      .filter((i) => i.type === 'expense')
+      .reduce((sum, i) => sum + i.monthlyAmountCents, 0)
+
+    const netMonthlyCashFlowCents = totalMonthlyIncomeCents - totalMonthlyExpensesCents
+
+    const savingsRatePercent =
+      totalMonthlyIncomeCents > 0
+        ? new Decimal(netMonthlyCashFlowCents)
+            .dividedBy(totalMonthlyIncomeCents)
+            .times(100)
+            .toDecimalPlaces(1)
+            .toNumber()
+        : 0
+
+    return {
+      totalMonthlyIncomeCents,
+      totalMonthlyExpensesCents,
+      netMonthlyCashFlowCents,
+      savingsRatePercent,
+      items,
+    }
+  }
+
+  async getBudgetStatus(householdId: string, period?: string): Promise<BudgetStatusResponse> {
+    // Get all budgets for the user's household members
+    const budgets = await this.prisma.budget.findMany({
+      where: {
+        user: { householdId },
+        ...(period && { period: period as BudgetPeriod }),
+      },
+      include: { category: true },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    const now = new Date()
+    const budgetStatuses: BudgetStatusItem[] = []
+
+    for (const budget of budgets) {
+      // Determine period boundaries
+      const { periodStart, periodEnd } = this.getPeriodBounds(now, budget.period as string)
+
+      // Sum transactions for this category within the period
+      const result = await this.prisma.transaction.aggregate({
+        where: {
+          categoryId: budget.categoryId,
+          account: { user: { householdId } },
+          type: 'expense',
+          date: { gte: periodStart, lte: periodEnd },
+        },
+        _sum: { amount: true },
+      })
+
+      const spentAmountCents = result._sum.amount ?? 0
+      const budgetedAmountCents = budget.amount
+      const remainingCents = budgetedAmountCents - spentAmountCents
+      const percentUsed =
+        budgetedAmountCents > 0
+          ? new Decimal(spentAmountCents)
+              .dividedBy(budgetedAmountCents)
+              .times(100)
+              .toDecimalPlaces(1)
+              .toNumber()
+          : 0
+
+      budgetStatuses.push({
+        budgetId: budget.id,
+        categoryId: budget.categoryId,
+        categoryName: budget.category.name,
+        budgetedAmountCents,
+        spentAmountCents,
+        remainingCents,
+        percentUsed,
+        isOverBudget: spentAmountCents > budgetedAmountCents,
+        period: budget.period as BudgetPeriod,
+      })
+    }
+
+    const totalBudgetedCents = budgetStatuses.reduce((sum, b) => sum + b.budgetedAmountCents, 0)
+    const totalSpentCents = budgetStatuses.reduce((sum, b) => sum + b.spentAmountCents, 0)
+    const overBudgetCount = budgetStatuses.filter((b) => b.isOverBudget).length
+
+    return {
+      budgets: budgetStatuses,
+      totalBudgetedCents,
+      totalSpentCents,
+      overBudgetCount,
+    }
+  }
+
+  private getPeriodBounds(now: Date, period: string): { periodStart: Date; periodEnd: Date } {
+    const year = now.getFullYear()
+    const month = now.getMonth()
+
+    switch (period) {
+      case 'weekly': {
+        const day = now.getDay()
+        const periodStart = new Date(year, month, now.getDate() - day)
+        const periodEnd = new Date(year, month, now.getDate() + (6 - day), 23, 59, 59, 999)
+        return { periodStart, periodEnd }
+      }
+      case 'monthly': {
+        const periodStart = new Date(year, month, 1)
+        const periodEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
+        return { periodStart, periodEnd }
+      }
+      case 'quarterly': {
+        const quarterStart = Math.floor(month / 3) * 3
+        const periodStart = new Date(year, quarterStart, 1)
+        const periodEnd = new Date(year, quarterStart + 3, 0, 23, 59, 59, 999)
+        return { periodStart, periodEnd }
+      }
+      case 'yearly': {
+        const periodStart = new Date(year, 0, 1)
+        const periodEnd = new Date(year, 11, 31, 23, 59, 59, 999)
+        return { periodStart, periodEnd }
+      }
+      default: {
+        // Default to monthly
+        const periodStart = new Date(year, month, 1)
+        const periodEnd = new Date(year, month + 1, 0, 23, 59, 59, 999)
+        return { periodStart, periodEnd }
+      }
     }
   }
 
