@@ -48,9 +48,9 @@ export function DividendProjectionCard({
                   <MoneyDisplay cents={totalMonthlyCents} />
                 </p>
               </div>
-              <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 p-4">
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 p-4">
                 <p className="text-sm text-muted-foreground">Annual Income</p>
-                <p className="text-2xl font-bold text-blue-600">
+                <p className="text-2xl font-bold text-emerald-600">
                   <MoneyDisplay cents={totalAnnualCents} />
                 </p>
               </div>

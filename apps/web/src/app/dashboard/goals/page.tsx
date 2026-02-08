@@ -86,7 +86,7 @@ export default function GoalsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Active Goals</CardDescription>
-            <CardTitle className="text-3xl text-blue-600">{activeGoals.length}</CardTitle>
+            <CardTitle className="text-3xl text-primary">{activeGoals.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -98,7 +98,7 @@ export default function GoalsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Achieved</CardDescription>
-            <CardTitle className="text-3xl text-purple-600">{achievedGoals.length}</CardTitle>
+            <CardTitle className="text-3xl text-emerald-700">{achievedGoals.length}</CardTitle>
           </CardHeader>
         </Card>
         <Card>

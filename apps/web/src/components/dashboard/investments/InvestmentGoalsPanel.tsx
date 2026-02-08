@@ -27,7 +27,7 @@ export function InvestmentGoalsPanel({ goals }: InvestmentGoalsPanelProps) {
 
   const getStatusColor = (onTrack: boolean, progressPercent: number): string => {
     if (progressPercent >= 100) return 'text-green-600'
-    if (onTrack) return 'text-blue-600'
+    if (onTrack) return 'text-primary'
     return 'text-amber-600'
   }
 

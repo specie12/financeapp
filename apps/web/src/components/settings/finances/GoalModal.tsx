@@ -237,7 +237,7 @@ export function GoalModal({ open, onOpenChange, goal, onSuccess, accessToken }: 
                         type="checkbox"
                         checked={linkedAssetIds.includes(asset.id)}
                         onChange={() => handleAssetToggle(asset.id)}
-                        className="rounded border-gray-300"
+                        className="rounded border-input"
                       />
                       <span className="flex-1">{asset.name}</span>
                       <span className="text-sm text-muted-foreground">

@@ -102,7 +102,7 @@ export function LoanOptimizationPanel({
               step={25}
               value={extraMonthly}
               onChange={handleSliderChange}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer"
             />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>$0</span>
@@ -163,7 +163,7 @@ export function LoanOptimizationPanel({
               aria-checked={useBiweekly}
               onClick={() => setUseBiweekly(!useBiweekly)}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                useBiweekly ? 'bg-blue-600' : 'bg-gray-200'
+                useBiweekly ? 'bg-primary' : 'bg-muted'
               }`}
             >
               <span

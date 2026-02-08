@@ -65,7 +65,7 @@ export function GoalsSummaryCard({
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-blue-600">{activeGoals.length}</p>
+            <p className="text-2xl font-bold text-primary">{activeGoals.length}</p>
             <p className="text-xs text-muted-foreground">Active</p>
           </div>
           <div>
@@ -73,7 +73,7 @@ export function GoalsSummaryCard({
             <p className="text-xs text-muted-foreground">On Track</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-purple-600">{achievedGoals.length}</p>
+            <p className="text-2xl font-bold text-emerald-700">{achievedGoals.length}</p>
             <p className="text-xs text-muted-foreground">Achieved</p>
           </div>
         </div>
@@ -101,7 +101,7 @@ export function GoalsSummaryCard({
                     goal.progressPercent >= 100
                       ? 'text-green-600'
                       : goal.onTrack
-                        ? 'text-blue-600'
+                        ? 'text-primary'
                         : 'text-amber-600'
                   }`}
                 >

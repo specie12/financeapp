@@ -122,7 +122,7 @@ export function MilestoneCelebration({ goals }: MilestoneCelebrationProps) {
               className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold ${
                 m <= celebration.milestone
                   ? 'bg-green-100 text-green-800 border-2 border-green-500'
-                  : 'bg-gray-100 text-gray-400'
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
               {m}%

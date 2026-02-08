@@ -18,9 +18,9 @@ const GOAL_TYPE_LABELS: Record<GoalType, string> = {
 }
 
 const GOAL_TYPE_COLORS: Record<GoalType, string> = {
-  net_worth_target: 'bg-blue-100 text-blue-800',
-  savings_target: 'bg-green-100 text-green-800',
-  debt_freedom: 'bg-purple-100 text-purple-800',
+  net_worth_target: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300',
+  savings_target: 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300',
+  debt_freedom: 'bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300',
 }
 
 export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCardProps) {
@@ -51,7 +51,7 @@ export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCard
           <div className="text-right">
             <span
               className={`text-lg font-bold ${
-                isComplete ? 'text-green-600' : onTrack ? 'text-blue-600' : 'text-amber-600'
+                isComplete ? 'text-green-600' : onTrack ? 'text-primary' : 'text-amber-600'
               }`}
             >
               {progressPercent}%
@@ -83,7 +83,7 @@ export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCard
                 Achieved!
               </Badge>
             ) : onTrack ? (
-              <Badge variant="default" className="bg-blue-600">
+              <Badge variant="default" className="bg-primary">
                 On Track
               </Badge>
             ) : (
@@ -104,7 +104,7 @@ export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCard
             </span>
             <span
               className={`font-bold ${
-                isComplete ? 'text-green-600' : onTrack ? 'text-blue-600' : 'text-amber-600'
+                isComplete ? 'text-green-600' : onTrack ? 'text-primary' : 'text-amber-600'
               }`}
             >
               {progressPercent}%
@@ -119,7 +119,9 @@ export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCard
             <div
               key={milestone.percent}
               className={`flex-1 text-center py-1 rounded text-xs font-medium ${
-                milestone.reached ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'
+                milestone.reached
+                  ? 'bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300'
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
               {milestone.percent}%

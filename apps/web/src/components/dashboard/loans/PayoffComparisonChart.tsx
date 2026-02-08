@@ -161,7 +161,7 @@ export function PayoffComparisonChart({
             />
 
             {/* Modified path */}
-            <path d={modifiedPath} fill="none" stroke="#3b82f6" strokeWidth="3" />
+            <path d={modifiedPath} fill="none" stroke="#10b981" strokeWidth="3" />
 
             {/* Y-axis labels */}
             {yTicks.map((tick) => (
@@ -214,7 +214,7 @@ export function PayoffComparisonChart({
             <span className="text-sm text-muted-foreground">Original Schedule</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-0.5 bg-blue-500" />
+            <div className="w-4 h-0.5 bg-emerald-500" />
             <span className="text-sm text-muted-foreground">With Extra Payments</span>
           </div>
           {monthsSaved > 0 && (

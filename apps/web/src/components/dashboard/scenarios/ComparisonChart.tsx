@@ -8,10 +8,10 @@ interface ComparisonChartProps {
 }
 
 const COLORS = [
-  { line: 'rgb(59, 130, 246)', bg: 'rgba(59, 130, 246, 0.1)' }, // Blue
+  { line: 'rgb(5, 150, 105)', bg: 'rgba(5, 150, 105, 0.1)' }, // Emerald
   { line: 'rgb(16, 185, 129)', bg: 'rgba(16, 185, 129, 0.1)' }, // Green
-  { line: 'rgb(245, 158, 11)', bg: 'rgba(245, 158, 11, 0.1)' }, // Amber
-  { line: 'rgb(139, 92, 246)', bg: 'rgba(139, 92, 246, 0.1)' }, // Purple
+  { line: 'rgb(20, 184, 166)', bg: 'rgba(20, 184, 166, 0.1)' }, // Teal
+  { line: 'rgb(132, 204, 22)', bg: 'rgba(132, 204, 22, 0.1)' }, // Lime
 ]
 
 export function ComparisonChart({ comparisons }: ComparisonChartProps) {

@@ -150,7 +150,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
                               isAchieved
                                 ? 'text-green-600 font-medium'
                                 : progressPercent >= 75
-                                  ? 'text-blue-600'
+                                  ? 'text-primary'
                                   : 'text-muted-foreground'
                             }
                           >

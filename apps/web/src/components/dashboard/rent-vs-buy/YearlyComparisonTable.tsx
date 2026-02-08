@@ -36,7 +36,9 @@ export function YearlyComparisonTable({ result }: YearlyComparisonTableProps) {
               <tr className="border-b">
                 <th className="py-3 px-2 text-left font-medium">Year</th>
                 <th className="py-3 px-2 text-right font-medium text-green-600">Buy Net Worth</th>
-                <th className="py-3 px-2 text-right font-medium text-blue-600">Rent Net Worth</th>
+                <th className="py-3 px-2 text-right font-medium text-emerald-600">
+                  Rent Net Worth
+                </th>
                 <th className="py-3 px-2 text-right font-medium">Buy Annual Cost</th>
                 <th className="py-3 px-2 text-right font-medium">Rent Annual Cost</th>
                 <th className="py-3 px-2 text-center font-medium">Better</th>
@@ -49,7 +51,7 @@ export function YearlyComparisonTable({ result }: YearlyComparisonTableProps) {
                   <td className="py-3 px-2 text-right font-mono text-green-600">
                     {formatCurrency(comparison.buyNetWorthCents)}
                   </td>
-                  <td className="py-3 px-2 text-right font-mono text-blue-600">
+                  <td className="py-3 px-2 text-right font-mono text-emerald-600">
                     {formatCurrency(comparison.rentNetWorthCents)}
                   </td>
                   <td className="py-3 px-2 text-right font-mono">
@@ -63,7 +65,7 @@ export function YearlyComparisonTable({ result }: YearlyComparisonTableProps) {
                       className={`px-2 py-1 rounded-full text-xs font-medium ${
                         comparison.buyIsBetterThisYear
                           ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                          : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
                       }`}
                     >
                       {comparison.buyIsBetterThisYear ? 'Buy' : 'Rent'}

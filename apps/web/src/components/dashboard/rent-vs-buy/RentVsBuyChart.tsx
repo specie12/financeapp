@@ -20,7 +20,7 @@ function formatCurrency(cents: number): string {
 
 const COLORS = {
   buy: { line: 'rgb(34, 197, 94)', bg: 'rgba(34, 197, 94, 0.1)' }, // Green
-  rent: { line: 'rgb(59, 130, 246)', bg: 'rgba(59, 130, 246, 0.1)' }, // Blue
+  rent: { line: 'rgb(16, 185, 129)', bg: 'rgba(16, 185, 129, 0.1)' }, // Emerald
 }
 
 export function RentVsBuyChart({ result }: RentVsBuyChartProps) {

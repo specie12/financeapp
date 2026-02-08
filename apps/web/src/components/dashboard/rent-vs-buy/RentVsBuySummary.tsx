@@ -35,7 +35,7 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
           isBuyBetter
             ? 'border-green-500 bg-green-50 dark:bg-green-950'
             : isRentBetter
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
+              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950'
               : 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950'
         }
       >
@@ -116,7 +116,7 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-emerald-600">
               {formatCurrency(summary.finalRentNetWorthCents)}
             </p>
             <p className="text-xs text-muted-foreground">Investment portfolio value</p>
