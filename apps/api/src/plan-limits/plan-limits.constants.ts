@@ -7,20 +7,24 @@ export enum PlanTier {
 export interface PlanLimits {
   maxScenarios: number
   maxHorizonYears: number
+  maxAiCallsPerDay: number
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   [PlanTier.FREE]: {
     maxScenarios: 3,
     maxHorizonYears: 10,
+    maxAiCallsPerDay: 5,
   },
   [PlanTier.PRO]: {
     maxScenarios: 10,
     maxHorizonYears: 20,
+    maxAiCallsPerDay: 50,
   },
   [PlanTier.PREMIUM]: {
     maxScenarios: Infinity,
     maxHorizonYears: 30,
+    maxAiCallsPerDay: Infinity,
   },
 }
 

@@ -8,4 +8,9 @@ export default () => ({
   bcrypt: {
     saltRounds: parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10),
   },
+  anthropic: {
+    apiKey: process.env.ANTHROPIC_API_KEY || '',
+    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
+    maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS || '2048', 10),
+  },
 })

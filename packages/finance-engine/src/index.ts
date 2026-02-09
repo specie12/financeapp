@@ -36,6 +36,11 @@ export * from './rent-vs-buy'
 export * from './insights'
 
 // ============================================
+// Mortgage vs Invest Calculator
+// ============================================
+export * from './mortgage-vs-invest'
+
+// ============================================
 // Interest Calculations
 // ============================================
 

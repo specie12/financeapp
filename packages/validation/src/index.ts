@@ -280,6 +280,62 @@ export const recurringExtraPaymentSchema = z.object({
 })
 
 // ============================================
+// Mortgage vs Invest Calculator Schemas
+// ============================================
+
+export const mortgageVsInvestRequestSchema = z.object({
+  currentBalanceCents: z.number().int().positive('Balance must be positive'),
+  mortgageRatePercent: z.number().min(0).max(25),
+  remainingTermMonths: z.number().int().positive().max(480),
+  extraMonthlyPaymentCents: z.number().int().positive('Extra payment must be positive'),
+  expectedReturnPercent: z.number().min(-20).max(30),
+  capitalGainsTaxPercent: z.number().min(0).max(50),
+  horizonYears: z.number().int().min(1).max(30),
+  mortgageInterestDeductible: z.boolean(),
+  marginalTaxRatePercent: z.number().min(0).max(50),
+})
+
+// ============================================
+// Rental Property Schemas
+// ============================================
+
+export const createRentalPropertySchema = z.object({
+  name: z.string().min(1, 'Property name is required').max(100),
+  address: z.string().max(255).nullable().optional(),
+  purchasePriceCents: z.number().int().positive('Purchase price must be positive'),
+  currentValueCents: z.number().int().positive('Current value must be positive'),
+  downPaymentCents: z.number().int().nonnegative('Down payment must be non-negative'),
+  monthlyRentCents: z.number().int().positive('Monthly rent must be positive'),
+  vacancyRatePercent: z.number().min(0).max(100).default(5),
+  annualExpensesCents: z.number().int().nonnegative('Expenses must be non-negative'),
+  propertyTaxAnnualCents: z.number().int().nonnegative('Property tax must be non-negative'),
+  mortgagePaymentCents: z.number().int().nonnegative().nullable().optional(),
+  mortgageRatePercent: z.number().min(0).max(25).nullable().optional(),
+  linkedAssetId: z.string().uuid().nullable().optional(),
+  linkedLiabilityId: z.string().uuid().nullable().optional(),
+})
+
+export const updateRentalPropertySchema = createRentalPropertySchema.partial()
+
+export const rentalPropertyQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+})
+
+// ============================================
+// AI Advice Schemas
+// ============================================
+
+export const adviceRequestSchema = z.object({
+  topic: z.string().max(500).optional(),
+})
+
+export const chatRequestSchema = z.object({
+  message: z.string().min(1, 'Message is required').max(2000),
+  conversationId: z.string().uuid().optional(),
+})
+
+// ============================================
 // Query Schemas
 // ============================================
 
@@ -367,6 +423,12 @@ export type RentVsBuyRequestInput = z.infer<typeof rentVsBuyRequestSchema>
 export type ExtraPaymentInput = z.infer<typeof extraPaymentSchema>
 export type ExtraPaymentSimulationInput = z.infer<typeof extraPaymentSimulationSchema>
 export type RecurringExtraPaymentInput = z.infer<typeof recurringExtraPaymentSchema>
+export type MortgageVsInvestRequestInput = z.infer<typeof mortgageVsInvestRequestSchema>
+export type CreateRentalPropertyInput = z.infer<typeof createRentalPropertySchema>
+export type UpdateRentalPropertyInput = z.infer<typeof updateRentalPropertySchema>
+export type RentalPropertyQueryInput = z.infer<typeof rentalPropertyQuerySchema>
+export type AdviceRequestInput = z.infer<typeof adviceRequestSchema>
+export type ChatRequestInput = z.infer<typeof chatRequestSchema>
 
 // Re-export zod for convenience
 export { z } from 'zod'

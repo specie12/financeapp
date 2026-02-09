@@ -52,6 +52,14 @@ import type {
   RentVsBuyResultWithAffordability,
   CashFlowSummaryResponse,
   BudgetStatusResponse,
+  MortgageVsInvestRequest,
+  MortgageVsInvestResult,
+  RentalProperty,
+  CreateRentalPropertyDto,
+  UpdateRentalPropertyDto,
+  RentalPortfolioSummary,
+  AiAdviceResponse,
+  AiChatResponse,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -654,6 +662,91 @@ export class ApiClient {
         '/calculators/rent-vs-buy',
         request,
       )
+      return response.data
+    },
+
+    mortgageVsInvest: async (
+      request: MortgageVsInvestRequest,
+    ): Promise<ApiResponse<MortgageVsInvestResult>> => {
+      const response = await this.client.post<ApiResponse<MortgageVsInvestResult>>(
+        '/calculators/mortgage-vs-invest',
+        request,
+      )
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Rental Properties Endpoints
+  // ============================================
+
+  rentalProperties = {
+    list: async (params?: PaginationParams): Promise<PaginatedResponse<RentalProperty>> => {
+      const response = await this.client.get<PaginatedResponse<RentalProperty>>(
+        '/rental-properties',
+        { params },
+      )
+      return response.data
+    },
+
+    get: async (id: string): Promise<ApiResponse<RentalProperty>> => {
+      const response = await this.client.get<ApiResponse<RentalProperty>>(
+        `/rental-properties/${id}`,
+      )
+      return response.data
+    },
+
+    create: async (data: CreateRentalPropertyDto): Promise<ApiResponse<RentalProperty>> => {
+      const response = await this.client.post<ApiResponse<RentalProperty>>(
+        '/rental-properties',
+        data,
+      )
+      return response.data
+    },
+
+    update: async (
+      id: string,
+      data: UpdateRentalPropertyDto,
+    ): Promise<ApiResponse<RentalProperty>> => {
+      const response = await this.client.patch<ApiResponse<RentalProperty>>(
+        `/rental-properties/${id}`,
+        data,
+      )
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/rental-properties/${id}`)
+    },
+
+    summary: async (): Promise<ApiResponse<RentalPortfolioSummary>> => {
+      const response = await this.client.get<ApiResponse<RentalPortfolioSummary>>(
+        '/rental-properties/summary',
+      )
+      return response.data
+    },
+  }
+
+  // ============================================
+  // AI Endpoints
+  // ============================================
+
+  ai = {
+    getAdvice: async (topic?: string): Promise<ApiResponse<AiAdviceResponse>> => {
+      const response = await this.client.post<ApiResponse<AiAdviceResponse>>('/ai/advice', {
+        topic,
+      })
+      return response.data
+    },
+
+    chat: async (
+      message: string,
+      conversationId?: string,
+    ): Promise<ApiResponse<AiChatResponse>> => {
+      const response = await this.client.post<ApiResponse<AiChatResponse>>('/ai/chat', {
+        message,
+        conversationId,
+      })
       return response.data
     },
   }

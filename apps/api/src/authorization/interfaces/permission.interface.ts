@@ -26,6 +26,8 @@ export enum ResourceType {
   SCENARIO_OVERRIDE = 'scenarioOverride',
   GOAL = 'goal',
 
+  RENTAL_PROPERTY = 'rentalProperty',
+
   // User-owned resources (indirect household access)
   ACCOUNT = 'account',
   CATEGORY = 'category',

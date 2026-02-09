@@ -2,15 +2,19 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import {
   calculateRentVsBuy,
+  calculateMortgageVsInvest,
   cents,
   type RentVsBuyInput,
   type RentVsBuyResult,
+  type MortgageVsInvestInput,
 } from '@finance-app/finance-engine'
 import type { RentVsBuyDto } from './dto/rent-vs-buy.dto'
+import type { MortgageVsInvestDto } from './dto/mortgage-vs-invest.dto'
 import type {
   AffordabilityAnalysis,
   AffordabilityThresholds,
   RentVsBuyResultWithAffordability,
+  MortgageVsInvestResult,
 } from '@finance-app/shared-types'
 import type { Frequency, CashFlowType } from '@prisma/client'
 
@@ -285,6 +289,30 @@ export class CalculatorsService {
         summary: result.summary,
       },
       affordability,
+    }
+  }
+
+  calculateMortgageVsInvest(dto: MortgageVsInvestDto): MortgageVsInvestResult {
+    const input: MortgageVsInvestInput = {
+      currentBalanceCents: dto.currentBalanceCents,
+      mortgageRatePercent: dto.mortgageRatePercent,
+      remainingTermMonths: dto.remainingTermMonths,
+      extraMonthlyPaymentCents: dto.extraMonthlyPaymentCents,
+      expectedReturnPercent: dto.expectedReturnPercent,
+      capitalGainsTaxPercent: dto.capitalGainsTaxPercent,
+      horizonYears: dto.horizonYears,
+      mortgageInterestDeductible: dto.mortgageInterestDeductible,
+      marginalTaxRatePercent: dto.marginalTaxRatePercent,
+    }
+
+    const result = calculateMortgageVsInvest(input)
+
+    return {
+      yearlyComparisons: result.yearlyComparisons,
+      payExtraSummary: result.payExtraSummary,
+      investSummary: result.investSummary,
+      recommendation: result.recommendation,
+      breakEvenReturnPercent: result.breakEvenReturnPercent,
     }
   }
 

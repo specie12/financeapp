@@ -30,6 +30,7 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.74.0",
     "@finance-app/finance-engine": "workspace:*",
     "@finance-app/shared-types": "workspace:*",
     "@finance-app/validation": "workspace:*",

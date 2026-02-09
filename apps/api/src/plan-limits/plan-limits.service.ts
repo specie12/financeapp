@@ -46,6 +46,25 @@ export class PlanLimitsService {
   }
 
   /**
+   * Assert that an AI call can be made or throw ForbiddenException
+   */
+  async assertCanMakeAiCall(householdId: string, currentDailyCount: number): Promise<void> {
+    const limits = await this.getHouseholdPlanLimits(householdId)
+
+    if (currentDailyCount >= limits.maxAiCallsPerDay) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: 'AI_LIMIT_EXCEEDED',
+        message:
+          `Daily AI usage limit reached. Your plan allows ${limits.maxAiCallsPerDay} AI calls per day. ` +
+          `Upgrade for more AI-powered insights.`,
+        currentCount: currentDailyCount,
+        limit: limits.maxAiCallsPerDay,
+      })
+    }
+  }
+
+  /**
    * Assert that horizon years is within plan limit or throw ForbiddenException
    */
   async assertHorizonWithinLimit(householdId: string, requestedYears: number): Promise<void> {

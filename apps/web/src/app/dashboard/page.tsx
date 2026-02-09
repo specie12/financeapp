@@ -6,6 +6,7 @@ import { useNetWorth } from '@/hooks/useNetWorth'
 import { useGoals } from '@/hooks/useGoals'
 import { useBudgetStatus } from '@/hooks/useBudgetStatus'
 import { useCashFlowSummary } from '@/hooks/useCashFlowSummary'
+import { useAiAdvice } from '@/hooks/useAiAdvice'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -13,6 +14,7 @@ import {
   OverviewBudgetPulse,
   OverviewCashFlow,
   OverviewGoals,
+  OverviewAiInsights,
 } from '@/components/dashboard/overview'
 
 const quickLinks = [
@@ -38,6 +40,7 @@ export default function DashboardPage() {
   const { goals, isLoading: goalsLoading } = useGoals(accessToken)
   const { data: budgetData, isLoading: budgetLoading } = useBudgetStatus(accessToken)
   const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlowSummary(accessToken)
+  const { advice, isLoading: aiLoading, getAdvice } = useAiAdvice(accessToken)
 
   if (!accessToken) {
     return (
@@ -59,6 +62,9 @@ export default function DashboardPage() {
         <OverviewCashFlow data={cashFlowData} isLoading={cashFlowLoading} />
         <OverviewGoals goals={goals} isLoading={goalsLoading} />
       </div>
+
+      {/* AI Insights */}
+      <OverviewAiInsights advice={advice} isLoading={aiLoading} onRefresh={getAdvice} />
 
       {/* Quick Links */}
       <div>

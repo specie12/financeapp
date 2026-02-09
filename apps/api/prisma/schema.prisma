@@ -127,12 +127,13 @@ model Household {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users         User[]
-  assets        Asset[]
-  liabilities   Liability[]
-  cashFlowItems CashFlowItem[]
-  scenarios     Scenario[]
-  goals         Goal[]
+  users             User[]
+  assets            Asset[]
+  liabilities       Liability[]
+  cashFlowItems     CashFlowItem[]
+  scenarios         Scenario[]
+  goals             Goal[]
+  rentalProperties  RentalProperty[]
 
   @@map("households")
 }
@@ -398,4 +399,29 @@ model Goal {
   @@index([type])
   @@index([status])
   @@map("goals")
+}
+
+model RentalProperty {
+  id                     String    @id @default(uuid()) @db.Uuid
+  householdId            String    @map("household_id") @db.Uuid
+  household              Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  name                   String
+  address                String?
+  purchasePriceCents     Int       @map("purchase_price_cents")
+  currentValueCents      Int       @map("current_value_cents")
+  downPaymentCents       Int       @map("down_payment_cents")
+  monthlyRentCents       Int       @map("monthly_rent_cents")
+  vacancyRatePercent     Decimal   @default(5) @map("vacancy_rate_percent") @db.Decimal(5,2)
+  annualExpensesCents    Int       @map("annual_expenses_cents")
+  propertyTaxAnnualCents Int       @map("property_tax_annual_cents")
+  mortgagePaymentCents   Int?      @map("mortgage_payment_cents")
+  mortgageRatePercent    Decimal?  @map("mortgage_rate_percent") @db.Decimal(5,3)
+  linkedAssetId          String?   @map("linked_asset_id") @db.Uuid
+  linkedLiabilityId      String?   @map("linked_liability_id") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([householdId])
+  @@map("rental_properties")
 }

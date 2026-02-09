@@ -15,6 +15,8 @@ const navItems = [
   { href: '/dashboard/loans', label: 'Loans' },
   { href: '/dashboard/investments', label: 'Investments' },
   { href: '/dashboard/rent-vs-buy', label: 'Rent vs Buy' },
+  { href: '/dashboard/mortgage-vs-invest', label: 'Mortgage vs Invest' },
+  { href: '/dashboard/rental-properties', label: 'Rental Properties' },
   { href: '/dashboard/scenarios', label: 'Scenarios' },
   { href: '/dashboard/settings', label: 'Settings' },
 ]

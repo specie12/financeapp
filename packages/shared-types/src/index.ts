@@ -889,3 +889,152 @@ export interface BudgetStatusResponse {
   totalSpentCents: number
   overBudgetCount: number
 }
+
+// ============================================
+// Mortgage vs Invest Calculator Types
+// ============================================
+
+export interface MortgageVsInvestRequest {
+  currentBalanceCents: number
+  mortgageRatePercent: number
+  remainingTermMonths: number
+  extraMonthlyPaymentCents: number
+  expectedReturnPercent: number
+  capitalGainsTaxPercent: number
+  horizonYears: number
+  mortgageInterestDeductible: boolean
+  marginalTaxRatePercent: number
+}
+
+export interface MortgageVsInvestYearlyComparison {
+  year: number
+  payExtraCumulativePaidCents: number
+  payExtraInterestSavedCents: number
+  payExtraRemainingBalanceCents: number
+  investPortfolioValueCents: number
+  investCumulativeContributedCents: number
+  investAdvantageNetCents: number
+}
+
+export interface MortgageVsInvestResult {
+  yearlyComparisons: MortgageVsInvestYearlyComparison[]
+  payExtraSummary: {
+    totalInterestWithoutExtraCents: number
+    totalInterestWithExtraCents: number
+    interestSavedCents: number
+    originalPayoffMonths: number
+    newPayoffMonths: number
+    monthsSaved: number
+  }
+  investSummary: {
+    totalContributedCents: number
+    finalPortfolioValueCents: number
+    totalGainCents: number
+    afterTaxGainCents: number
+    afterTaxPortfolioValueCents: number
+  }
+  recommendation: 'pay_extra' | 'invest' | 'neutral'
+  breakEvenReturnPercent: number
+}
+
+// ============================================
+// Rental Property Types
+// ============================================
+
+export interface RentalProperty {
+  id: string
+  householdId: string
+  name: string
+  address: string | null
+  purchasePriceCents: number
+  currentValueCents: number
+  downPaymentCents: number
+  monthlyRentCents: number
+  vacancyRatePercent: number
+  annualExpensesCents: number
+  propertyTaxAnnualCents: number
+  mortgagePaymentCents: number | null
+  mortgageRatePercent: number | null
+  linkedAssetId: string | null
+  linkedLiabilityId: string | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CreateRentalPropertyDto {
+  name: string
+  address?: string | null
+  purchasePriceCents: number
+  currentValueCents: number
+  downPaymentCents: number
+  monthlyRentCents: number
+  vacancyRatePercent?: number
+  annualExpensesCents: number
+  propertyTaxAnnualCents: number
+  mortgagePaymentCents?: number | null
+  mortgageRatePercent?: number | null
+  linkedAssetId?: string | null
+  linkedLiabilityId?: string | null
+}
+
+export interface UpdateRentalPropertyDto {
+  name?: string
+  address?: string | null
+  purchasePriceCents?: number
+  currentValueCents?: number
+  downPaymentCents?: number
+  monthlyRentCents?: number
+  vacancyRatePercent?: number
+  annualExpensesCents?: number
+  propertyTaxAnnualCents?: number
+  mortgagePaymentCents?: number | null
+  mortgageRatePercent?: number | null
+  linkedAssetId?: string | null
+  linkedLiabilityId?: string | null
+}
+
+export interface RentalPropertyMetrics {
+  property: RentalProperty
+  noiCents: number
+  capRatePercent: number
+  cashOnCashReturnPercent: number
+  grossRentMultiplier: number
+  dscrRatio: number | null
+}
+
+export interface RentalPortfolioSummary {
+  totalProperties: number
+  totalValueCents: number
+  totalEquityCents: number
+  totalMonthlyRentCents: number
+  totalNOICents: number
+  averageCapRatePercent: number
+  averageCashOnCashPercent: number
+  properties: RentalPropertyMetrics[]
+}
+
+// ============================================
+// AI Advice Types
+// ============================================
+
+export interface AiInsight {
+  category: string
+  severity: 'info' | 'warning' | 'success' | 'critical'
+  message: string
+  action: string
+}
+
+export interface AiAdviceResponse {
+  insights: AiInsight[]
+  summary: string
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface AiChatResponse {
+  message: string
+  conversationId: string
+}

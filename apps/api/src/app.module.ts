@@ -18,6 +18,8 @@ import { AccountsModule } from './accounts/accounts.module'
 import { TransactionsModule } from './transactions/transactions.module'
 import { CategoriesModule } from './categories/categories.module'
 import { BudgetsModule } from './budgets/budgets.module'
+import { RentalPropertiesModule } from './rental-properties/rental-properties.module'
+import { AiModule } from './ai/ai.module'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PermissionGuard } from './authorization/guards/permission.guard'
 import { HouseholdGuard } from './authorization/guards/household.guard'
@@ -44,6 +46,8 @@ import configuration from './config/configuration'
     TransactionsModule,
     CategoriesModule,
     BudgetsModule,
+    RentalPropertiesModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [
