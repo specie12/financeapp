@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const { goals, isLoading: goalsLoading } = useGoals(accessToken)
   const { data: budgetData, isLoading: budgetLoading } = useBudgetStatus(accessToken)
   const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlowSummary(accessToken)
-  const { advice, isLoading: aiLoading, getAdvice } = useAiAdvice(accessToken)
+  const { advice, isLoading: aiLoading, error: aiError, getAdvice } = useAiAdvice(accessToken)
 
   if (!accessToken) {
     return (
@@ -70,7 +70,12 @@ export default function DashboardPage() {
       <AiAnomalyAlert accessToken={accessToken} />
 
       {/* AI Insights + Forecast + Goal Coaching */}
-      <OverviewAiInsights advice={advice} isLoading={aiLoading} onRefresh={getAdvice} />
+      <OverviewAiInsights
+        advice={advice}
+        isLoading={aiLoading}
+        error={aiError}
+        onRefresh={getAdvice}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <AiCashFlowForecast accessToken={accessToken} />

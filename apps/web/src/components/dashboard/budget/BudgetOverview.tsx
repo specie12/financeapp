@@ -1,14 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatCurrency } from '@/lib/utils'
 import type { BudgetStatusResponse } from '@finance-app/shared-types'
-
-function formatCents(cents: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(cents / 100)
-}
 
 interface BudgetOverviewProps {
   data: BudgetStatusResponse
@@ -30,7 +24,7 @@ export function BudgetOverview({ data }: BudgetOverviewProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{formatCents(data.totalBudgetedCents)}</p>
+          <p className="text-2xl font-bold">{formatCurrency(data.totalBudgetedCents)}</p>
           <p className="text-xs text-muted-foreground">
             {data.budgets.length} budget{data.budgets.length !== 1 ? 's' : ''}
           </p>
@@ -42,7 +36,7 @@ export function BudgetOverview({ data }: BudgetOverviewProps) {
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Spent</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{formatCents(data.totalSpentCents)}</p>
+          <p className="text-2xl font-bold">{formatCurrency(data.totalSpentCents)}</p>
           <p className="text-xs text-muted-foreground">{percentUsed}% of budget used</p>
         </CardContent>
       </Card>
@@ -55,7 +49,7 @@ export function BudgetOverview({ data }: BudgetOverviewProps) {
           <p
             className={`text-2xl font-bold ${remainingCents < 0 ? 'text-red-600' : 'text-green-600'}`}
           >
-            {formatCents(remainingCents)}
+            {formatCurrency(remainingCents)}
           </p>
           <p className="text-xs text-muted-foreground">
             {remainingCents >= 0 ? 'under budget' : 'over budget'}

@@ -6,6 +6,7 @@ import type { Category } from '@finance-app/shared-types'
 
 interface UseCategoriesReturn {
   categories: Category[]
+  expenseCategories: Category[]
   isLoading: boolean
   error: string | null
   refetch: () => void
@@ -42,5 +43,7 @@ export function useCategories(accessToken: string | null): UseCategoriesReturn {
     fetchData()
   }, [fetchData])
 
-  return { categories, isLoading, error, refetch: fetchData }
+  const expenseCategories = categories.filter((c) => c.type === 'expense')
+
+  return { categories, expenseCategories, isLoading, error, refetch: fetchData }
 }
