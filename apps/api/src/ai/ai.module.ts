@@ -8,9 +8,10 @@ import { DashboardModule } from '../dashboard/dashboard.module'
 import { GoalsModule } from '../goals/goals.module'
 import { AccountsModule } from '../accounts/accounts.module'
 import { TransactionsModule } from '../transactions/transactions.module'
+import { NotificationsModule } from '../notifications/notifications.module'
 
 @Module({
-  imports: [DashboardModule, GoalsModule, AccountsModule, TransactionsModule],
+  imports: [DashboardModule, GoalsModule, AccountsModule, TransactionsModule, NotificationsModule],
   controllers: [AiController],
   providers: [AiService, PromptBuilderService, AiAnomalyService, AiPredictionService],
 })

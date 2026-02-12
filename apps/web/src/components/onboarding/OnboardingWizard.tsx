@@ -41,7 +41,13 @@ export function OnboardingWizard() {
         )
 
       case 3:
-        return <AccountConnectionStep onNext={actions.nextStep} onBack={actions.prevStep} />
+        return (
+          <AccountConnectionStep
+            onNext={actions.nextStep}
+            onBack={actions.prevStep}
+            accessToken={state.tokens?.accessToken ?? null}
+          />
+        )
 
       case 4:
         return (

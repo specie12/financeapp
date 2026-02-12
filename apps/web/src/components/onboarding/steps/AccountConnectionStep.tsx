@@ -2,13 +2,25 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { PlaidLinkButton } from '@/components/dashboard/plaid/PlaidLinkButton'
+import { usePlaid } from '@/hooks/usePlaid'
 
 interface AccountConnectionStepProps {
   onNext: () => void
   onBack: () => void
+  accessToken: string | null
 }
 
-export function AccountConnectionStep({ onNext, onBack }: AccountConnectionStepProps) {
+export function AccountConnectionStep({ onNext, onBack, accessToken }: AccountConnectionStepProps) {
+  const { getLinkToken, exchangeToken, items } = usePlaid(accessToken)
+
+  const handlePlaidSuccess = async (
+    publicToken: string,
+    metadata: { institution: { institution_id: string; name: string } },
+  ) => {
+    await exchangeToken(publicToken, metadata.institution.institution_id, metadata.institution.name)
+  }
+
   return (
     <Card className="max-w-2xl mx-auto">
       <CardHeader className="text-center">
@@ -19,17 +31,12 @@ export function AccountConnectionStep({ onNext, onBack }: AccountConnectionStepP
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4">
-          {/* Connect Accounts - Coming Soon */}
-          <div className="relative p-6 rounded-lg border-2 border-dashed border-border bg-muted/30">
-            <div className="absolute top-3 right-3">
-              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
-                Coming Soon
-              </span>
-            </div>
+          {/* Connect Accounts via Plaid */}
+          <div className="p-6 rounded-lg border-2 border-border bg-card">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <svg
-                  className="h-6 w-6 text-muted-foreground"
+                  className="h-6 w-6 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -43,11 +50,21 @@ export function AccountConnectionStep({ onNext, onBack }: AccountConnectionStepP
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-muted-foreground">Connect Bank Accounts</h3>
+                <h3 className="font-medium">Connect Bank Accounts</h3>
                 <p className="text-sm text-muted-foreground">
                   Securely link your accounts for automatic transaction import
                 </p>
+                {items.length > 0 && (
+                  <p className="text-sm text-primary mt-1">
+                    {items.length} account{items.length !== 1 ? 's' : ''} connected
+                  </p>
+                )}
               </div>
+              <PlaidLinkButton
+                onGetLinkToken={getLinkToken}
+                onSuccess={handlePlaidSuccess}
+                disabled={!accessToken}
+              />
             </div>
           </div>
 

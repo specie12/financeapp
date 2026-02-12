@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config'
 import Anthropic from '@anthropic-ai/sdk'
 import { PromptBuilderService } from './prompt-builder.service'
 import { PlanLimitsService } from '../plan-limits/plan-limits.service'
+import { NotificationsService } from '../notifications/notifications.service'
+import { PrismaService } from '../prisma/prisma.service'
 import type { AdviceRequestDto } from './dto/advice-request.dto'
 import type { ChatRequestDto } from './dto/chat-request.dto'
 import type {
@@ -30,6 +32,8 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly promptBuilder: PromptBuilderService,
     private readonly planLimitsService: PlanLimitsService,
+    private readonly notificationsService: NotificationsService,
+    private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('anthropic.apiKey')
     this.client = new Anthropic({ apiKey: apiKey || undefined })
@@ -231,6 +235,59 @@ Respond with a JSON object (no markdown, just raw JSON):
         answer: 'Unable to process your query at this time. Please try again later.',
         dataUsed: [],
       }
+    }
+  }
+
+  async generateWeeklyDigest(householdId: string): Promise<void> {
+    const financialContext = await this.promptBuilder.buildFinancialContext(householdId)
+
+    const systemPrompt = `You are a personal finance advisor writing a brief weekly financial digest email.
+
+FINANCIAL DATA:
+${financialContext}
+
+Write a concise weekly summary (3-5 sentences) highlighting:
+- Key changes in net worth or balances
+- Notable spending patterns
+- Progress toward goals
+- Any actionable suggestions
+
+Keep it friendly and motivating. Return plain text, no JSON.`
+
+    let digestMessage: string
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: 512,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: 'Generate my weekly financial digest.' }],
+      })
+
+      digestMessage = response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map((block) => block.text)
+        .join('')
+    } catch {
+      digestMessage =
+        'Your weekly financial summary is temporarily unavailable. Check your dashboard for the latest insights.'
+    }
+
+    // Find all users in the household to send notification
+    const household = await this.prisma.household.findUnique({
+      where: { id: householdId },
+      include: { users: { select: { id: true } } },
+    })
+
+    if (!household) return
+
+    for (const user of household.users) {
+      await this.notificationsService.createNotification({
+        userId: user.id,
+        type: 'ai_insight',
+        title: 'Weekly Financial Digest',
+        message: digestMessage,
+        metadata: { householdId, generatedAt: new Date().toISOString() },
+      })
     }
   }
 
