@@ -63,12 +63,12 @@ const STANDARD_DEDUCTIONS_BY_YEAR: Record<number, Record<FilingStatus, number>> 
 }
 
 export function getTaxBrackets(taxYear: number, filingStatus: FilingStatus): TaxBracket[] {
-  const yearBrackets = BRACKETS_BY_YEAR[taxYear] || BRACKETS_BY_YEAR[2025]
+  const yearBrackets = BRACKETS_BY_YEAR[taxYear] ?? BRACKETS_BY_YEAR[2025]!
   return yearBrackets[filingStatus]
 }
 
 export function getStandardDeduction(taxYear: number, filingStatus: FilingStatus): number {
-  const yearDeductions = STANDARD_DEDUCTIONS_BY_YEAR[taxYear] || STANDARD_DEDUCTIONS_BY_YEAR[2025]
+  const yearDeductions = STANDARD_DEDUCTIONS_BY_YEAR[taxYear] ?? STANDARD_DEDUCTIONS_BY_YEAR[2025]!
   return yearDeductions[filingStatus]
 }
 

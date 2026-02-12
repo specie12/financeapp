@@ -33,9 +33,9 @@ export class EncryptionService {
       throw new Error('Invalid encrypted format')
     }
 
-    const iv = Buffer.from(parts[0], 'base64')
-    const authTag = Buffer.from(parts[1], 'base64')
-    const encrypted = Buffer.from(parts[2], 'base64')
+    const iv = Buffer.from(parts[0]!, 'base64')
+    const authTag = Buffer.from(parts[1]!, 'base64')
+    const encrypted = Buffer.from(parts[2]!, 'base64')
 
     const decipher = createDecipheriv('aes-256-gcm', this.key, iv)
     decipher.setAuthTag(authTag)

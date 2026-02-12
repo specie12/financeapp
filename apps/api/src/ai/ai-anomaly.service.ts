@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import type { AiAnomaly } from '@finance-app/shared-types'
+interface AiAnomaly {
+  category: string
+  currentAmountCents: number
+  averageAmountCents: number
+  deviationPercent: number
+  severity: 'low' | 'medium' | 'high'
+  message: string
+}
 
 @Injectable()
 export class AiAnomalyService {
@@ -98,7 +105,11 @@ export class AiAnomalyService {
 
     // Sort by severity (high first)
     const severityOrder = { high: 0, medium: 1, low: 2 }
-    anomalies.sort((a, b) => severityOrder[a.severity] - severityOrder[b.severity])
+    anomalies.sort(
+      (a, b) =>
+        severityOrder[a.severity as keyof typeof severityOrder] -
+        severityOrder[b.severity as keyof typeof severityOrder],
+    )
 
     return { anomalies, hasAnomalies: anomalies.length > 0 }
   }

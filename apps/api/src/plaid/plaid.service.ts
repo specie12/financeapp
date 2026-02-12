@@ -122,7 +122,7 @@ export class PlaidService {
         throw new BadRequestException('No user found for household')
       }
 
-      const userId = household.users[0].id
+      const userId = household.users[0]!.id
 
       for (const txn of newTransactions) {
         // Find or create account

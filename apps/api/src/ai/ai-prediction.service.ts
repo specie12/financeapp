@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
-import type { AiForecastResponse } from '@finance-app/shared-types'
+interface AiForecastResponse {
+  predictedEndOfMonthBalanceCents: number
+  currentBalanceCents: number
+  projectedIncomeCents: number
+  projectedExpensesCents: number
+  confidenceLevel: 'low' | 'medium' | 'high'
+  insights: string[]
+}
 
 @Injectable()
 export class AiPredictionService {

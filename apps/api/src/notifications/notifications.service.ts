@@ -27,7 +27,7 @@ export class NotificationsService {
         type: data.type,
         title: data.title,
         message: data.message,
-        metadata: data.metadata ?? undefined,
+        metadata: data.metadata ? JSON.parse(JSON.stringify(data.metadata)) : undefined,
       },
     })
   }

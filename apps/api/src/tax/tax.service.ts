@@ -134,12 +134,14 @@ export class TaxService {
       },
     })
 
-    const brackets: TaxBracketInfo[] = taxResult.brackets.map((b) => ({
-      min: b.min,
-      max: b.max,
-      rate: b.rate,
-      taxInBracket: b.taxInBracket,
-    }))
+    const brackets: TaxBracketInfo[] = taxResult.brackets.map(
+      (b: { min: number; max: number | null; rate: number; taxInBracket: number }) => ({
+        min: b.min,
+        max: b.max,
+        rate: b.rate,
+        taxInBracket: b.taxInBracket,
+      }),
+    )
 
     return {
       taxYear: year,

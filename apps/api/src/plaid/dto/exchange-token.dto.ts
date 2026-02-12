@@ -1,5 +1,5 @@
 export class ExchangeTokenDto {
-  publicToken: string
-  institutionId: string
-  institutionName: string
+  publicToken!: string
+  institutionId!: string
+  institutionName!: string
 }

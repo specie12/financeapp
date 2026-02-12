@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { NotificationsService } from './notifications.service'
-import { PrismaService } from '../prisma/prisma.service'
 
 export interface BudgetExceededEvent {
   userId: string
@@ -28,10 +27,7 @@ export interface LargeTransactionEvent {
 
 @Injectable()
 export class NotificationTriggersService {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-    private readonly prisma: PrismaService,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @OnEvent('budget.exceeded')
   async handleBudgetExceeded(event: BudgetExceededEvent): Promise<void> {
