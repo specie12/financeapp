@@ -5,7 +5,12 @@ import { PromptBuilderService } from './prompt-builder.service'
 import { PlanLimitsService } from '../plan-limits/plan-limits.service'
 import type { AdviceRequestDto } from './dto/advice-request.dto'
 import type { ChatRequestDto } from './dto/chat-request.dto'
-import type { AiAdviceResponse, AiChatResponse, AiInsight } from '@finance-app/shared-types'
+import type {
+  AiAdviceResponse,
+  AiChatResponse,
+  AiInsight,
+  AiQueryResponse,
+} from '@finance-app/shared-types'
 import { randomUUID } from 'crypto'
 
 interface ConversationEntry {
@@ -169,6 +174,62 @@ Provide 3-6 actionable insights. Be specific with numbers from the data. Focus o
       return {
         message: "I'm unable to respond right now. Please try again later.",
         conversationId,
+      }
+    }
+  }
+
+  async queryTransactions(householdId: string, question: string): Promise<AiQueryResponse> {
+    const currentCount = this.getDailyCount(householdId)
+    await this.planLimitsService.assertCanMakeAiCall(householdId, currentCount)
+
+    const financialContext = await this.promptBuilder.buildFinancialContext(householdId)
+
+    const systemPrompt = `You are a financial data analyst. Answer the user's question about their financial data.
+
+FINANCIAL DATA:
+${financialContext}
+
+Answer the question concisely and specifically. Reference exact numbers from the data.
+Respond with a JSON object (no markdown, just raw JSON):
+{
+  "answer": "Your detailed answer here",
+  "dataUsed": ["list", "of", "data", "categories", "used"]
+}`
+
+    try {
+      const response = await this.client.messages.create({
+        model: this.model,
+        max_tokens: this.maxTokens,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: question }],
+      })
+
+      this.incrementDailyCount(householdId)
+
+      const text = response.content
+        .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+        .map((block) => block.text)
+        .join('')
+
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/)
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0])
+          return {
+            answer: parsed.answer || text,
+            dataUsed: parsed.dataUsed || [],
+          }
+        }
+      } catch {
+        // Fall through
+      }
+
+      return { answer: text, dataUsed: [] }
+    } catch (error) {
+      if (error instanceof ForbiddenException) throw error
+      return {
+        answer: 'Unable to process your query at this time. Please try again later.',
+        dataUsed: [],
       }
     }
   }

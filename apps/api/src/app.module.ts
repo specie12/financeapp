@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { APP_GUARD } from '@nestjs/core'
+import { EventEmitterModule } from '@nestjs/event-emitter'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { PrismaModule } from './prisma/prisma.module'
@@ -20,6 +21,10 @@ import { CategoriesModule } from './categories/categories.module'
 import { BudgetsModule } from './budgets/budgets.module'
 import { RentalPropertiesModule } from './rental-properties/rental-properties.module'
 import { AiModule } from './ai/ai.module'
+import { NotificationsModule } from './notifications/notifications.module'
+import { TaxModule } from './tax/tax.module'
+import { PlaidModule } from './plaid/plaid.module'
+import { EncryptionModule } from './encryption/encryption.module'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PermissionGuard } from './authorization/guards/permission.guard'
 import { HouseholdGuard } from './authorization/guards/household.guard'
@@ -31,7 +36,9 @@ import configuration from './config/configuration'
       isGlobal: true,
       load: [configuration],
     }),
+    EventEmitterModule.forRoot(),
     PrismaModule,
+    EncryptionModule,
     AuthModule,
     AuthorizationModule,
     PlanLimitsModule,
@@ -48,6 +55,9 @@ import configuration from './config/configuration'
     BudgetsModule,
     RentalPropertiesModule,
     AiModule,
+    NotificationsModule,
+    TaxModule,
+    PlaidModule,
   ],
   controllers: [AppController],
   providers: [

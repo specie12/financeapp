@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { PrismaService } from '../prisma/prisma.service'
 import { type CreateBudgetDto } from './dto/create-budget.dto'
 import { type UpdateBudgetDto } from './dto/update-budget.dto'
@@ -14,7 +15,10 @@ interface PaginatedResult<T> {
 
 @Injectable()
 export class BudgetsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async create(userId: string, dto: CreateBudgetDto): Promise<Budget> {
     // Verify category belongs to user
@@ -107,5 +111,57 @@ export class BudgetsService {
     await this.prisma.budget.delete({
       where: { id },
     })
+  }
+
+  async checkBudgetStatusAndNotify(userId: string, categoryId: string): Promise<void> {
+    const budget = await this.prisma.budget.findFirst({
+      where: { userId, categoryId },
+      include: { category: true },
+    })
+
+    if (!budget) return
+
+    // Get spending for the current period
+    const now = new Date()
+    const periodStart = new Date(now)
+    switch (budget.period) {
+      case 'weekly':
+        periodStart.setDate(now.getDate() - now.getDay())
+        break
+      case 'monthly':
+        periodStart.setDate(1)
+        break
+      case 'quarterly':
+        periodStart.setMonth(Math.floor(now.getMonth() / 3) * 3, 1)
+        break
+      case 'yearly':
+        periodStart.setMonth(0, 1)
+        break
+    }
+    periodStart.setHours(0, 0, 0, 0)
+
+    const spent = await this.prisma.transaction.aggregate({
+      where: {
+        categoryId,
+        type: 'expense',
+        date: { gte: periodStart },
+        account: { userId },
+      },
+      _sum: { amount: true },
+    })
+
+    const spentAmount = spent._sum.amount ?? 0
+    const percentUsed = (spentAmount / budget.amount) * 100
+
+    if (percentUsed >= 80) {
+      this.eventEmitter.emit('budget.exceeded', {
+        userId,
+        budgetId: budget.id,
+        categoryName: (budget as Budget & { category: { name: string } }).category.name,
+        percentUsed,
+        budgetedAmountCents: budget.amount,
+        spentAmountCents: spentAmount,
+      })
+    }
   }
 }

@@ -1,10 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { clearTokens, getAccessToken, createAuthenticatedApiClient } from '@/lib/auth'
+import { NotificationBell } from '@/components/dashboard/notifications'
 
 const navItems = [
   { href: '/dashboard/net-worth', label: 'Net Worth' },
@@ -18,12 +20,18 @@ const navItems = [
   { href: '/dashboard/mortgage-vs-invest', label: 'Mortgage vs Invest' },
   { href: '/dashboard/rental-properties', label: 'Rental Properties' },
   { href: '/dashboard/scenarios', label: 'Scenarios' },
+  { href: '/dashboard/tax', label: 'Tax' },
   { href: '/dashboard/settings', label: 'Settings' },
 ]
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+
+  useEffect(() => {
+    setAccessToken(getAccessToken())
+  }, [])
 
   const handleSignOut = async () => {
     try {
@@ -61,9 +69,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </Link>
               ))}
             </nav>
-            <Button variant="ghost" onClick={handleSignOut}>
-              Sign Out
-            </Button>
+            <div className="flex items-center gap-2">
+              <NotificationBell accessToken={accessToken} />
+              <Button variant="ghost" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>

@@ -16,6 +16,9 @@ import {
   OverviewGoals,
   OverviewAiInsights,
 } from '@/components/dashboard/overview'
+import { AiAnomalyAlert } from '@/components/dashboard/ai/AiAnomalyAlert'
+import { AiCashFlowForecast } from '@/components/dashboard/ai/AiCashFlowForecast'
+import { AiGoalCoaching } from '@/components/dashboard/ai/AiGoalCoaching'
 
 const quickLinks = [
   { href: '/dashboard/net-worth', label: 'Net Worth', description: 'Track assets & liabilities' },
@@ -63,8 +66,16 @@ export default function DashboardPage() {
         <OverviewGoals goals={goals} isLoading={goalsLoading} />
       </div>
 
-      {/* AI Insights */}
+      {/* AI Anomaly Alerts */}
+      <AiAnomalyAlert accessToken={accessToken} />
+
+      {/* AI Insights + Forecast + Goal Coaching */}
       <OverviewAiInsights advice={advice} isLoading={aiLoading} onRefresh={getAdvice} />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <AiCashFlowForecast accessToken={accessToken} />
+        <AiGoalCoaching goals={goals} />
+      </div>
 
       {/* Quick Links */}
       <div>

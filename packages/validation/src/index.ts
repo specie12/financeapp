@@ -430,5 +430,87 @@ export type RentalPropertyQueryInput = z.infer<typeof rentalPropertyQuerySchema>
 export type AdviceRequestInput = z.infer<typeof adviceRequestSchema>
 export type ChatRequestInput = z.infer<typeof chatRequestSchema>
 
+// ============================================
+// Notification Schemas
+// ============================================
+
+export const notificationQuerySchema = z.object({
+  unreadOnly: z.preprocess((val) => val === 'true' || val === true, z.boolean()).optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+})
+
+export const markNotificationReadSchema = z.object({
+  id: z.string().uuid('Invalid notification ID'),
+})
+
+// ============================================
+// Tax Schemas
+// ============================================
+
+export const filingStatusSchema = z.enum([
+  'single',
+  'married_filing_jointly',
+  'married_filing_separately',
+  'head_of_household',
+])
+
+export const createTaxProfileSchema = z.object({
+  taxYear: z.number().int().min(2020).max(2030),
+  filingStatus: filingStatusSchema,
+  stateCode: z.string().length(2).nullable().optional(),
+  dependents: z.number().int().min(0).max(20).default(0),
+  additionalIncomeCents: z.number().int().nonnegative().nullable().optional(),
+})
+
+export const updateTaxProfileSchema = z.object({
+  filingStatus: filingStatusSchema.optional(),
+  stateCode: z.string().length(2).nullable().optional(),
+  dependents: z.number().int().min(0).max(20).optional(),
+  additionalIncomeCents: z.number().int().nonnegative().nullable().optional(),
+})
+
+export const taxSummaryQuerySchema = z.object({
+  taxYear: z.coerce.number().int().min(2020).max(2030).optional(),
+})
+
+// ============================================
+// Plaid Schemas
+// ============================================
+
+export const plaidExchangeTokenSchema = z.object({
+  publicToken: z.string().min(1, 'Public token is required'),
+  institutionId: z.string().min(1, 'Institution ID is required'),
+  institutionName: z.string().min(1, 'Institution name is required'),
+})
+
+export const plaidWebhookSchema = z.object({
+  webhook_type: z.string(),
+  webhook_code: z.string(),
+  item_id: z.string(),
+  error: z.any().nullable().optional(),
+})
+
+// ============================================
+// AI Query Schemas
+// ============================================
+
+export const aiQueryRequestSchema = z.object({
+  question: z.string().min(1, 'Question is required').max(2000),
+})
+
+// ============================================
+// Type Exports (additional)
+// ============================================
+
+export type NotificationQueryInput = z.infer<typeof notificationQuerySchema>
+export type FilingStatusInput = z.infer<typeof filingStatusSchema>
+export type CreateTaxProfileInput = z.infer<typeof createTaxProfileSchema>
+export type UpdateTaxProfileInput = z.infer<typeof updateTaxProfileSchema>
+export type TaxSummaryQueryInput = z.infer<typeof taxSummaryQuerySchema>
+export type PlaidExchangeTokenInput = z.infer<typeof plaidExchangeTokenSchema>
+export type PlaidWebhookInput = z.infer<typeof plaidWebhookSchema>
+export type AiQueryRequestInput = z.infer<typeof aiQueryRequestSchema>
+
 // Re-export zod for convenience
 export { z } from 'zod'

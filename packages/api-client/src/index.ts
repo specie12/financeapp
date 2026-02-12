@@ -60,6 +60,17 @@ import type {
   RentalPortfolioSummary,
   AiAdviceResponse,
   AiChatResponse,
+  Notification,
+  NotificationQueryParams,
+  UnreadCountResponse,
+  TaxProfile,
+  CreateTaxProfileDto,
+  TaxSummaryResponse,
+  PlaidItem,
+  PlaidLinkTokenResponse,
+  AiQueryResponse,
+  AiForecastResponse,
+  AiAnomalyResponse,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -748,6 +759,126 @@ export class ApiClient {
         conversationId,
       })
       return response.data
+    },
+
+    query: async (question: string): Promise<ApiResponse<AiQueryResponse>> => {
+      const response = await this.client.post<ApiResponse<AiQueryResponse>>('/ai/query', {
+        question,
+      })
+      return response.data
+    },
+
+    forecast: async (): Promise<ApiResponse<AiForecastResponse>> => {
+      const response = await this.client.post<ApiResponse<AiForecastResponse>>('/ai/forecast')
+      return response.data
+    },
+
+    getAnomalies: async (): Promise<ApiResponse<AiAnomalyResponse>> => {
+      const response = await this.client.get<ApiResponse<AiAnomalyResponse>>('/ai/anomalies')
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Notification Endpoints
+  // ============================================
+
+  notifications = {
+    list: async (params?: NotificationQueryParams): Promise<PaginatedResponse<Notification>> => {
+      const response = await this.client.get<PaginatedResponse<Notification>>('/notifications', {
+        params,
+      })
+      return response.data
+    },
+
+    getUnreadCount: async (): Promise<ApiResponse<UnreadCountResponse>> => {
+      const response = await this.client.get<ApiResponse<UnreadCountResponse>>(
+        '/notifications/unread-count',
+      )
+      return response.data
+    },
+
+    markRead: async (id: string): Promise<ApiResponse<Notification>> => {
+      const response = await this.client.patch<ApiResponse<Notification>>(
+        `/notifications/${id}/read`,
+      )
+      return response.data
+    },
+
+    markAllRead: async (): Promise<ApiResponse<{ updated: number }>> => {
+      const response =
+        await this.client.patch<ApiResponse<{ updated: number }>>('/notifications/read-all')
+      return response.data
+    },
+
+    delete: async (id: string): Promise<void> => {
+      await this.client.delete(`/notifications/${id}`)
+    },
+  }
+
+  // ============================================
+  // Tax Endpoints
+  // ============================================
+
+  tax = {
+    getProfile: async (taxYear?: number): Promise<ApiResponse<TaxProfile>> => {
+      const response = await this.client.get<ApiResponse<TaxProfile>>('/tax/profile', {
+        params: taxYear ? { taxYear } : undefined,
+      })
+      return response.data
+    },
+
+    upsertProfile: async (data: CreateTaxProfileDto): Promise<ApiResponse<TaxProfile>> => {
+      const response = await this.client.post<ApiResponse<TaxProfile>>('/tax/profile', data)
+      return response.data
+    },
+
+    getSummary: async (taxYear?: number): Promise<ApiResponse<TaxSummaryResponse>> => {
+      const response = await this.client.get<ApiResponse<TaxSummaryResponse>>('/tax/summary', {
+        params: taxYear ? { taxYear } : undefined,
+      })
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Plaid Endpoints
+  // ============================================
+
+  plaid = {
+    getLinkToken: async (): Promise<ApiResponse<PlaidLinkTokenResponse>> => {
+      const response =
+        await this.client.post<ApiResponse<PlaidLinkTokenResponse>>('/plaid/link-token')
+      return response.data
+    },
+
+    exchangeToken: async (
+      publicToken: string,
+      institutionId: string,
+      institutionName: string,
+    ): Promise<ApiResponse<PlaidItem>> => {
+      const response = await this.client.post<ApiResponse<PlaidItem>>('/plaid/exchange-token', {
+        publicToken,
+        institutionId,
+        institutionName,
+      })
+      return response.data
+    },
+
+    getItems: async (): Promise<ApiResponse<PlaidItem[]>> => {
+      const response = await this.client.get<ApiResponse<PlaidItem[]>>('/plaid/items')
+      return response.data
+    },
+
+    sync: async (itemId: string): Promise<ApiResponse<{ synced: number }>> => {
+      const response = await this.client.post<ApiResponse<{ synced: number }>>(
+        `/plaid/sync/${itemId}`,
+      )
+      return response.data
+    },
+
+    deleteItem: async (id: string): Promise<void> => {
+      await this.client.delete(`/plaid/items/${id}`)
     },
   }
 }

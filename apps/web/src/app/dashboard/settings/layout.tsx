@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 const settingsTabs = [
   { href: '/dashboard/settings', label: 'Finances', exact: true },
   { href: '/dashboard/settings/accounts', label: 'Connected Accounts' },
+  { href: '/dashboard/settings/notifications', label: 'Notifications' },
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

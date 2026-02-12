@@ -2,12 +2,16 @@ import { Module } from '@nestjs/common'
 import { AiController } from './ai.controller'
 import { AiService } from './ai.service'
 import { PromptBuilderService } from './prompt-builder.service'
+import { AiAnomalyService } from './ai-anomaly.service'
+import { AiPredictionService } from './ai-prediction.service'
 import { DashboardModule } from '../dashboard/dashboard.module'
 import { GoalsModule } from '../goals/goals.module'
+import { AccountsModule } from '../accounts/accounts.module'
+import { TransactionsModule } from '../transactions/transactions.module'
 
 @Module({
-  imports: [DashboardModule, GoalsModule],
+  imports: [DashboardModule, GoalsModule, AccountsModule, TransactionsModule],
   controllers: [AiController],
-  providers: [AiService, PromptBuilderService],
+  providers: [AiService, PromptBuilderService, AiAnomalyService, AiPredictionService],
 })
 export class AiModule {}

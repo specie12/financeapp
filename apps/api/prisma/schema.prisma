@@ -115,6 +115,28 @@ enum GoalStatus {
   paused
 }
 
+enum NotificationType {
+  budget_exceeded
+  goal_milestone
+  bill_due
+  large_transaction
+  net_worth_milestone
+  ai_insight
+}
+
+enum FilingStatus {
+  single
+  married_filing_jointly
+  married_filing_separately
+  head_of_household
+}
+
+enum PlaidItemStatus {
+  active
+  error
+  disconnected
+}
+
 // =============================================================================
 // MODELS
 // =============================================================================
@@ -134,6 +156,8 @@ model Household {
   scenarios         Scenario[]
   goals             Goal[]
   rentalProperties  RentalProperty[]
+  taxProfiles       TaxProfile[]
+  plaidItems        PlaidItem[]
 
   @@map("households")
 }
@@ -156,6 +180,7 @@ model User {
   categories    Category[]
   budgets       Budget[]
   refreshTokens RefreshToken[]
+  notifications Notification[]
 
   @@index([householdId])
   @@index([email])
@@ -181,13 +206,15 @@ model RefreshToken {
 }
 
 model Account {
-  id       String      @id @default(uuid()) @db.Uuid
-  userId   String      @map("user_id") @db.Uuid
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name     String
-  type     AccountType
-  currency Currency    @default(USD)
-  balance  Int         @default(0) // cents
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @map("user_id") @db.Uuid
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  type           AccountType
+  currency       Currency    @default(USD)
+  balance        Int         @default(0) // cents
+  plaidAccountId String?     @unique @map("plaid_account_id")
+  plaidItemId    String?     @map("plaid_item_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -200,16 +227,17 @@ model Account {
 }
 
 model Transaction {
-  id          String          @id @default(uuid()) @db.Uuid
-  accountId   String          @map("account_id") @db.Uuid
-  account     Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  categoryId  String?         @map("category_id") @db.Uuid
-  category    Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  type        TransactionType
-  amount      Int // cents
-  currency    Currency        @default(USD)
-  description String
-  date        DateTime        @db.Date
+  id                 String          @id @default(uuid()) @db.Uuid
+  accountId          String          @map("account_id") @db.Uuid
+  account            Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId         String?         @map("category_id") @db.Uuid
+  category           Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type               TransactionType
+  amount             Int // cents
+  currency           Currency        @default(USD)
+  description        String
+  date               DateTime        @db.Date
+  plaidTransactionId String?         @unique @map("plaid_transaction_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -424,4 +452,54 @@ model RentalProperty {
 
   @@index([householdId])
   @@map("rental_properties")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false) @map("is_read")
+  metadata  Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model TaxProfile {
+  id                  String       @id @default(uuid()) @db.Uuid
+  householdId         String       @map("household_id") @db.Uuid
+  household           Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  taxYear             Int          @map("tax_year")
+  filingStatus        FilingStatus @map("filing_status")
+  stateCode           String?      @map("state_code") @db.VarChar(2)
+  dependents          Int          @default(0)
+  additionalIncomeCents Int?       @map("additional_income_cents")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+
+  @@unique([householdId, taxYear])
+  @@map("tax_profiles")
+}
+
+model PlaidItem {
+  id              String          @id @default(uuid()) @db.Uuid
+  householdId     String          @map("household_id") @db.Uuid
+  household       Household       @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  itemId          String          @unique @map("item_id")
+  accessToken     String          @map("access_token")
+  institutionId   String          @map("institution_id")
+  institutionName String          @map("institution_name")
+  status          PlaidItemStatus @default(active)
+  cursor          String?
+  lastSyncedAt    DateTime?       @map("last_synced_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@index([householdId])
+  @@map("plaid_items")
 }

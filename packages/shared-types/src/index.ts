@@ -520,6 +520,9 @@ export type PlanTier = 'free' | 'pro' | 'premium'
 export interface PlanLimits {
   maxScenarios: number
   maxHorizonYears: number
+  maxAiCallsPerDay: number
+  taxFeaturesEnabled: boolean
+  plaidConnectionsMax: number
 }
 
 export interface PlanLimitError {
@@ -1037,4 +1040,163 @@ export interface AiChatMessage {
 export interface AiChatResponse {
   message: string
   conversationId: string
+}
+
+// ============================================
+// AI Advanced Types
+// ============================================
+
+export interface AiQueryRequest {
+  question: string
+}
+
+export interface AiQueryResponse {
+  answer: string
+  dataUsed: string[]
+}
+
+export interface AiForecastResponse {
+  predictedEndOfMonthBalanceCents: number
+  currentBalanceCents: number
+  projectedIncomeCents: number
+  projectedExpensesCents: number
+  confidenceLevel: 'low' | 'medium' | 'high'
+  insights: string[]
+}
+
+export interface AiAnomalyResponse {
+  anomalies: AiAnomaly[]
+  hasAnomalies: boolean
+}
+
+export interface AiAnomaly {
+  category: string
+  currentAmountCents: number
+  averageAmountCents: number
+  deviationPercent: number
+  severity: 'low' | 'medium' | 'high'
+  message: string
+}
+
+// ============================================
+// Notification Types
+// ============================================
+
+export type NotificationType =
+  | 'budget_exceeded'
+  | 'goal_milestone'
+  | 'bill_due'
+  | 'large_transaction'
+  | 'net_worth_milestone'
+  | 'ai_insight'
+
+export interface Notification {
+  id: string
+  userId: string
+  type: NotificationType
+  title: string
+  message: string
+  isRead: boolean
+  metadata: Record<string, unknown> | null
+  createdAt: Date
+}
+
+export interface NotificationQueryParams {
+  unreadOnly?: boolean
+  page?: number
+  limit?: number
+}
+
+export interface UnreadCountResponse {
+  count: number
+}
+
+// ============================================
+// Tax Types
+// ============================================
+
+export type FilingStatus =
+  | 'single'
+  | 'married_filing_jointly'
+  | 'married_filing_separately'
+  | 'head_of_household'
+
+export interface TaxProfile {
+  id: string
+  householdId: string
+  taxYear: number
+  filingStatus: FilingStatus
+  stateCode: string | null
+  dependents: number
+  additionalIncomeCents: number | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CreateTaxProfileDto {
+  taxYear: number
+  filingStatus: FilingStatus
+  stateCode?: string | null
+  dependents?: number
+  additionalIncomeCents?: number | null
+}
+
+export interface UpdateTaxProfileDto {
+  filingStatus?: FilingStatus
+  stateCode?: string | null
+  dependents?: number
+  additionalIncomeCents?: number | null
+}
+
+export interface TaxBracketInfo {
+  min: number
+  max: number | null
+  rate: number
+  taxInBracket: number
+}
+
+export interface TaxSummaryResponse {
+  taxYear: number
+  filingStatus: FilingStatus
+  estimatedGrossIncomeCents: number
+  standardDeductionCents: number
+  taxableIncomeCents: number
+  estimatedTaxLiabilityCents: number
+  effectiveTaxRatePercent: number
+  marginalTaxRatePercent: number
+  brackets: TaxBracketInfo[]
+  deductions: {
+    mortgageInterestCents: number
+    propertyTaxCents: number
+    standardDeductionCents: number
+  }
+}
+
+// ============================================
+// Plaid Types
+// ============================================
+
+export type PlaidItemStatus = 'active' | 'error' | 'disconnected'
+
+export interface PlaidItem {
+  id: string
+  householdId: string
+  itemId: string
+  institutionId: string
+  institutionName: string
+  status: PlaidItemStatus
+  lastSyncedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface PlaidLinkTokenResponse {
+  linkToken: string
+  expiration: string
+}
+
+export interface PlaidExchangeRequest {
+  publicToken: string
+  institutionId: string
+  institutionName: string
 }

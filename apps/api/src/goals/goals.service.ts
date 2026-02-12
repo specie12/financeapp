@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { PrismaService } from '../prisma/prisma.service'
 import { type CreateGoalDto } from './dto/create-goal.dto'
 import { type UpdateGoalDto } from './dto/update-goal.dto'
@@ -20,7 +21,10 @@ interface PaginatedResult<T> {
 
 @Injectable()
 export class GoalsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async create(householdId: string, dto: CreateGoalDto): Promise<Goal> {
     return this.prisma.goal.create({
@@ -329,6 +333,28 @@ export class GoalsService {
     }
 
     const milestones = this.calculateMilestones(progress.progressPercent)
+
+    // Emit milestone events for newly reached milestones
+    for (const milestone of milestones) {
+      if (milestone.reached) {
+        // Get the household's users to notify
+        const household = await this.prisma.household.findUnique({
+          where: { id: householdId },
+          include: { users: { select: { id: true } } },
+        })
+        if (household) {
+          for (const user of household.users) {
+            this.eventEmitter.emit('goal.milestone', {
+              userId: user.id,
+              goalId: id,
+              goalName: progress.goal.name,
+              milestonePercent: milestone.percent,
+            })
+          }
+        }
+        break // Only emit for the highest reached milestone
+      }
+    }
 
     const insights: GoalInsights = {
       monthlySavingsNeededCents,

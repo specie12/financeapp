@@ -13,4 +13,10 @@ export default () => ({
     model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
     maxTokens: parseInt(process.env.ANTHROPIC_MAX_TOKENS || '2048', 10),
   },
+  plaid: {
+    clientId: process.env.PLAID_CLIENT_ID || '',
+    secret: process.env.PLAID_SECRET || '',
+    env: process.env.PLAID_ENV || 'sandbox',
+    encryptionKey: process.env.PLAID_ENCRYPTION_KEY || '',
+  },
 })

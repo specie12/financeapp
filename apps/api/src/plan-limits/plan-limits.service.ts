@@ -82,4 +82,44 @@ export class PlanLimitsService {
       })
     }
   }
+
+  /**
+   * Assert that tax features are enabled for the household's plan
+   */
+  async assertTaxFeatureEnabled(householdId: string): Promise<void> {
+    const limits = await this.getHouseholdPlanLimits(householdId)
+
+    if (!limits.taxFeaturesEnabled) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: PlanLimitErrorCode.TAX_FEATURES_DISABLED,
+        message:
+          'Tax planning features are available on the Premium plan. Upgrade to access tax optimization tools.',
+      })
+    }
+  }
+
+  /**
+   * Assert that a Plaid connection can be created
+   */
+  async assertCanConnectPlaid(householdId: string): Promise<void> {
+    const limits = await this.getHouseholdPlanLimits(householdId)
+
+    const currentCount = await this.prisma.plaidItem.count({
+      where: { householdId },
+    })
+
+    if (currentCount >= limits.plaidConnectionsMax) {
+      throw new ForbiddenException({
+        statusCode: 403,
+        errorCode: PlanLimitErrorCode.PLAID_CONNECTION_LIMIT,
+        message:
+          limits.plaidConnectionsMax === 0
+            ? 'Bank connections are not available on the Free plan. Upgrade to Pro or Premium to connect your accounts.'
+            : `Bank connection limit reached. Your plan allows ${limits.plaidConnectionsMax} connections. Upgrade for more.`,
+        currentCount,
+        limit: limits.plaidConnectionsMax,
+      })
+    }
+  }
 }
