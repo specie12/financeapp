@@ -459,8 +459,8 @@ export class DashboardService {
   async getEnhancedInvestmentsWithTickers(
     householdId: string,
   ): Promise<EnhancedInvestmentsWithTickers> {
-    // Get base investments data
-    const baseResponse = await this.getInvestments(householdId)
+    // Get base enhanced investments data (includes dividends and goal progress)
+    const baseResponse = await this.getEnhancedInvestments(householdId)
 
     // Get investment assets with ticker information
     const investmentAssets = await this.prisma.asset.findMany({
