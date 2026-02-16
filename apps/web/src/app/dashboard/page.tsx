@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { useNetWorth } from '@/hooks/useNetWorth'
 import { useGoals } from '@/hooks/useGoals'
 import { useBudgetStatus } from '@/hooks/useBudgetStatus'
 import { useCashFlowSummary } from '@/hooks/useCashFlowSummary'
 import { useAiAdvice } from '@/hooks/useAiAdvice'
+import { createAuthenticatedApiClient } from '@/lib/auth'
+import type { AiAnomalyResponse } from '@finance-app/shared-types'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -46,6 +48,27 @@ export default function DashboardPage() {
   const { data: cashFlowData, isLoading: cashFlowLoading } = useCashFlowSummary(accessToken)
   const { advice, isLoading: aiLoading, error: aiError, getAdvice } = useAiAdvice(accessToken)
 
+  const [anomalyData, setAnomalyData] = useState<AiAnomalyResponse | null>(null)
+  const [anomalyLoading, setAnomalyLoading] = useState(true)
+
+  const fetchAnomalies = useCallback(async () => {
+    if (!accessToken) return
+    setAnomalyLoading(true)
+    try {
+      const apiClient = createAuthenticatedApiClient(accessToken)
+      const response = await apiClient.ai.getAnomalies()
+      setAnomalyData(response.data)
+    } catch {
+      // Silently fail - non-critical feature
+    } finally {
+      setAnomalyLoading(false)
+    }
+  }, [accessToken])
+
+  useEffect(() => {
+    fetchAnomalies()
+  }, [fetchAnomalies])
+
   if (!accessToken) {
     return (
       <div className="space-y-6">
@@ -62,13 +85,21 @@ export default function DashboardPage() {
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <OverviewNetWorth data={netWorthData} isLoading={netWorthLoading} />
-        <OverviewBudgetPulse data={budgetData} isLoading={budgetLoading} />
-        <OverviewCashFlow data={cashFlowData} isLoading={cashFlowLoading} />
+        <OverviewBudgetPulse
+          data={budgetData}
+          isLoading={budgetLoading}
+          hasAnomalies={anomalyData?.hasAnomalies}
+        />
+        <OverviewCashFlow
+          data={cashFlowData}
+          isLoading={cashFlowLoading}
+          anomalyCount={anomalyData?.anomalies.length}
+        />
         <OverviewGoals goals={goals} isLoading={goalsLoading} />
       </div>
 
       {/* AI Anomaly Alerts */}
-      <AiAnomalyAlert accessToken={accessToken} />
+      <AiAnomalyAlert data={anomalyData} isLoading={anomalyLoading} />
 
       {/* AI Natural Language Query */}
       <AiQueryBar accessToken={accessToken} />

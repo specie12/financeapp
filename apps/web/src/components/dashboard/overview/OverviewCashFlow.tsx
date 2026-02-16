@@ -15,9 +15,10 @@ function formatCents(cents: number): string {
 interface OverviewCashFlowProps {
   data: CashFlowSummaryResponse | null
   isLoading: boolean
+  anomalyCount?: number
 }
 
-export function OverviewCashFlow({ data, isLoading }: OverviewCashFlowProps) {
+export function OverviewCashFlow({ data, isLoading, anomalyCount }: OverviewCashFlowProps) {
   return (
     <Link href="/dashboard/cash-flow">
       <Card className="hover:shadow-md transition-shadow cursor-pointer">
@@ -49,6 +50,12 @@ export function OverviewCashFlow({ data, isLoading }: OverviewCashFlowProps) {
               <p className="text-xs text-muted-foreground mt-1">
                 {data.savingsRatePercent}% savings rate
               </p>
+              {anomalyCount != null && anomalyCount > 0 && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  {anomalyCount} spending anomal{anomalyCount !== 1 ? 'ies' : 'y'}
+                </p>
+              )}
             </>
           ) : (
             <p className="text-muted-foreground text-sm">No cash flow data</p>

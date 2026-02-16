@@ -16,9 +16,10 @@ function formatCents(cents: number): string {
 interface OverviewBudgetPulseProps {
   data: BudgetStatusResponse | null
   isLoading: boolean
+  hasAnomalies?: boolean
 }
 
-export function OverviewBudgetPulse({ data, isLoading }: OverviewBudgetPulseProps) {
+export function OverviewBudgetPulse({ data, isLoading, hasAnomalies }: OverviewBudgetPulseProps) {
   const topBudgets = data?.budgets.slice(0, 3) ?? []
 
   return (
@@ -54,6 +55,12 @@ export function OverviewBudgetPulse({ data, isLoading }: OverviewBudgetPulseProp
                 <p className="text-xs text-red-600">
                   {data.overBudgetCount} categor{data.overBudgetCount !== 1 ? 'ies' : 'y'} over
                   budget
+                </p>
+              )}
+              {hasAnomalies && (
+                <p className="text-xs text-amber-600 flex items-center gap-1">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  Unusual spending detected
                 </p>
               )}
             </div>

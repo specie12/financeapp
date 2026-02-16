@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { createAuthenticatedApiClient } from '@/lib/auth'
+import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import type { AiAnomalyResponse } from '@finance-app/shared-types'
 
@@ -12,43 +11,45 @@ const severityColors = {
 }
 
 interface AiAnomalyAlertProps {
-  accessToken: string | null
+  data: AiAnomalyResponse | null
+  isLoading: boolean
 }
 
-export function AiAnomalyAlert({ accessToken }: AiAnomalyAlertProps) {
-  const [data, setData] = useState<AiAnomalyResponse | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  const fetchAnomalies = useCallback(async () => {
-    if (!accessToken) return
-    setIsLoading(true)
-    try {
-      const apiClient = createAuthenticatedApiClient(accessToken)
-      const response = await apiClient.ai.getAnomalies()
-      setData(response.data)
-    } catch {
-      // Silently fail - this is a non-critical feature
-    } finally {
-      setIsLoading(false)
-    }
-  }, [accessToken])
-
-  useEffect(() => {
-    fetchAnomalies()
-  }, [fetchAnomalies])
+export function AiAnomalyAlert({ data, isLoading }: AiAnomalyAlertProps) {
+  const [dismissedIndices, setDismissedIndices] = useState<Set<number>>(new Set())
 
   if (isLoading || !data?.hasAnomalies) return null
 
+  const visibleAnomalies = data.anomalies
+    .slice(0, 3)
+    .map((anomaly, index) => ({ anomaly, index }))
+    .filter(({ index }) => !dismissedIndices.has(index))
+
+  if (visibleAnomalies.length === 0) return null
+
   return (
     <div className="space-y-2">
-      {data.anomalies.slice(0, 3).map((anomaly, index) => (
+      {visibleAnomalies.map(({ anomaly, index }) => (
         <Card key={index} className={`border-l-4 ${severityColors[anomaly.severity]}`}>
           <CardContent className="py-3 px-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">
-                {anomaly.severity === 'high' ? '!!' : anomaly.severity === 'medium' ? '!' : 'i'}
-              </span>
-              <p className="text-sm">{anomaly.message}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm">
+                  {anomaly.severity === 'high' ? '!!' : anomaly.severity === 'medium' ? '!' : 'i'}
+                </span>
+                <p className="text-sm">{anomaly.message}</p>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setDismissedIndices((prev) => new Set([...prev, index]))
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors text-sm px-1"
+                aria-label="Dismiss anomaly"
+              >
+                ✕
+              </button>
             </div>
           </CardContent>
         </Card>
