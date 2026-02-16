@@ -126,8 +126,8 @@ describe('Projection Determinism', () => {
 
     // All snapshots should have same totals
     for (let i = 0; i <= 10; i++) {
-      expect(result1.yearlySnapshots[i].netWorthCents).toBe(
-        result2.yearlySnapshots[i].netWorthCents,
+      expect(result1.yearlySnapshots[i]!.netWorthCents).toBe(
+        result2.yearlySnapshots[i]!.netWorthCents,
       )
     }
   })
@@ -186,7 +186,7 @@ describe('Asset projection in runProjection', () => {
     const result = runProjection(input)
 
     // Year 5: Asset 1 = $127,628.16, Asset 2 = $80,525.50
-    const year5 = result.yearlySnapshots[5]
+    const year5 = result.yearlySnapshots[5]!
     expect(year5.assetValues.find((a) => a.id === 'a1')?.valueCents).toBe(12762816)
     expect(year5.assetValues.find((a) => a.id === 'a2')?.valueCents).toBe(8052550)
     expect(year5.totalAssetsCents).toBe(12762816 + 8052550)
@@ -253,8 +253,8 @@ describe('Liability projection in runProjection', () => {
 
     // Balance should decrease each year
     for (let i = 1; i <= 10; i++) {
-      expect(result.yearlySnapshots[i].totalLiabilitiesCents).toBeLessThan(
-        result.yearlySnapshots[i - 1].totalLiabilitiesCents,
+      expect(result.yearlySnapshots[i]!.totalLiabilitiesCents).toBeLessThan(
+        result.yearlySnapshots[i - 1]!.totalLiabilitiesCents,
       )
     }
   })
@@ -270,7 +270,7 @@ describe('Liability projection in runProjection', () => {
 
     // Each year should have debt payments
     for (let i = 0; i <= 5; i++) {
-      expect(result.yearlySnapshots[i].debtPaymentsCents).toBeGreaterThan(0)
+      expect(result.yearlySnapshots[i]!.debtPaymentsCents).toBeGreaterThan(0)
     }
   })
 })
@@ -393,7 +393,7 @@ describe('Cash flow in runProjection', () => {
     }
 
     const result = runProjection(input)
-    const year0 = result.yearlySnapshots[0]
+    const year0 = result.yearlySnapshots[0]!
 
     expect(year0.totalIncomeCents).toBe(6000000)
     expect(year0.totalExpensesCents).toBe(2400000)
@@ -421,7 +421,7 @@ describe('Cash flow in runProjection', () => {
     }
 
     const result = runProjection(input)
-    const year0 = result.yearlySnapshots[0]
+    const year0 = result.yearlySnapshots[0]!
 
     // Net cash flow = income - expenses - debt payments
     expect(year0.netCashFlowCents).toBe(12000000 - 3600000 - 0)
@@ -447,7 +447,7 @@ describe('Net Worth calculation', () => {
     }
 
     const result = runProjection(input)
-    const year0 = result.yearlySnapshots[0]
+    const year0 = result.yearlySnapshots[0]!
 
     expect(year0.netWorthCents).toBe(year0.totalAssetsCents - year0.totalLiabilitiesCents)
   })
@@ -466,7 +466,7 @@ describe('Net Worth calculation', () => {
     }
 
     const result = runProjection(input)
-    expect(result.yearlySnapshots[0].netWorthCents).toBeLessThan(0)
+    expect(result.yearlySnapshots[0]!.netWorthCents).toBeLessThan(0)
   })
 })
 
@@ -618,7 +618,7 @@ describe('Edge Cases', () => {
     const result = runProjection(input)
 
     expect(result.yearlySnapshots.length).toBe(11) // 0-10
-    expect(result.yearlySnapshots[0].netWorthCents).toBe(0)
+    expect(result.yearlySnapshots[0]!.netWorthCents).toBe(0)
     expect(result.summary.startingNetWorthCents).toBe(0)
   })
 
@@ -658,8 +658,8 @@ describe('Edge Cases', () => {
     const result = runProjection(input)
 
     // After year 2, balance should be 0
-    expect(result.yearlySnapshots[3].totalLiabilitiesCents).toBe(0)
-    expect(result.yearlySnapshots[10].totalLiabilitiesCents).toBe(0)
+    expect(result.yearlySnapshots[3]!.totalLiabilitiesCents).toBe(0)
+    expect(result.yearlySnapshots[10]!.totalLiabilitiesCents).toBe(0)
   })
 
   it('should handle expired cash flow items', () => {
@@ -676,8 +676,8 @@ describe('Edge Cases', () => {
     const result = runProjection(input)
 
     // Year 0 should have income, but later years should not
-    expect(result.yearlySnapshots[0].totalIncomeCents).toBeGreaterThan(0)
-    expect(result.yearlySnapshots[2].totalIncomeCents).toBe(0)
+    expect(result.yearlySnapshots[0]!.totalIncomeCents).toBeGreaterThan(0)
+    expect(result.yearlySnapshots[2]!.totalIncomeCents).toBe(0)
   })
 
   it('should handle zero growth rate assets', () => {
@@ -691,7 +691,7 @@ describe('Edge Cases', () => {
 
     // Value should remain constant
     for (let i = 0; i <= 10; i++) {
-      expect(result.yearlySnapshots[i].totalAssetsCents).toBe(10000000)
+      expect(result.yearlySnapshots[i]!.totalAssetsCents).toBe(10000000)
     }
   })
 
@@ -703,7 +703,7 @@ describe('Edge Cases', () => {
     }
 
     const result = runProjection(input)
-    expect(result.yearlySnapshots[0].totalAssetsCents).toBe(1)
+    expect(result.yearlySnapshots[0]!.totalAssetsCents).toBe(1)
   })
 
   it('should handle very large amounts', () => {
@@ -714,7 +714,7 @@ describe('Edge Cases', () => {
     }
 
     const result = runProjection(input)
-    expect(result.yearlySnapshots[5].totalAssetsCents).toBeGreaterThan(100000000000)
+    expect(result.yearlySnapshots[5]!.totalAssetsCents).toBeGreaterThan(100000000000)
   })
 })
 
@@ -746,7 +746,7 @@ describe('Scenario Integration', () => {
 
     // With 10% growth instead of 5%
     // $100,000 at 10% for 5 years = $161,051
-    expect(result.yearlySnapshots[5].totalAssetsCents).toBe(16105100)
+    expect(result.yearlySnapshots[5]!.totalAssetsCents).toBe(16105100)
   })
 
   it('should not modify original entities when applying scenario', () => {
@@ -823,8 +823,8 @@ describe('Result Structure', () => {
 
     const result = runProjection(input)
 
-    expect(result.yearlySnapshots[0].date.getFullYear()).toBe(2024)
-    expect(result.yearlySnapshots[5].date.getFullYear()).toBe(2029)
+    expect(result.yearlySnapshots[0]!.date.getFullYear()).toBe(2024)
+    expect(result.yearlySnapshots[5]!.date.getFullYear()).toBe(2029)
   })
 
   it('should include year numbers in snapshots', () => {
@@ -832,7 +832,7 @@ describe('Result Structure', () => {
     const result = runProjection(input)
 
     for (let i = 0; i <= 10; i++) {
-      expect(result.yearlySnapshots[i].year).toBe(i)
+      expect(result.yearlySnapshots[i]!.year).toBe(i)
     }
   })
 
@@ -845,11 +845,11 @@ describe('Result Structure', () => {
     }
 
     const result = runProjection(input)
-    const year5 = result.yearlySnapshots[5]
+    const year5 = result.yearlySnapshots[5]!
 
     expect(year5.assetValues.length).toBe(2)
     expect(year5.liabilityBalances.length).toBe(1)
     expect(year5.assetValues.map((a) => a.id).sort()).toEqual(['a1', 'a2'])
-    expect(year5.liabilityBalances[0].id).toBe('l1')
+    expect(year5.liabilityBalances[0]!.id).toBe('l1')
   })
 })
