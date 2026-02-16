@@ -35,7 +35,8 @@ import { Separator } from '@/components/ui/separator'
 import { generateId, formatDollars, dollarsToCents } from '@/lib/onboarding/utils'
 import { ASSET_QUICK_ADD, LIABILITY_QUICK_ADD, type MonthlyExpenses } from '@/lib/onboarding/types'
 import { createApiClient } from '@finance-app/api-client'
-import type { AuthTokens, AssetType, LiabilityType } from '@finance-app/shared-types'
+import { TickerSearchInput } from '@/components/dashboard/investments/TickerSearchInput'
+import type { AuthTokens, AssetType, LiabilityType, TickerData } from '@finance-app/shared-types'
 
 // Default terms by liability type (in months)
 const DEFAULT_TERMS: Record<LiabilityType, number> = {
@@ -198,13 +199,19 @@ export function AssetsDebtsStep({
   const [isAddingAsset, setIsAddingAsset] = useState(false)
   const [isAddingLiability, setIsAddingLiability] = useState(false)
   const [timeInputMode, setTimeInputMode] = useState<'paid' | 'remaining'>('paid')
+  const [selectedTicker, setSelectedTicker] = useState<TickerData | null>(null)
 
-  const assetForm = useForm<Omit<AssetItem, 'id'>>({
+  const assetForm = useForm<
+    Omit<AssetItem, 'id'> & { ticker?: string; shares?: number; costBasis?: number }
+  >({
     resolver: zodResolver(assetItemSchema.omit({ id: true })),
     defaultValues: {
       name: '',
       type: 'bank_account',
       value: 0,
+      ticker: undefined,
+      shares: undefined,
+      costBasis: undefined,
     },
   })
 
@@ -224,6 +231,7 @@ export function AssetsDebtsStep({
 
   // Watch form values for auto-calculation
   const watchedType = liabilityForm.watch('type')
+  const watchedAssetType = assetForm.watch('type')
   const watchedOriginalBalance = liabilityForm.watch('originalBalance')
   const watchedCurrentBalance = liabilityForm.watch('currentBalance')
   const watchedInterestRate = liabilityForm.watch('interestRate')
@@ -294,9 +302,13 @@ export function AssetsDebtsStep({
     }
   }, [])
 
-  const handleAddAsset = (data: Omit<AssetItem, 'id'>) => {
-    onAddAsset({ ...data, id: generateId() })
+  const handleAddAsset = (
+    data: Omit<AssetItem, 'id'> & { ticker?: string; shares?: number; costBasis?: number },
+  ) => {
+    const { ticker, shares, costBasis, ...assetData } = data
+    onAddAsset({ ...assetData, id: generateId(), ticker, shares, costBasis })
     assetForm.reset()
+    setSelectedTicker(null)
     setIsAddingAsset(false)
   }
 
@@ -393,13 +405,24 @@ export function AssetsDebtsStep({
 
       // Create assets
       for (const asset of assets) {
-        promises.push(
-          apiClient.assets.create({
-            name: asset.name,
-            type: asset.type,
-            currentValueCents: dollarsToCents(asset.value),
-          }),
-        )
+        const assetData: any = {
+          name: asset.name,
+          type: asset.type,
+          currentValueCents: dollarsToCents(asset.value),
+        }
+
+        // Add ticker data if available
+        if (asset.ticker) {
+          assetData.ticker = asset.ticker
+        }
+        if (asset.shares) {
+          assetData.shares = asset.shares
+        }
+        if (asset.costBasis) {
+          assetData.costBasisCents = dollarsToCents(asset.costBasis)
+        }
+
+        promises.push(apiClient.assets.create(assetData))
       }
 
       // Create liabilities
@@ -562,6 +585,75 @@ export function AssetsDebtsStep({
                         )}
                       />
                     </div>
+
+                    {/* Ticker fields for investment assets */}
+                    {(watchedAssetType === 'investment' ||
+                      watchedAssetType === 'retirement_account') && (
+                      <div className="space-y-3">
+                        <div>
+                          <FormLabel>Ticker Symbol (Optional)</FormLabel>
+                          <TickerSearchInput
+                            value={selectedTicker}
+                            onChange={(ticker) => {
+                              setSelectedTicker(ticker)
+                              assetForm.setValue('ticker', ticker?.symbol || '')
+                              if (ticker) {
+                                assetForm.setValue('name', `${ticker.name} (${ticker.symbol})`)
+                              }
+                            }}
+                            placeholder="Search for stocks, ETFs..."
+                          />
+                        </div>
+
+                        {selectedTicker && (
+                          <div className="grid grid-cols-2 gap-3">
+                            <FormField
+                              control={assetForm.control}
+                              name="shares"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Number of Shares</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.001"
+                                      placeholder="0"
+                                      value={field.value || ''}
+                                      onChange={(e) =>
+                                        field.onChange(parseFloat(e.target.value) || 0)
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={assetForm.control}
+                              name="costBasis"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Cost Basis per Share ($)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="0.00"
+                                      value={field.value || ''}
+                                      onChange={(e) =>
+                                        field.onChange(parseFloat(e.target.value) || 0)
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex gap-2">
                       <Button type="submit" size="sm">
                         Add Asset
@@ -572,6 +664,7 @@ export function AssetsDebtsStep({
                         size="sm"
                         onClick={() => {
                           assetForm.reset()
+                          setSelectedTicker(null)
                           setIsAddingAsset(false)
                         }}
                       >

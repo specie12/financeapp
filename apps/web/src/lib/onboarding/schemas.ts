@@ -70,6 +70,9 @@ export const assetItemSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   type: assetTypeSchema,
   value: z.number().positive('Value must be positive'),
+  ticker: z.string().optional(),
+  shares: z.number().positive().optional(),
+  costBasis: z.number().positive().optional(),
 })
 
 export const liabilityItemSchema = z.object({
