@@ -192,6 +192,7 @@ export function AssetsDebtsStep({
   tokens,
   incomeItems,
   expenses,
+  goals,
   setLoading,
   setError,
   isLoading,
@@ -441,6 +442,18 @@ export function AssetsDebtsStep({
             minimumPaymentCents: dollarsToCents(liability.minimumPayment),
             termMonths: termMonths,
             startDate: startDate,
+          }),
+        )
+      }
+
+      // Create goals
+      for (const goal of goals || []) {
+        promises.push(
+          apiClient.goals.create({
+            name: goal.name,
+            type: goal.type,
+            targetAmountCents: goal.targetAmountCents,
+            targetDate: goal.targetDate,
           }),
         )
       }
