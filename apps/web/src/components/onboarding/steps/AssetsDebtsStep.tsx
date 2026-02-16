@@ -604,7 +604,9 @@ export function AssetsDebtsStep({
                       watchedAssetType === 'retirement_account') && (
                       <div className="space-y-3">
                         <div>
-                          <FormLabel>Ticker Symbol (Optional)</FormLabel>
+                          <label className="text-sm font-medium leading-none">
+                            Ticker Symbol (Optional)
+                          </label>
                           <TickerSearchInput
                             value={selectedTicker}
                             onSelect={(ticker) => {
