@@ -17,6 +17,7 @@ import {
   OverviewAiInsights,
 } from '@/components/dashboard/overview'
 import { AiAnomalyAlert } from '@/components/dashboard/ai/AiAnomalyAlert'
+import { AiQueryBar } from '@/components/dashboard/ai/AiQueryBar'
 import { AiCashFlowForecast } from '@/components/dashboard/ai/AiCashFlowForecast'
 import { AiGoalCoaching } from '@/components/dashboard/ai/AiGoalCoaching'
 
@@ -68,6 +69,9 @@ export default function DashboardPage() {
 
       {/* AI Anomaly Alerts */}
       <AiAnomalyAlert accessToken={accessToken} />
+
+      {/* AI Natural Language Query */}
+      <AiQueryBar accessToken={accessToken} />
 
       {/* AI Insights + Forecast + Goal Coaching */}
       <OverviewAiInsights
