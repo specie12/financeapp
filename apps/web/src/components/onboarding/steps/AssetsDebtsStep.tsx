@@ -594,7 +594,7 @@ export function AssetsDebtsStep({
                           <FormLabel>Ticker Symbol (Optional)</FormLabel>
                           <TickerSearchInput
                             value={selectedTicker}
-                            onChange={(ticker) => {
+                            onSelect={(ticker) => {
                               setSelectedTicker(ticker)
                               assetForm.setValue('ticker', ticker?.symbol || '')
                               if (ticker) {

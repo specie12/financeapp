@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+
+// Force dynamic rendering for this page due to React Query usage
+export const dynamic = 'force-dynamic'
 import { useEnhancedInvestments } from '@/hooks/useEnhancedInvestments'
 import { useEnhancedInvestmentsWithTickers, useMarketSummary } from '@/hooks/useMarketData'
 import { useGoals } from '@/hooks/useGoals'
@@ -14,6 +17,7 @@ import {
 } from '@/components/dashboard/investments'
 import { EnhancedHoldingsList } from '@/components/dashboard/investments/EnhancedHoldingsList'
 import { GoalsSummaryCard } from '@/components/dashboard/goals'
+import type { TickerData } from '@finance-app/shared-types'
 
 export default function InvestmentsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -62,7 +66,10 @@ export default function InvestmentsPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">Investments</h1>
-        <ErrorState message={dataError} onRetry={refetch} />
+        <ErrorState
+          message={dataError instanceof Error ? dataError.message : dataError}
+          onRetry={refetch}
+        />
       </div>
     )
   }
@@ -91,7 +98,7 @@ export default function InvestmentsPage() {
           <div>
             <h3 className="font-medium text-sm text-muted-foreground mb-2">Top Gainers</h3>
             <div className="space-y-1">
-              {marketSummary.topGainers.slice(0, 3).map((ticker) => (
+              {marketSummary.topGainers.slice(0, 3).map((ticker: TickerData) => (
                 <div key={ticker.symbol} className="flex justify-between text-sm">
                   <span className="font-medium">{ticker.symbol}</span>
                   <span className="text-green-600">+{ticker.dayChange.toFixed(1)}%</span>
@@ -102,7 +109,7 @@ export default function InvestmentsPage() {
           <div>
             <h3 className="font-medium text-sm text-muted-foreground mb-2">Top Losers</h3>
             <div className="space-y-1">
-              {marketSummary.topLosers.slice(0, 3).map((ticker) => (
+              {marketSummary.topLosers.slice(0, 3).map((ticker: TickerData) => (
                 <div key={ticker.symbol} className="flex justify-between text-sm">
                   <span className="font-medium">{ticker.symbol}</span>
                   <span className="text-red-600">{ticker.dayChange.toFixed(1)}%</span>
@@ -113,7 +120,7 @@ export default function InvestmentsPage() {
           <div>
             <h3 className="font-medium text-sm text-muted-foreground mb-2">Most Active</h3>
             <div className="space-y-1">
-              {marketSummary.mostActive.slice(0, 3).map((ticker) => (
+              {marketSummary.mostActive.slice(0, 3).map((ticker: TickerData) => (
                 <div key={ticker.symbol} className="flex justify-between text-sm">
                   <span className="font-medium">{ticker.symbol}</span>
                   <span className="text-muted-foreground">${ticker.currentPrice.toFixed(2)}</span>

@@ -1278,7 +1278,7 @@ export interface SectorAllocation {
   count: number
 }
 
-export interface EnhancedInvestmentsWithTickers extends InvestmentsResponse {
+export interface EnhancedInvestmentsWithTickers extends EnhancedInvestmentsResponse {
   portfolioPerformance: PortfolioPerformance
   sectorAllocations: SectorAllocation[]
   enhancedHoldings: EnhancedHolding[]

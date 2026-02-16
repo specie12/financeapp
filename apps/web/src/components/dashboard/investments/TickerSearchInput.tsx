@@ -106,7 +106,7 @@ export function TickerSearchInput({
               )}
               {searchResults && searchResults.length > 0 && (
                 <CommandGroup>
-                  {searchResults.map((ticker) => (
+                  {searchResults.map((ticker: TickerData) => (
                     <CommandItem
                       key={ticker.symbol}
                       value={ticker.symbol}
