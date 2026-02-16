@@ -1,11 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-
-// Force dynamic rendering for this page due to React Query usage
-export const dynamic = 'force-dynamic'
+import { useCallback, useEffect, useState } from 'react'
+import { createApiClient } from '@finance-app/api-client'
 import { useEnhancedInvestments } from '@/hooks/useEnhancedInvestments'
-import { useEnhancedInvestmentsWithTickers, useMarketSummary } from '@/hooks/useMarketData'
 import { useGoals } from '@/hooks/useGoals'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
@@ -17,7 +14,80 @@ import {
 } from '@/components/dashboard/investments'
 import { EnhancedHoldingsList } from '@/components/dashboard/investments/EnhancedHoldingsList'
 import { GoalsSummaryCard } from '@/components/dashboard/goals'
-import type { TickerData } from '@finance-app/shared-types'
+import type { TickerData, EnhancedInvestmentsWithTickers } from '@finance-app/shared-types'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+type MarketSummary = {
+  topGainers: TickerData[]
+  topLosers: TickerData[]
+  mostActive: TickerData[]
+}
+
+function useEnhancedInvestmentsWithTickers(accessToken: string | null) {
+  const [data, setData] = useState<EnhancedInvestmentsWithTickers | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchData = useCallback(async () => {
+    if (!accessToken) return
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const client = createApiClient({ baseURL: API_URL })
+      client.setAccessToken(accessToken)
+      const response = await client.dashboard.getEnhancedInvestmentsWithTickers()
+
+      if (response.success) {
+        setData(response.data)
+      } else {
+        setError('Failed to fetch ticker-enhanced investments data')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [accessToken])
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchData()
+    }
+  }, [accessToken, fetchData])
+
+  return { data, isLoading, error }
+}
+
+function useMarketSummary(accessToken: string | null) {
+  const [data, setData] = useState<MarketSummary | null>(null)
+
+  const fetchData = useCallback(async () => {
+    if (!accessToken) return
+
+    try {
+      const client = createApiClient({ baseURL: API_URL })
+      client.setAccessToken(accessToken)
+      const response = await client.marketData.getMarketSummary()
+
+      if (response.success) {
+        setData(response.data)
+      }
+    } catch {
+      // Market summary is non-critical, silently fail
+    }
+  }, [accessToken])
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchData()
+    }
+  }, [accessToken, fetchData])
+
+  return { data }
+}
 
 export default function InvestmentsPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -32,8 +102,8 @@ export default function InvestmentsPage() {
     data: tickerData,
     isLoading: tickerLoading,
     error: tickerError,
-  } = useEnhancedInvestmentsWithTickers()
-  const { data: marketSummary } = useMarketSummary()
+  } = useEnhancedInvestmentsWithTickers(accessToken)
+  const { data: marketSummary } = useMarketSummary(accessToken)
   const { goals } = useGoals(accessToken)
 
   // Use ticker-enhanced data if available, otherwise fall back to regular enhanced data
@@ -66,10 +136,7 @@ export default function InvestmentsPage() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold">Investments</h1>
-        <ErrorState
-          message={dataError instanceof Error ? dataError.message : dataError}
-          onRetry={refetch}
-        />
+        <ErrorState message={dataError} onRetry={refetch} />
       </div>
     )
   }
