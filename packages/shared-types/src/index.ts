@@ -93,6 +93,24 @@ export interface Asset {
   currentValueCents: number
   annualGrowthRatePercent: number | null
   dividendYieldPercent: number | null
+
+  // Ticker data fields
+  ticker: string | null
+  shares: number | null
+  costBasisCents: number | null
+  lastPriceCents: number | null
+  lastPriceDate: Date | null
+
+  // Performance tracking
+  dayChange: number | null
+  weekChange: number | null
+  monthChange: number | null
+  ytdChange: number | null
+
+  // Sector classification
+  sector: string | null
+  industry: string | null
+
   createdAt: Date
   updatedAt: Date
 }
@@ -241,6 +259,9 @@ export interface CreateAssetDto {
   currentValueCents: number
   annualGrowthRatePercent?: number | null
   dividendYieldPercent?: number | null
+  ticker?: string | null
+  shares?: number | null
+  costBasisCents?: number | null
 }
 
 export interface CreateLiabilityDto {
@@ -1199,4 +1220,66 @@ export interface PlaidExchangeRequest {
   publicToken: string
   institutionId: string
   institutionName: string
+}
+
+// ============================================
+// Ticker Data and Performance Types
+// ============================================
+
+export interface TickerData {
+  symbol: string
+  name: string
+  currentPrice: number
+  dayChange: number
+  weekChange: number
+  monthChange: number
+  ytdChange: number
+  yearChange: number
+  lastUpdated: Date
+  sector?: string
+  industry?: string
+  marketCap?: number
+}
+
+export interface PerformanceMetrics {
+  totalReturn: number
+  totalReturnPercent: number
+  dayChange: number
+  weekChange: number
+  monthChange: number
+  ytdChange: number
+  yearChange: number
+}
+
+export interface EnhancedHolding extends InvestmentHoldingSummary {
+  ticker?: TickerData
+  performance?: PerformanceMetrics
+  sector?: string
+  shares?: number
+  lastPriceCents?: number
+}
+
+export interface PortfolioPerformance {
+  totalValueCents: number
+  dayChangeCents: number
+  dayChangePercent: number
+  weekChangeCents: number
+  weekChangePercent: number
+  monthChangeCents: number
+  monthChangePercent: number
+  ytdChangeCents: number
+  ytdChangePercent: number
+}
+
+export interface SectorAllocation {
+  sector: string
+  valueCents: number
+  allocationPercent: number
+  count: number
+}
+
+export interface EnhancedInvestmentsWithTickers extends InvestmentsResponse {
+  portfolioPerformance: PortfolioPerformance
+  sectorAllocations: SectorAllocation[]
+  enhancedHoldings: EnhancedHolding[]
 }

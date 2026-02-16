@@ -300,6 +300,23 @@ model Asset {
   annualGrowthRatePercent Decimal?  @map("annual_growth_rate_percent") @db.Decimal(5, 2)
   dividendYieldPercent    Decimal?  @map("dividend_yield_percent") @db.Decimal(5, 2)
 
+  // Ticker data fields
+  ticker          String?   @map("ticker")
+  shares          Decimal?  @map("shares") @db.Decimal(15, 6)
+  costBasisCents  Int?      @map("cost_basis_cents")
+  lastPriceCents  Int?      @map("last_price_cents")
+  lastPriceDate   DateTime? @map("last_price_date")
+
+  // Performance tracking
+  dayChange   Decimal? @map("day_change") @db.Decimal(8, 4)
+  weekChange  Decimal? @map("week_change") @db.Decimal(8, 4)
+  monthChange Decimal? @map("month_change") @db.Decimal(8, 4)
+  ytdChange   Decimal? @map("ytd_change") @db.Decimal(8, 4)
+
+  // Sector classification
+  sector   String? @map("sector")
+  industry String? @map("industry")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -308,6 +325,8 @@ model Asset {
   @@index([householdId])
   @@index([type])
   @@index([householdId, type])
+  @@index([ticker])
+  @@index([sector])
   @@map("assets")
 }
 

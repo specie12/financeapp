@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { PlanLimitsService } from '../plan-limits/plan-limits.service'
+import { MarketDataService } from '../market-data/market-data.service'
 import {
   runProjection,
   generateAmortizationSchedule,
@@ -36,7 +37,12 @@ import type {
   BudgetStatusItem,
 } from './types'
 import type { Frequency, BudgetPeriod } from '@prisma/client'
-import type { AssetType } from '@finance-app/shared-types'
+import type {
+  AssetType,
+  EnhancedInvestmentsWithTickers,
+  EnhancedHolding,
+  SectorAllocation,
+} from '@finance-app/shared-types'
 import Decimal from 'decimal.js'
 
 @Injectable()
@@ -44,6 +50,7 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly planLimitsService: PlanLimitsService,
+    private readonly marketDataService: MarketDataService,
   ) {}
 
   async getNetWorth(householdId: string, horizonYears = 5): Promise<NetWorthResponse> {
@@ -446,6 +453,132 @@ export class DashboardService {
       totalAnnualDividendsCents,
       totalMonthlyDividendsCents,
       goalProgress,
+    }
+  }
+
+  async getEnhancedInvestmentsWithTickers(
+    householdId: string,
+  ): Promise<EnhancedInvestmentsWithTickers> {
+    // Get base investments data
+    const baseResponse = await this.getInvestments(householdId)
+
+    // Get investment assets with ticker information
+    const investmentAssets = await this.prisma.asset.findMany({
+      where: {
+        householdId,
+        type: { in: ['investment', 'retirement_account'] },
+      },
+      orderBy: { currentValueCents: 'desc' },
+    })
+
+    // Separate assets with and without ticker symbols
+    const assetsWithTickers = investmentAssets.filter((asset) => asset.ticker)
+
+    // Get ticker data for assets that have ticker symbols
+    const tickerSymbols = assetsWithTickers.map((asset) => asset.ticker!).filter(Boolean)
+    const tickerDataArray =
+      tickerSymbols.length > 0
+        ? await this.marketDataService.getMultipleTickerData(tickerSymbols)
+        : []
+
+    // Create ticker data map for quick lookup
+    const tickerDataMap = new Map(tickerDataArray.map((data) => [data.symbol, data]))
+
+    // Calculate portfolio performance using MarketDataService
+    const holdingsForPerformance = assetsWithTickers
+      .filter((asset) => asset.ticker && asset.shares && asset.costBasisCents)
+      .map((asset) => ({
+        ticker: asset.ticker!,
+        shares: Number(asset.shares!),
+        costBasisCents: asset.costBasisCents!,
+      }))
+
+    const portfolioPerformance =
+      holdingsForPerformance.length > 0
+        ? await this.marketDataService.calculatePortfolioPerformance(holdingsForPerformance)
+        : {
+            totalValueCents: baseResponse.summary.totalValueCents,
+            totalCostBasisCents: baseResponse.summary.totalCostBasisCents,
+            totalReturnCents: baseResponse.summary.totalReturnCents,
+            totalReturnPercent: baseResponse.summary.totalReturnPercent,
+            dayChangeCents: 0,
+            dayChangePercent: 0,
+          }
+
+    // Create enhanced holdings with ticker data
+    const enhancedHoldings: EnhancedHolding[] = investmentAssets.map((asset) => {
+      const baseHolding = baseResponse.holdings.find((h) => h.id === asset.id)!
+      const tickerData = asset.ticker ? tickerDataMap.get(asset.ticker) : undefined
+
+      const enhancedHolding: EnhancedHolding = {
+        ...baseHolding,
+        ticker: tickerData,
+        sector: tickerData?.sector || asset.sector || undefined,
+        shares: asset.shares ? Number(asset.shares) : undefined,
+        lastPriceCents: asset.lastPriceCents || undefined,
+      }
+
+      // Add performance metrics if ticker data is available
+      if (tickerData) {
+        enhancedHolding.performance = {
+          totalReturn: baseHolding.gainLossCents,
+          totalReturnPercent: baseHolding.gainLossPercent,
+          dayChange: tickerData.dayChange,
+          weekChange: tickerData.weekChange,
+          monthChange: tickerData.monthChange,
+          ytdChange: tickerData.ytdChange,
+          yearChange: tickerData.yearChange,
+        }
+      }
+
+      return enhancedHolding
+    })
+
+    // Calculate sector allocations
+    const sectorMap = new Map<string, { valueCents: number; count: number }>()
+
+    for (const holding of enhancedHoldings) {
+      const sector = holding.sector || 'Other'
+      const existing = sectorMap.get(sector)
+
+      if (existing) {
+        existing.valueCents += holding.valueCents
+        existing.count++
+      } else {
+        sectorMap.set(sector, { valueCents: holding.valueCents, count: 1 })
+      }
+    }
+
+    const totalPortfolioValue = Math.max(baseResponse.summary.totalValueCents, 1) // Avoid division by zero
+
+    const sectorAllocations: SectorAllocation[] = Array.from(sectorMap.entries())
+      .map(([sector, data]) => ({
+        sector,
+        valueCents: data.valueCents,
+        allocationPercent: new Decimal(data.valueCents)
+          .dividedBy(totalPortfolioValue)
+          .times(100)
+          .toDecimalPlaces(1)
+          .toNumber(),
+        count: data.count,
+      }))
+      .sort((a, b) => b.valueCents - a.valueCents)
+
+    return {
+      ...baseResponse,
+      portfolioPerformance: {
+        totalValueCents: portfolioPerformance.totalValueCents,
+        dayChangeCents: portfolioPerformance.dayChangeCents,
+        dayChangePercent: portfolioPerformance.dayChangePercent,
+        weekChangeCents: 0, // Would need week-over-week calculation
+        weekChangePercent: 0,
+        monthChangeCents: 0, // Would need month-over-month calculation
+        monthChangePercent: 0,
+        ytdChangeCents: 0, // Would need YTD calculation
+        ytdChangePercent: 0,
+      },
+      sectorAllocations,
+      enhancedHoldings,
     }
   }
 

@@ -25,6 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module'
 import { TaxModule } from './tax/tax.module'
 import { PlaidModule } from './plaid/plaid.module'
 import { EncryptionModule } from './encryption/encryption.module'
+import { MarketDataModule } from './market-data/market-data.module'
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard'
 import { PermissionGuard } from './authorization/guards/permission.guard'
 import { HouseholdGuard } from './authorization/guards/household.guard'
@@ -58,6 +59,7 @@ import configuration from './config/configuration'
     NotificationsModule,
     TaxModule,
     PlaidModule,
+    MarketDataModule,
   ],
   controllers: [AppController],
   providers: [

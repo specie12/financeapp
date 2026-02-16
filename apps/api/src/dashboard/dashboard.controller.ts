@@ -15,6 +15,7 @@ import type {
   CashFlowSummaryResponse,
   BudgetStatusResponse,
 } from './types'
+import type { EnhancedInvestmentsWithTickers } from '@finance-app/shared-types'
 
 @Controller('dashboard')
 export class DashboardController {
@@ -77,6 +78,18 @@ export class DashboardController {
     @CurrentUser('householdId') householdId: string,
   ): Promise<ApiResponse<EnhancedInvestmentsResponse>> {
     const data = await this.dashboardService.getEnhancedInvestments(householdId)
+    return {
+      success: true,
+      data,
+    }
+  }
+
+  @Get('investments/enhanced-with-tickers')
+  @RequirePermission(Permission.READ)
+  async getEnhancedInvestmentsWithTickers(
+    @CurrentUser('householdId') householdId: string,
+  ): Promise<ApiResponse<EnhancedInvestmentsWithTickers>> {
+    const data = await this.dashboardService.getEnhancedInvestmentsWithTickers(householdId)
     return {
       success: true,
       data,

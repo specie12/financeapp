@@ -71,6 +71,8 @@ import type {
   AiQueryResponse,
   AiForecastResponse,
   AiAnomalyResponse,
+  TickerData,
+  EnhancedInvestmentsWithTickers,
 } from '@finance-app/shared-types'
 
 // ============================================
@@ -543,6 +545,71 @@ export class ApiClient {
           params: period ? { period } : undefined,
         },
       )
+      return response.data
+    },
+
+    getEnhancedInvestmentsWithTickers: async (): Promise<
+      ApiResponse<EnhancedInvestmentsWithTickers>
+    > => {
+      const response = await this.client.get<ApiResponse<EnhancedInvestmentsWithTickers>>(
+        '/dashboard/investments/enhanced-with-tickers',
+      )
+      return response.data
+    },
+  }
+
+  // ============================================
+  // Market Data Endpoints
+  // ============================================
+
+  marketData = {
+    searchTickers: async (query: string): Promise<ApiResponse<TickerData[]>> => {
+      const response = await this.client.get<ApiResponse<TickerData[]>>('/market-data/search', {
+        params: { q: query },
+      })
+      return response.data
+    },
+
+    getTicker: async (symbol: string): Promise<ApiResponse<TickerData>> => {
+      const response = await this.client.get<ApiResponse<TickerData>>(
+        `/market-data/ticker/${symbol}`,
+      )
+      return response.data
+    },
+
+    validateTicker: async (symbol: string): Promise<ApiResponse<boolean>> => {
+      const response = await this.client.post<ApiResponse<boolean>>('/market-data/validate', {
+        symbol,
+      })
+      return response.data
+    },
+
+    getAvailableTickers: async (): Promise<ApiResponse<string[]>> => {
+      const response = await this.client.get<ApiResponse<string[]>>('/market-data/available')
+      return response.data
+    },
+
+    getTickersBySector: async (sector: string): Promise<ApiResponse<TickerData[]>> => {
+      const response = await this.client.get<ApiResponse<TickerData[]>>(
+        `/market-data/sector/${sector}`,
+      )
+      return response.data
+    },
+
+    getMarketSummary: async (): Promise<
+      ApiResponse<{
+        topGainers: TickerData[]
+        topLosers: TickerData[]
+        mostActive: TickerData[]
+      }>
+    > => {
+      const response = await this.client.get<
+        ApiResponse<{
+          topGainers: TickerData[]
+          topLosers: TickerData[]
+          mostActive: TickerData[]
+        }>
+      >('/market-data/summary')
       return response.data
     },
   }

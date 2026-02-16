@@ -157,6 +157,9 @@ export const createAssetSchema = z.object({
   currentValueCents: z.number().int().nonnegative('Value must be non-negative'),
   annualGrowthRatePercent: z.number().min(-100).max(1000).nullable().optional(),
   dividendYieldPercent: z.number().min(0).max(100).nullable().optional(),
+  ticker: z.string().min(1).max(10).nullable().optional(),
+  shares: z.number().positive().nullable().optional(),
+  costBasisCents: z.number().int().nonnegative().nullable().optional(),
 })
 
 export const updateAssetSchema = createAssetSchema.partial()
@@ -500,6 +503,28 @@ export const aiQueryRequestSchema = z.object({
 })
 
 // ============================================
+// Ticker Data Schemas
+// ============================================
+
+export const tickerValidationSchema = z.object({
+  symbol: z
+    .string()
+    .min(1, 'Symbol is required')
+    .max(10)
+    .regex(/^[A-Z]+$/, 'Symbol must be uppercase letters only'),
+})
+
+export const updateAssetWithTickerSchema = z.object({
+  ticker: z
+    .string()
+    .min(1)
+    .max(10)
+    .regex(/^[A-Z]+$/, 'Symbol must be uppercase letters only'),
+  shares: z.number().positive().optional(),
+  costBasisCents: z.number().int().nonnegative().optional(),
+})
+
+// ============================================
 // Type Exports (additional)
 // ============================================
 
@@ -511,6 +536,8 @@ export type TaxSummaryQueryInput = z.infer<typeof taxSummaryQuerySchema>
 export type PlaidExchangeTokenInput = z.infer<typeof plaidExchangeTokenSchema>
 export type PlaidWebhookInput = z.infer<typeof plaidWebhookSchema>
 export type AiQueryRequestInput = z.infer<typeof aiQueryRequestSchema>
+export type TickerValidationInput = z.infer<typeof tickerValidationSchema>
+export type UpdateAssetWithTickerInput = z.infer<typeof updateAssetWithTickerSchema>
 
 // Re-export zod for convenience
 export { z } from 'zod'
