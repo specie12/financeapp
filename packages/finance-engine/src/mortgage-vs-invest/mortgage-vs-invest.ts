@@ -1,8 +1,31 @@
+import Decimal from 'decimal.js'
+import { type Cents, RoundingMode } from '../money/money.types'
+import { cents, addCents, subtractCents, percentageOf } from '../money/money'
+import { calculateMonthlyPayment } from '../amortization/amortization'
 import type {
   MortgageVsInvestInput,
   MortgageVsInvestResult,
   MortgageVsInvestYearlyComparison,
 } from './mortgage-vs-invest.types'
+
+/**
+ * Mortgage-vs-Invest decision engine.
+ *
+ * Public API (`MortgageVsInvestInput` / `MortgageVsInvestResult`) is unchanged;
+ * fields are still plain `number`s for cross-package serialization. All
+ * internal money arithmetic uses Decimal.js + integer cents with
+ * `ROUND_HALF_UP`, matching the amortization and projection engines.
+ *
+ * Determinism: no `Date.now()`, no `Math.random()`. Same inputs always
+ * produce the same outputs. Locked by golden tests.
+ */
+
+// Decimal.js instance config is set globally by `money.ts`. We re-assert here
+// so this module is correct even when imported in isolation.
+Decimal.set({
+  precision: 20,
+  rounding: Decimal.ROUND_HALF_UP,
+})
 
 export function calculateMortgageVsInvest(input: MortgageVsInvestInput): MortgageVsInvestResult {
   const {
@@ -17,36 +40,42 @@ export function calculateMortgageVsInvest(input: MortgageVsInvestInput): Mortgag
     marginalTaxRatePercent,
   } = input
 
-  const monthlyMortgageRate = mortgageRatePercent / 100 / 12
   const horizonMonths = horizonYears * 12
+  const simulationMonths = Math.max(remainingTermMonths, horizonMonths)
 
-  // Calculate standard monthly payment (PMT formula)
-  const monthlyPayment = calculatePMT(currentBalanceCents, monthlyMortgageRate, remainingTermMonths)
-
-  // === Simulate no-extra path (baseline) ===
-  const baseline = simulateMortgage(
-    currentBalanceCents,
-    monthlyMortgageRate,
-    monthlyPayment,
-    0,
-    Math.max(remainingTermMonths, horizonMonths),
+  // PMT comes from the canonical engine — no duplicate formula in this file.
+  const monthlyPaymentCents = calculateMonthlyPayment(
+    cents(currentBalanceCents),
+    mortgageRatePercent,
+    remainingTermMonths,
   )
 
-  // === Simulate pay-extra path ===
-  const payExtra = simulateMortgage(
-    currentBalanceCents,
-    monthlyMortgageRate,
-    monthlyPayment,
-    extraMonthlyPaymentCents,
-    Math.max(remainingTermMonths, horizonMonths),
-  )
+  // ── Baseline path: no extra principal payments ────────────────────────────
+  const baseline = simulateMortgage({
+    principalCents: cents(currentBalanceCents),
+    annualRatePercent: mortgageRatePercent,
+    basePaymentCents: monthlyPaymentCents,
+    extraPaymentCents: cents(0),
+    maxMonths: simulationMonths,
+  })
 
-  // === Simulate invest path ===
-  const monthlyReturnRate = expectedReturnPercent / 100 / 12
-  const investPath = simulateInvestment(extraMonthlyPaymentCents, monthlyReturnRate, horizonMonths)
+  // ── Pay-extra path: add `extraMonthlyPaymentCents` each month ─────────────
+  const payExtra = simulateMortgage({
+    principalCents: cents(currentBalanceCents),
+    annualRatePercent: mortgageRatePercent,
+    basePaymentCents: monthlyPaymentCents,
+    extraPaymentCents: cents(extraMonthlyPaymentCents),
+    maxMonths: simulationMonths,
+  })
 
-  // === Build yearly comparisons ===
-  const yearlyComparisons = buildYearlyComparisons(
+  // ── Invest path: invest the extra monthly amount instead ──────────────────
+  const investPath = simulateInvestment({
+    monthlyContributionCents: cents(extraMonthlyPaymentCents),
+    annualReturnPercent: expectedReturnPercent,
+    maxMonths: horizonMonths,
+  })
+
+  const yearlyComparisons = buildYearlyComparisons({
     horizonYears,
     baseline,
     payExtra,
@@ -54,41 +83,48 @@ export function calculateMortgageVsInvest(input: MortgageVsInvestInput): Mortgag
     mortgageInterestDeductible,
     marginalTaxRatePercent,
     capitalGainsTaxPercent,
-  )
+  })
 
-  // === Pay extra summary ===
-  const totalInterestWithout = baseline.totalInterest()
-  const totalInterestWith = payExtra.totalInterest()
+  // ── Pay-extra summary ────────────────────────────────────────────────────
+  const totalInterestWithoutExtraCents = baseline.totalInterestCents()
+  const totalInterestWithExtraCents = payExtra.totalInterestCents()
+
   const payExtraSummary = {
-    totalInterestWithoutExtraCents: totalInterestWithout,
-    totalInterestWithExtraCents: totalInterestWith,
-    interestSavedCents: totalInterestWithout - totalInterestWith,
+    totalInterestWithoutExtraCents,
+    totalInterestWithExtraCents,
+    interestSavedCents: subtractCents(totalInterestWithoutExtraCents, totalInterestWithExtraCents),
     originalPayoffMonths: baseline.payoffMonth(),
     newPayoffMonths: payExtra.payoffMonth(),
     monthsSaved: baseline.payoffMonth() - payExtra.payoffMonth(),
   }
 
-  // === Invest summary ===
+  // ── Invest summary ──────────────────────────────────────────────────────
   const lastMonth = horizonMonths - 1
-  const finalValue = investPath.valueAtMonth(lastMonth)
-  const totalContributed = investPath.contributedAtMonth(lastMonth)
-  const totalGain = finalValue - totalContributed
-  const afterTaxGain = Math.round(totalGain * (1 - capitalGainsTaxPercent / 100))
+  const finalPortfolioValueCents = investPath.valueAtMonth(lastMonth)
+  const totalContributedCents = investPath.contributedAtMonth(lastMonth)
+  const totalGainCents = subtractCents(finalPortfolioValueCents, totalContributedCents)
+  const afterTaxGainCents = subtractCents(
+    totalGainCents,
+    percentageOf(totalGainCents, capitalGainsTaxPercent),
+  )
 
   const investSummary = {
-    totalContributedCents: totalContributed,
-    finalPortfolioValueCents: finalValue,
-    totalGainCents: totalGain,
-    afterTaxGainCents: afterTaxGain,
-    afterTaxPortfolioValueCents: totalContributed + afterTaxGain,
+    totalContributedCents,
+    finalPortfolioValueCents,
+    totalGainCents,
+    afterTaxGainCents,
+    afterTaxPortfolioValueCents: addCents(totalContributedCents, afterTaxGainCents),
   }
 
-  // === Recommendation ===
+  // ── Recommendation ──────────────────────────────────────────────────────
+  // Keep the original $100 (10_000 cents) hysteresis so small numerical drift
+  // doesn't flip the recommendation between equivalent inputs.
   const lastComparison = yearlyComparisons[yearlyComparisons.length - 1]
   const advantage = lastComparison?.investAdvantageNetCents ?? 0
-  const recommendation = advantage > 10000 ? 'invest' : advantage < -10000 ? 'pay_extra' : 'neutral'
+  const recommendation: 'pay_extra' | 'invest' | 'neutral' =
+    advantage > 10000 ? 'invest' : advantage < -10000 ? 'pay_extra' : 'neutral'
 
-  // === Breakeven ===
+  // ── Break-even return rate ──────────────────────────────────────────────
   const breakEvenReturnPercent = findBreakEvenRate(input)
 
   return {
@@ -101,63 +137,83 @@ export function calculateMortgageVsInvest(input: MortgageVsInvestInput): Mortgag
   }
 }
 
-// ============================================
-// Internal helpers
-// ============================================
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal helpers — all Decimal-based, integer-cents-typed
+// ─────────────────────────────────────────────────────────────────────────────
 
-function calculatePMT(principal: number, monthlyRate: number, termMonths: number): number {
-  if (monthlyRate === 0) return Math.round(principal / termMonths)
-  const factor = Math.pow(1 + monthlyRate, termMonths)
-  return Math.round((principal * monthlyRate * factor) / (factor - 1))
+interface MortgageSimulationInput {
+  principalCents: Cents
+  annualRatePercent: number
+  basePaymentCents: Cents
+  extraPaymentCents: Cents
+  maxMonths: number
 }
 
 interface MortgageSimulation {
-  cumulativeInterestAtMonth: (month: number) => number
-  cumulativeExtraAtMonth: (month: number) => number
-  balanceAtMonth: (month: number) => number
-  totalInterest: () => number
+  cumulativeInterestAtMonth: (month: number) => Cents
+  cumulativeExtraAtMonth: (month: number) => Cents
+  balanceAtMonth: (month: number) => Cents
+  totalInterestCents: () => Cents
   payoffMonth: () => number
 }
 
-function simulateMortgage(
-  principal: number,
-  monthlyRate: number,
-  basePayment: number,
-  extraPayment: number,
-  maxMonths: number,
-): MortgageSimulation {
-  const cumulativeInterest: number[] = []
-  const cumulativeExtra: number[] = []
-  const balances: number[] = []
+function simulateMortgage(input: MortgageSimulationInput): MortgageSimulation {
+  const { principalCents, annualRatePercent, basePaymentCents, extraPaymentCents, maxMonths } =
+    input
 
-  let balance = principal
-  let totalInterest = 0
-  let totalExtra = 0
+  const monthlyRate = new Decimal(annualRatePercent).dividedBy(12).dividedBy(100)
+
+  const cumulativeInterest: Cents[] = []
+  const cumulativeExtra: Cents[] = []
+  const balances: Cents[] = []
+
+  let balance: Cents = principalCents
+  let totalInterest: Cents = cents(0)
+  let totalExtra: Cents = cents(0)
   let payoffMonth = maxMonths
 
   for (let m = 0; m < maxMonths; m++) {
     if (balance <= 0) {
       cumulativeInterest.push(totalInterest)
       cumulativeExtra.push(totalExtra)
-      balances.push(0)
+      balances.push(cents(0))
       if (payoffMonth === maxMonths) payoffMonth = m
       continue
     }
 
-    const interest = Math.round(balance * monthlyRate)
-    totalInterest += interest
+    // Period interest = balance * monthlyRate, rounded to cents.
+    const interestCents =
+      annualRatePercent === 0
+        ? cents(0)
+        : (cents(
+            new Decimal(balance)
+              .times(monthlyRate)
+              .toDecimalPlaces(0, RoundingMode.ROUND_HALF_UP)
+              .toNumber(),
+          ) as Cents)
 
-    const principalPayment = basePayment - interest
-    let extra = extraPayment
+    totalInterest = addCents(totalInterest, interestCents)
 
-    // Cap total principal reduction at remaining balance
-    if (principalPayment + extra > balance) {
-      extra = Math.max(0, balance - principalPayment)
-    }
-    const totalPrincipal = Math.min(principalPayment + extra, balance)
+    // Principal portion of the regular payment.
+    const principalFromPaymentCents = subtractCents(basePaymentCents, interestCents)
 
-    balance = Math.max(0, balance - totalPrincipal)
-    totalExtra += extra
+    // Cap extra at remaining balance after the regular principal portion.
+    const remainingAfterRegular = subtractCents(balance, principalFromPaymentCents)
+    const cappedExtra: Cents = (
+      extraPaymentCents > remainingAfterRegular
+        ? Math.max(0, remainingAfterRegular)
+        : extraPaymentCents
+    ) as Cents
+
+    // Total principal reduction this month, capped at the outstanding balance
+    // so the loan never overshoots into a negative balance.
+    const totalPrincipalCents: Cents = Math.min(
+      principalFromPaymentCents + cappedExtra,
+      balance,
+    ) as Cents
+
+    balance = Math.max(0, balance - totalPrincipalCents) as Cents
+    totalExtra = addCents(totalExtra, cappedExtra)
 
     cumulativeInterest.push(totalInterest)
     cumulativeExtra.push(totalExtra)
@@ -170,100 +226,130 @@ function simulateMortgage(
 
   return {
     cumulativeInterestAtMonth: (month: number) =>
-      cumulativeInterest[Math.min(month, cumulativeInterest.length - 1)] ?? 0,
+      cumulativeInterest[Math.min(month, cumulativeInterest.length - 1)] ?? cents(0),
     cumulativeExtraAtMonth: (month: number) =>
-      cumulativeExtra[Math.min(month, cumulativeExtra.length - 1)] ?? 0,
-    balanceAtMonth: (month: number) => balances[Math.min(month, balances.length - 1)] ?? 0,
-    totalInterest: () => totalInterest,
+      cumulativeExtra[Math.min(month, cumulativeExtra.length - 1)] ?? cents(0),
+    balanceAtMonth: (month: number) => balances[Math.min(month, balances.length - 1)] ?? cents(0),
+    totalInterestCents: () => totalInterest,
     payoffMonth: () => payoffMonth,
   }
 }
 
-interface InvestmentSimulation {
-  valueAtMonth: (month: number) => number
-  contributedAtMonth: (month: number) => number
+interface InvestmentSimulationInput {
+  monthlyContributionCents: Cents
+  annualReturnPercent: number
+  maxMonths: number
 }
 
-function simulateInvestment(
-  monthlyContribution: number,
-  monthlyReturnRate: number,
-  maxMonths: number,
-): InvestmentSimulation {
-  const values: number[] = []
-  const contributions: number[] = []
+interface InvestmentSimulation {
+  valueAtMonth: (month: number) => Cents
+  contributedAtMonth: (month: number) => Cents
+}
 
-  let portfolioValue = 0
-  let totalContributed = 0
+function simulateInvestment(input: InvestmentSimulationInput): InvestmentSimulation {
+  const { monthlyContributionCents, annualReturnPercent, maxMonths } = input
+
+  const monthlyReturnFactor = new Decimal(annualReturnPercent).dividedBy(12).dividedBy(100).plus(1)
+
+  const values: Cents[] = []
+  const contributions: Cents[] = []
+
+  let portfolioValue: Cents = cents(0)
+  let totalContributed: Cents = cents(0)
 
   for (let m = 0; m < maxMonths; m++) {
-    // Grow existing portfolio
-    portfolioValue = Math.round(portfolioValue * (1 + monthlyReturnRate))
-    // Add new contribution
-    portfolioValue += monthlyContribution
-    totalContributed += monthlyContribution
+    // Grow existing portfolio at the monthly factor (1 + r/12), round to cents.
+    const grown =
+      portfolioValue === 0
+        ? cents(0)
+        : (cents(
+            new Decimal(portfolioValue)
+              .times(monthlyReturnFactor)
+              .toDecimalPlaces(0, RoundingMode.ROUND_HALF_UP)
+              .toNumber(),
+          ) as Cents)
+
+    portfolioValue = addCents(grown, monthlyContributionCents)
+    totalContributed = addCents(totalContributed, monthlyContributionCents)
 
     values.push(portfolioValue)
     contributions.push(totalContributed)
   }
 
   return {
-    valueAtMonth: (month: number) => values[Math.min(month, values.length - 1)] ?? 0,
+    valueAtMonth: (month: number) => values[Math.min(month, values.length - 1)] ?? cents(0),
     contributedAtMonth: (month: number) =>
-      contributions[Math.min(month, contributions.length - 1)] ?? 0,
+      contributions[Math.min(month, contributions.length - 1)] ?? cents(0),
   }
 }
 
+interface BuildYearlyComparisonsInput {
+  horizonYears: number
+  baseline: MortgageSimulation
+  payExtra: MortgageSimulation
+  investPath: InvestmentSimulation
+  mortgageInterestDeductible: boolean
+  marginalTaxRatePercent: number
+  capitalGainsTaxPercent: number
+}
+
 function buildYearlyComparisons(
-  horizonYears: number,
-  baseline: MortgageSimulation,
-  payExtra: MortgageSimulation,
-  investPath: InvestmentSimulation,
-  mortgageInterestDeductible: boolean,
-  marginalTaxRatePercent: number,
-  capitalGainsTaxPercent: number,
+  input: BuildYearlyComparisonsInput,
 ): MortgageVsInvestYearlyComparison[] {
-  const yearlyComparisons: MortgageVsInvestYearlyComparison[] = []
+  const {
+    horizonYears,
+    baseline,
+    payExtra,
+    investPath,
+    mortgageInterestDeductible,
+    marginalTaxRatePercent,
+    capitalGainsTaxPercent,
+  } = input
+
+  const out: MortgageVsInvestYearlyComparison[] = []
 
   for (let year = 1; year <= horizonYears; year++) {
-    const monthIndex = year * 12 - 1 // 0-indexed month at year boundary
+    const monthIndex = year * 12 - 1
 
     const baselineInterest = baseline.cumulativeInterestAtMonth(monthIndex)
     const payExtraInterest = payExtra.cumulativeInterestAtMonth(monthIndex)
 
-    let interestSaved = baselineInterest - payExtraInterest
-    // Adjust for lost tax deduction if mortgage interest is deductible
+    let interestSavedCents = subtractCents(baselineInterest, payExtraInterest)
     if (mortgageInterestDeductible) {
-      const deductionLost = interestSaved * (marginalTaxRatePercent / 100)
-      interestSaved = Math.round(interestSaved - deductionLost)
+      // Lost-deduction value reduces the effective interest savings.
+      const lostDeduction = percentageOf(interestSavedCents, marginalTaxRatePercent)
+      interestSavedCents = subtractCents(interestSavedCents, lostDeduction)
     }
 
-    const portfolioValue = investPath.valueAtMonth(monthIndex)
-    const contributed = investPath.contributedAtMonth(monthIndex)
-    const gain = portfolioValue - contributed
-    const afterTaxGain = Math.round(gain * (1 - capitalGainsTaxPercent / 100))
-    const afterTaxPortfolio = contributed + afterTaxGain
+    const portfolioValueCents = investPath.valueAtMonth(monthIndex)
+    const contributedCents = investPath.contributedAtMonth(monthIndex)
+    const gainCents = subtractCents(portfolioValueCents, contributedCents)
+    const afterTaxGainCents = subtractCents(
+      gainCents,
+      percentageOf(gainCents, capitalGainsTaxPercent),
+    )
+    const afterTaxPortfolioCents = addCents(contributedCents, afterTaxGainCents)
 
-    yearlyComparisons.push({
+    out.push({
       year,
       payExtraCumulativePaidCents: payExtra.cumulativeExtraAtMonth(monthIndex),
-      payExtraInterestSavedCents: interestSaved,
+      payExtraInterestSavedCents: interestSavedCents,
       payExtraRemainingBalanceCents: payExtra.balanceAtMonth(monthIndex),
-      investPortfolioValueCents: portfolioValue,
-      investCumulativeContributedCents: contributed,
-      investAdvantageNetCents: afterTaxPortfolio - interestSaved,
+      investPortfolioValueCents: portfolioValueCents,
+      investCumulativeContributedCents: contributedCents,
+      investAdvantageNetCents: subtractCents(afterTaxPortfolioCents, interestSavedCents),
     })
   }
 
-  return yearlyComparisons
+  return out
 }
 
 /**
- * Computes the net invest advantage at the end of the horizon for a given
- * return rate. This is the core simulation logic extracted so that
- * findBreakEvenRate can call it without triggering a circular dependency
- * through calculateMortgageVsInvest.
+ * Compute the net invest advantage at the horizon for a given return rate.
+ * Extracted so `findBreakEvenRate` can call it without recursing through
+ * `calculateMortgageVsInvest`.
  */
-function computeAdvantageAtRate(input: MortgageVsInvestInput, returnPercent: number): number {
+function computeAdvantageAtRate(input: MortgageVsInvestInput, returnPercent: number): Cents {
   const {
     currentBalanceCents,
     mortgageRatePercent,
@@ -275,31 +361,38 @@ function computeAdvantageAtRate(input: MortgageVsInvestInput, returnPercent: num
     marginalTaxRatePercent,
   } = input
 
-  const monthlyMortgageRate = mortgageRatePercent / 100 / 12
   const horizonMonths = horizonYears * 12
+  const simulationMonths = Math.max(remainingTermMonths, horizonMonths)
 
-  const monthlyPayment = calculatePMT(currentBalanceCents, monthlyMortgageRate, remainingTermMonths)
-
-  const baseline = simulateMortgage(
-    currentBalanceCents,
-    monthlyMortgageRate,
-    monthlyPayment,
-    0,
-    Math.max(remainingTermMonths, horizonMonths),
+  const monthlyPaymentCents = calculateMonthlyPayment(
+    cents(currentBalanceCents),
+    mortgageRatePercent,
+    remainingTermMonths,
   )
 
-  const payExtra = simulateMortgage(
-    currentBalanceCents,
-    monthlyMortgageRate,
-    monthlyPayment,
-    extraMonthlyPaymentCents,
-    Math.max(remainingTermMonths, horizonMonths),
-  )
+  const baseline = simulateMortgage({
+    principalCents: cents(currentBalanceCents),
+    annualRatePercent: mortgageRatePercent,
+    basePaymentCents: monthlyPaymentCents,
+    extraPaymentCents: cents(0),
+    maxMonths: simulationMonths,
+  })
 
-  const monthlyReturnRate = returnPercent / 100 / 12
-  const investPath = simulateInvestment(extraMonthlyPaymentCents, monthlyReturnRate, horizonMonths)
+  const payExtra = simulateMortgage({
+    principalCents: cents(currentBalanceCents),
+    annualRatePercent: mortgageRatePercent,
+    basePaymentCents: monthlyPaymentCents,
+    extraPaymentCents: cents(extraMonthlyPaymentCents),
+    maxMonths: simulationMonths,
+  })
 
-  const comparisons = buildYearlyComparisons(
+  const investPath = simulateInvestment({
+    monthlyContributionCents: cents(extraMonthlyPaymentCents),
+    annualReturnPercent: returnPercent,
+    maxMonths: horizonMonths,
+  })
+
+  const comparisons = buildYearlyComparisons({
     horizonYears,
     baseline,
     payExtra,
@@ -307,23 +400,24 @@ function computeAdvantageAtRate(input: MortgageVsInvestInput, returnPercent: num
     mortgageInterestDeductible,
     marginalTaxRatePercent,
     capitalGainsTaxPercent,
-  )
+  })
 
-  const lastComparison = comparisons[comparisons.length - 1]
-  return lastComparison?.investAdvantageNetCents ?? 0
+  const last = comparisons[comparisons.length - 1]
+  return (last?.investAdvantageNetCents ?? 0) as Cents
 }
 
 function findBreakEvenRate(input: MortgageVsInvestInput): number {
   let low = 0
   let high = 30
-  const tolerance = 1000 // $10 in cents
+  const toleranceCents = 1000 // $10
 
   for (let i = 0; i < 50; i++) {
     const mid = (low + high) / 2
     const advantage = computeAdvantageAtRate(input, mid)
 
-    if (Math.abs(advantage) < tolerance) {
-      return Math.round(mid * 100) / 100
+    if (Math.abs(advantage) < toleranceCents) {
+      // Quantize to two decimal places for stable serialization across runs.
+      return new Decimal(mid).toDecimalPlaces(2, RoundingMode.ROUND_HALF_UP).toNumber()
     }
 
     if (advantage > 0) {
@@ -333,5 +427,5 @@ function findBreakEvenRate(input: MortgageVsInvestInput): number {
     }
   }
 
-  return Math.round(((low + high) / 2) * 100) / 100
+  return new Decimal((low + high) / 2).toDecimalPlaces(2, RoundingMode.ROUND_HALF_UP).toNumber()
 }

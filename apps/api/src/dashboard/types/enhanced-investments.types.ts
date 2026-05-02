@@ -7,9 +7,10 @@ export interface DividendProjection {
   assetName: string
   assetType: AssetType
   valueCents: Cents
-  yieldPercent: number
-  annualDividendCents: Cents
-  monthlyDividendCents: Cents
+  /** `null` when the asset has no dividend yield configured. */
+  yieldPercent: number | null
+  annualDividendCents: Cents | null
+  monthlyDividendCents: Cents | null
   isCustomYield: boolean
 }
 
@@ -27,7 +28,11 @@ export interface GoalProgressSummary {
 
 export interface EnhancedInvestmentsResponse extends InvestmentsResponse {
   dividendProjections: DividendProjection[]
-  totalAnnualDividendsCents: Cents
-  totalMonthlyDividendsCents: Cents
+  /** Sum of configured `annualDividendCents`. `null` if no asset has a yield set. */
+  totalAnnualDividendsCents: Cents | null
+  /** Sum of configured `monthlyDividendCents`. `null` if no asset has a yield set. */
+  totalMonthlyDividendsCents: Cents | null
+  /** True when at least one asset is missing dividend yield — totals are partial. */
+  dividendsPartial: boolean
   goalProgress: GoalProgressSummary[]
 }

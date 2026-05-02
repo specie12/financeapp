@@ -52,16 +52,6 @@ const FREQUENCIES: { value: Frequency; label: string }[] = [
   { value: 'annually', label: 'Annually' },
 ]
 
-// Calculate monthly payment using PMT formula
-function calculateMonthlyPayment(principal: number, annualRate: number, months: number): number {
-  if (annualRate === 0 || months === 0) return principal / Math.max(months, 1)
-  const monthlyRate = annualRate / 100 / 12
-  return (
-    (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
-    (Math.pow(1 + monthlyRate, months) - 1)
-  )
-}
-
 export function LiabilityModal({
   open,
   onOpenChange,
@@ -108,18 +98,45 @@ export function LiabilityModal({
     setError(null)
   }, [liability, open])
 
-  // Auto-calculate minimum payment when relevant fields change
+  // Auto-calculate minimum payment via the canonical server PMT (debounced).
+  // PMT math lives ONLY in the finance-engine; this component must not replicate it.
   useEffect(() => {
-    if (type !== 'credit_card' && currentBalance && interestRate && termMonths) {
-      const balance = parseFloat(currentBalance)
-      const rate = parseFloat(interestRate)
-      const months = parseInt(termMonths)
-      if (!isNaN(balance) && !isNaN(rate) && !isNaN(months) && months > 0) {
-        const payment = calculateMonthlyPayment(balance, rate, months)
-        setMinimumPayment(payment.toFixed(2))
-      }
+    if (type === 'credit_card' || !accessToken) return
+    const balance = parseFloat(currentBalance)
+    const rate = parseFloat(interestRate)
+    const months = parseInt(termMonths)
+    if (isNaN(balance) || isNaN(rate) || isNaN(months) || balance <= 0 || rate < 0 || months <= 0) {
+      return
     }
-  }, [currentBalance, interestRate, termMonths, type])
+
+    const principalCents = Math.round(balance * 100)
+    const controller = new AbortController()
+
+    const timer = setTimeout(async () => {
+      try {
+        const apiClient = createAuthenticatedApiClient(accessToken)
+        const response = await apiClient.calculators.pmt({
+          principalCents,
+          annualRatePercent: rate,
+          termMonths: months,
+        })
+        if (controller.signal.aborted) return
+        const monthly = response.data?.monthlyPaymentCents
+        if (typeof monthly === 'number') {
+          setMinimumPayment((monthly / 100).toFixed(2))
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error('PMT request failed:', err)
+        }
+      }
+    }, 250)
+
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+    }
+  }, [currentBalance, interestRate, termMonths, type, accessToken])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

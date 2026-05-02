@@ -6,16 +6,24 @@ import type { DividendProjection } from '@finance-app/shared-types'
 
 interface DividendProjectionCardProps {
   projections: DividendProjection[]
-  totalAnnualCents: number
-  totalMonthlyCents: number
+  /** Sum of configured monthly dividends. `null` = no asset has a yield configured. */
+  totalMonthlyCents: number | null
+  /** Sum of configured annual dividends. `null` = no asset has a yield configured. */
+  totalAnnualCents: number | null
+  /** True when at least one asset is missing dividend yield — totals are partial. */
+  partial?: boolean
 }
 
 export function DividendProjectionCard({
   projections,
   totalAnnualCents,
   totalMonthlyCents,
+  partial,
 }: DividendProjectionCardProps) {
-  const hasProjections = projections.length > 0 && totalAnnualCents > 0
+  const hasProjections =
+    totalAnnualCents !== null &&
+    totalMonthlyCents !== null &&
+    projections.some((p) => p.annualDividendCents !== null && p.annualDividendCents > 0)
 
   const getAssetTypeLabel = (type: string): string => {
     const labels: Record<string, string> = {
@@ -28,6 +36,10 @@ export function DividendProjectionCard({
     }
     return labels[type] || type
   }
+
+  const configured = projections.filter(
+    (p) => p.annualDividendCents !== null && p.annualDividendCents > 0,
+  )
 
   return (
     <Card>
@@ -45,48 +57,48 @@ export function DividendProjectionCard({
               <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-4">
                 <p className="text-sm text-muted-foreground">Monthly Income</p>
                 <p className="text-2xl font-bold text-green-600">
-                  <MoneyDisplay cents={totalMonthlyCents} />
+                  <MoneyDisplay cents={totalMonthlyCents as number} />
                 </p>
               </div>
               <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/20 p-4">
                 <p className="text-sm text-muted-foreground">Annual Income</p>
                 <p className="text-2xl font-bold text-emerald-600">
-                  <MoneyDisplay cents={totalAnnualCents} />
+                  <MoneyDisplay cents={totalAnnualCents as number} />
                 </p>
               </div>
             </div>
 
+            {partial && (
+              <p className="text-xs text-muted-foreground">
+                Partial total — some assets have no dividend yield configured.
+              </p>
+            )}
+
             {/* Breakdown by Asset */}
             <div className="space-y-2 pt-2 border-t">
               <p className="text-sm font-medium text-muted-foreground">By Asset</p>
-              {projections
-                .filter((p) => p.annualDividendCents > 0)
-                .slice(0, 5)
-                .map((projection) => (
-                  <div
-                    key={projection.assetId}
-                    className="flex items-center justify-between text-sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="truncate max-w-[150px]">{projection.assetName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        ({getAssetTypeLabel(projection.assetType)})
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground">
-                        {projection.yieldPercent.toFixed(1)}%
-                      </span>
-                      <span className="font-medium text-green-600">
-                        <MoneyDisplay cents={projection.monthlyDividendCents} />
-                        /mo
-                      </span>
-                    </div>
+              {configured.slice(0, 5).map((projection) => (
+                <div key={projection.assetId} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate max-w-[150px]">{projection.assetName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      ({getAssetTypeLabel(projection.assetType)})
+                    </span>
                   </div>
-                ))}
-              {projections.filter((p) => p.annualDividendCents > 0).length > 5 && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-muted-foreground">
+                      {(projection.yieldPercent as number).toFixed(1)}%
+                    </span>
+                    <span className="font-medium text-green-600">
+                      <MoneyDisplay cents={projection.monthlyDividendCents as number} />
+                      /mo
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {configured.length > 5 && (
                 <p className="text-xs text-muted-foreground text-center pt-1">
-                  +{projections.filter((p) => p.annualDividendCents > 0).length - 5} more assets
+                  +{configured.length - 5} more assets
                 </p>
               )}
             </div>
@@ -94,8 +106,8 @@ export function DividendProjectionCard({
         ) : (
           <div className="text-center py-4">
             <p className="text-muted-foreground">
-              No dividend-generating assets found. Add investments with dividend yields to see
-              projections.
+              Dividend yield not configured for any of your investments. Add a yield to an asset to
+              see dividend projections.
             </p>
           </div>
         )}

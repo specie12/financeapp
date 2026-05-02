@@ -93,47 +93,6 @@ const PERSONAL_LOAN_TERMS = [
   { value: 60, label: '5 years' },
 ]
 
-// Helper to calculate monthly payment using PMT formula
-function calculateMonthlyPayment(
-  principal: number,
-  annualRate: number,
-  termMonths: number,
-): number {
-  if (termMonths <= 0 || principal <= 0) return 0
-  if (annualRate === 0) return Math.round((principal / termMonths) * 100) / 100
-
-  const monthlyRate = annualRate / 12 / 100
-  const payment =
-    (principal * (monthlyRate * Math.pow(1 + monthlyRate, termMonths))) /
-    (Math.pow(1 + monthlyRate, termMonths) - 1)
-  return Math.round(payment * 100) / 100
-}
-
-// Helper to calculate remaining balance using amortization
-function calculateRemainingBalance(
-  originalPrincipal: number,
-  annualRate: number,
-  termMonths: number,
-  monthsPaid: number,
-): number {
-  if (monthsPaid <= 0 || termMonths <= 0 || originalPrincipal <= 0) return originalPrincipal
-  if (monthsPaid >= termMonths) return 0
-  if (annualRate === 0) {
-    // Simple linear paydown for 0% loans
-    return Math.round(originalPrincipal * (1 - monthsPaid / termMonths) * 100) / 100
-  }
-
-  const monthlyRate = annualRate / 12 / 100
-  const payment = calculateMonthlyPayment(originalPrincipal, annualRate, termMonths)
-
-  // Remaining balance = PV of remaining payments
-  const remainingMonths = termMonths - monthsPaid
-  const remainingBalance =
-    (payment * (1 - Math.pow(1 + monthlyRate, -remainingMonths))) / monthlyRate
-
-  return Math.round(remainingBalance * 100) / 100
-}
-
 // Helper to calculate start date based on months paid
 function calculateStartDate(_termMonths: number, monthsPaid: number): Date {
   const startDate = new Date()
@@ -233,55 +192,60 @@ export function AssetsDebtsStep({
   // Watch form values for auto-calculation
   const watchedType = liabilityForm.watch('type')
   const watchedAssetType = assetForm.watch('type')
-  const watchedOriginalBalance = liabilityForm.watch('originalBalance')
   const watchedCurrentBalance = liabilityForm.watch('currentBalance')
   const watchedInterestRate = liabilityForm.watch('interestRate')
   const watchedTermMonths = liabilityForm.watch('termMonths')
   const watchedMonthsPaid = liabilityForm.watch('monthsPaid')
 
-  // Auto-calculate current balance based on original balance and months paid (for non-credit-card loans)
+  // Auto-fill the minimum payment via the canonical server PMT (debounced).
+  // PMT math lives ONLY in the finance-engine; this component must not replicate it.
+  // Note: current balance is now entered manually — no client-side amortization estimate.
   useEffect(() => {
-    if (
-      watchedType !== 'credit_card' &&
-      watchedOriginalBalance > 0 &&
-      watchedTermMonths &&
-      watchedTermMonths > 0
-    ) {
-      const calculatedBalance = calculateRemainingBalance(
-        watchedOriginalBalance,
-        watchedInterestRate || 0,
-        watchedTermMonths,
-        watchedMonthsPaid || 0,
-      )
-      liabilityForm.setValue('currentBalance', calculatedBalance)
-    }
-  }, [
-    watchedOriginalBalance,
-    watchedInterestRate,
-    watchedTermMonths,
-    watchedMonthsPaid,
-    watchedType,
-    liabilityForm,
-  ])
+    if (!tokens?.accessToken) return
+    if (!watchedCurrentBalance || watchedCurrentBalance <= 0) return
+    if (!watchedTermMonths || watchedTermMonths <= 0) return
+    const remainingMonths = watchedTermMonths - (watchedMonthsPaid || 0)
+    if (remainingMonths <= 0) return
 
-  // Auto-calculate monthly payment when relevant fields change
-  useEffect(() => {
-    if (watchedCurrentBalance > 0 && watchedTermMonths && watchedTermMonths > 0) {
-      const remainingMonths = watchedTermMonths - (watchedMonthsPaid || 0)
-      if (remainingMonths > 0) {
-        const calculatedPayment = calculateMonthlyPayment(
-          watchedCurrentBalance,
-          watchedInterestRate || 0,
-          remainingMonths,
-        )
-        liabilityForm.setValue('minimumPayment', calculatedPayment)
+    const principalCents = Math.round(watchedCurrentBalance * 100)
+    const annualRatePercent = watchedInterestRate || 0
+    const accessToken = tokens.accessToken
+
+    const controller = new AbortController()
+
+    const timer = setTimeout(async () => {
+      try {
+        const apiClient = createApiClient({
+          baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+        })
+        apiClient.setAccessToken(accessToken)
+        const response = await apiClient.calculators.pmt({
+          principalCents,
+          annualRatePercent,
+          termMonths: remainingMonths,
+        })
+        if (controller.signal.aborted) return
+        const monthly = response.data?.monthlyPaymentCents
+        if (typeof monthly === 'number') {
+          liabilityForm.setValue('minimumPayment', monthly / 100)
+        }
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error('PMT request failed:', err)
+        }
       }
+    }, 250)
+
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
     }
   }, [
     watchedCurrentBalance,
     watchedInterestRate,
     watchedTermMonths,
     watchedMonthsPaid,
+    tokens,
     liabilityForm,
   ])
 

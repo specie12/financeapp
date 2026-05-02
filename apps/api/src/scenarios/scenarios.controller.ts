@@ -11,9 +11,12 @@ import {
 } from '@nestjs/common'
 import { ScenariosService } from './scenarios.service'
 import { CreateScenarioDto, UpdateScenarioDto, CompareScenariosDto } from './dto'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
+import { createScenarioSchema, updateScenarioSchema } from '@finance-app/validation'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
-import { Permission } from '../authorization/interfaces/permission.interface'
+import { ResourceId } from '../authorization/decorators/resource-id.decorator'
+import { Permission, ResourceType } from '../authorization/interfaces/permission.interface'
 import { type ApiResponse } from '@finance-app/shared-types'
 import type {
   ScenarioResponse,
@@ -29,7 +32,7 @@ export class ScenariosController {
   @RequirePermission(Permission.CREATE)
   async create(
     @CurrentUser('householdId') householdId: string,
-    @Body() dto: CreateScenarioDto,
+    @Body(new ZodValidationPipe(createScenarioSchema)) dto: CreateScenarioDto,
   ): Promise<ApiResponse<ScenarioResponse>> {
     const data = await this.scenariosService.create(householdId, dto)
     return { success: true, data }
@@ -46,6 +49,7 @@ export class ScenariosController {
 
   @Get(':id')
   @RequirePermission(Permission.READ)
+  @ResourceId({ type: ResourceType.SCENARIO, idParam: 'id' })
   async findOne(
     @CurrentUser('householdId') householdId: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -56,10 +60,11 @@ export class ScenariosController {
 
   @Patch(':id')
   @RequirePermission(Permission.UPDATE)
+  @ResourceId({ type: ResourceType.SCENARIO, idParam: 'id' })
   async update(
     @CurrentUser('householdId') householdId: string,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateScenarioDto,
+    @Body(new ZodValidationPipe(updateScenarioSchema)) dto: UpdateScenarioDto,
   ): Promise<ApiResponse<ScenarioResponse>> {
     const data = await this.scenariosService.update(householdId, id, dto)
     return { success: true, data }
@@ -67,6 +72,7 @@ export class ScenariosController {
 
   @Delete(':id')
   @RequirePermission(Permission.DELETE)
+  @ResourceId({ type: ResourceType.SCENARIO, idParam: 'id' })
   async remove(
     @CurrentUser('householdId') householdId: string,
     @Param('id', ParseUUIDPipe) id: string,
@@ -77,6 +83,7 @@ export class ScenariosController {
 
   @Get(':id/projection')
   @RequirePermission(Permission.READ)
+  @ResourceId({ type: ResourceType.SCENARIO, idParam: 'id' })
   async getProjection(
     @CurrentUser('householdId') householdId: string,
     @Param('id', ParseUUIDPipe) id: string,

@@ -275,31 +275,28 @@ export class DashboardService {
       0,
     ) as Cents
 
-    // For now, we don't have cost basis in the schema so we'll estimate
-    // In a real app, you'd track purchase transactions
-    const totalCostBasisCents = totalValueCents // Placeholder: assume cost = value
-    const unrealizedGainCents = (totalValueCents - totalCostBasisCents) as Cents
-    const unrealizedGainPercent =
-      totalCostBasisCents > 0
-        ? new Decimal(unrealizedGainCents)
-            .dividedBy(totalCostBasisCents)
-            .times(100)
-            .toDecimalPlaces(2)
-            .toNumber()
-        : 0
-
+    // Build per-holding rows. Cost basis is OPTIONAL on assets. When it's
+    // missing we MUST surface that as `null` rather than fabricating a value
+    // — the previous implementation defaulted cost basis to current value,
+    // which produced "0% gain" on every holding and broke user trust.
     const holdings: HoldingSummary[] = investmentAssets.map((a) => {
       const valueCents = a.currentValueCents as Cents
-      const costBasisCents = valueCents // Placeholder
-      const gainLossCents = (valueCents - costBasisCents) as Cents
-      const gainLossPercent =
-        costBasisCents > 0
-          ? new Decimal(gainLossCents)
-              .dividedBy(costBasisCents)
-              .times(100)
-              .toDecimalPlaces(2)
-              .toNumber()
-          : 0
+      const costBasisCents = a.costBasisCents !== null ? (a.costBasisCents as Cents) : null
+
+      let gainLossCents: Cents | null = null
+      let gainLossPercent: number | null = null
+      if (costBasisCents !== null) {
+        gainLossCents = (valueCents - costBasisCents) as Cents
+        gainLossPercent =
+          costBasisCents > 0
+            ? new Decimal(gainLossCents)
+                .dividedBy(costBasisCents)
+                .times(100)
+                .toDecimalPlaces(2)
+                .toNumber()
+            : 0
+      }
+
       const allocationPercent =
         totalValueCents > 0
           ? new Decimal(valueCents)
@@ -321,12 +318,39 @@ export class DashboardService {
       }
     })
 
+    // Aggregate cost-basis fields are `null` when ANY holding is missing
+    // a cost basis: a partial total would mislead users into thinking the
+    // displayed gain is the full picture.
+    const anyMissingCostBasis = holdings.some((h) => h.costBasisCents === null)
+
+    let totalCostBasisCents: Cents | null = null
+    let unrealizedGainCents: Cents | null = null
+    let unrealizedGainPercent: number | null = null
+
+    if (!anyMissingCostBasis) {
+      totalCostBasisCents = holdings.reduce(
+        (sum, h) => sum + (h.costBasisCents as number),
+        0,
+      ) as Cents
+      unrealizedGainCents = (totalValueCents - totalCostBasisCents) as Cents
+      unrealizedGainPercent =
+        totalCostBasisCents > 0
+          ? new Decimal(unrealizedGainCents)
+              .dividedBy(totalCostBasisCents)
+              .times(100)
+              .toDecimalPlaces(2)
+              .toNumber()
+          : 0
+    }
+
     const summary: PortfolioSummary = {
       totalValueCents,
       totalCostBasisCents,
       unrealizedGainCents,
       unrealizedGainPercent,
-      totalReturnCents: unrealizedGainCents, // Simplified: no dividends tracked
+      // No dividend tracking yet → total return cannot be computed without it.
+      // Mirror the cost-basis-derived fields rather than fabricate a value.
+      totalReturnCents: unrealizedGainCents,
       totalReturnPercent: unrealizedGainPercent,
     }
 
@@ -346,26 +370,28 @@ export class DashboardService {
       orderBy: { currentValueCents: 'desc' },
     })
 
-    // Default dividend yields by asset type
-    const defaultYields: Record<string, number> = {
-      investment: 2,
-      retirement_account: 2,
-      real_estate: 4,
-      bank_account: 4,
-      crypto: 0,
-      vehicle: 0,
-      other: 0,
-    }
-
-    // Calculate dividend projections
+    // Build per-asset projections. Dividend yield is OPTIONAL on assets.
+    // When it's missing the response MUST surface `null` for every yield-derived
+    // field — previously this code defaulted bank accounts to 4% and retirement
+    // to 2%, presenting fabricated income as fact. Those defaults are removed.
     const dividendProjections: DividendProjection[] = investmentAssets.map((asset) => {
-      const yieldPercent = asset.dividendYieldPercent
-        ? Number(asset.dividendYieldPercent)
-        : (defaultYields[asset.type] ?? 0)
-      const annualDividendCents = Math.round(
-        (asset.currentValueCents * yieldPercent) / 100,
-      ) as Cents
-      const monthlyDividendCents = Math.round(annualDividendCents / 12) as Cents
+      const isCustomYield = asset.dividendYieldPercent !== null
+      const yieldPercent = isCustomYield ? Number(asset.dividendYieldPercent) : null
+
+      let annualDividendCents: Cents | null = null
+      let monthlyDividendCents: Cents | null = null
+      if (yieldPercent !== null) {
+        const annual = new Decimal(asset.currentValueCents)
+          .times(yieldPercent)
+          .dividedBy(100)
+          .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+          .toNumber()
+        annualDividendCents = annual as Cents
+        monthlyDividendCents = new Decimal(annual)
+          .dividedBy(12)
+          .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+          .toNumber() as Cents
+      }
 
       return {
         assetId: asset.id,
@@ -375,18 +401,21 @@ export class DashboardService {
         yieldPercent,
         annualDividendCents,
         monthlyDividendCents,
-        isCustomYield: asset.dividendYieldPercent !== null,
+        isCustomYield,
       }
     })
 
-    const totalAnnualDividendsCents = dividendProjections.reduce(
-      (sum, p) => sum + p.annualDividendCents,
-      0,
-    ) as Cents
-    const totalMonthlyDividendsCents = dividendProjections.reduce(
-      (sum, p) => sum + p.monthlyDividendCents,
-      0,
-    ) as Cents
+    // Aggregate over only the projections that actually have a configured yield.
+    // If at least one asset is missing yield, set `dividendsPartial` so the UI
+    // can disclose that the total is incomplete.
+    const configured = dividendProjections.filter((p) => p.annualDividendCents !== null)
+    const dividendsPartial = configured.length < dividendProjections.length
+    const totalAnnualDividendsCents: Cents | null = configured.length
+      ? (configured.reduce((sum, p) => sum + (p.annualDividendCents as number), 0) as Cents)
+      : null
+    const totalMonthlyDividendsCents: Cents | null = configured.length
+      ? (configured.reduce((sum, p) => sum + (p.monthlyDividendCents as number), 0) as Cents)
+      : null
 
     // Get goals with investment-related types
     const goals = await this.prisma.goal.findMany({
@@ -426,8 +455,12 @@ export class DashboardService {
           const monthsRemaining = daysRemaining / 30
           const monthlySavingsNeeded = remainingCents / monthsRemaining
 
-          // If monthly dividends cover at least 50% of needed savings, consider on track
-          onTrack = totalMonthlyDividendsCents >= monthlySavingsNeeded * 0.5
+          // If monthly dividends cover at least 50% of needed savings, consider on track.
+          // When dividends are unconfigured we cannot evaluate this signal — leave
+          // `onTrack=false` rather than fabricate a positive answer.
+          if (totalMonthlyDividendsCents !== null) {
+            onTrack = totalMonthlyDividendsCents >= monthlySavingsNeeded * 0.5
+          }
           projectedCompletionDate = targetDate
         } else if (remainingCents === 0) {
           onTrack = true
@@ -452,6 +485,7 @@ export class DashboardService {
       dividendProjections,
       totalAnnualDividendsCents,
       totalMonthlyDividendsCents,
+      dividendsPartial,
       goalProgress,
     }
   }
@@ -570,12 +604,15 @@ export class DashboardService {
         totalValueCents: portfolioPerformance.totalValueCents,
         dayChangeCents: portfolioPerformance.dayChangeCents,
         dayChangePercent: portfolioPerformance.dayChangePercent,
-        weekChangeCents: 0, // Would need week-over-week calculation
-        weekChangePercent: 0,
-        monthChangeCents: 0, // Would need month-over-month calculation
-        monthChangePercent: 0,
-        ytdChangeCents: 0, // Would need YTD calculation
-        ytdChangePercent: 0,
+        // Time-series aggregates are not yet implemented. Surface `null` so the
+        // UI can render "—" for unknown windows, NEVER `0` (which would imply
+        // the asset moved zero percent rather than "we don't know yet").
+        weekChangeCents: null,
+        weekChangePercent: null,
+        monthChangeCents: null,
+        monthChangePercent: null,
+        ytdChangeCents: null,
+        ytdChangePercent: null,
       },
       sectorAllocations,
       enhancedHoldings,

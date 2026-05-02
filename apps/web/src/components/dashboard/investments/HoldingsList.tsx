@@ -36,15 +36,24 @@ export function HoldingsList({ holdings }: HoldingsListProps) {
                 <p className="font-semibold">
                   <MoneyDisplay cents={holding.valueCents} />
                 </p>
-                <p
-                  className={cn(
-                    'text-sm',
-                    holding.gainLossCents >= 0 ? 'text-green-600' : 'text-red-600',
-                  )}
-                >
-                  <MoneyDisplay cents={holding.gainLossCents} showSign /> (
-                  {formatPercent(holding.gainLossPercent)})
-                </p>
+                {holding.gainLossCents !== null && holding.gainLossPercent !== null ? (
+                  <p
+                    className={cn(
+                      'text-sm',
+                      holding.gainLossCents >= 0 ? 'text-green-600' : 'text-red-600',
+                    )}
+                  >
+                    <MoneyDisplay cents={holding.gainLossCents} showSign /> (
+                    {formatPercent(holding.gainLossPercent)})
+                  </p>
+                ) : (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    title="Set a cost basis on this asset to see gain/loss"
+                  >
+                    Cost basis not set
+                  </p>
+                )}
               </div>
             </div>
 
@@ -58,7 +67,11 @@ export function HoldingsList({ holdings }: HoldingsListProps) {
 
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Cost Basis</span>
-              <MoneyDisplay cents={holding.costBasisCents} />
+              {holding.costBasisCents !== null ? (
+                <MoneyDisplay cents={holding.costBasisCents} />
+              ) : (
+                <span>Not set</span>
+              )}
             </div>
           </div>
         ))}

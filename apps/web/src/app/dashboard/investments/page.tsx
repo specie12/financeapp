@@ -211,6 +211,7 @@ export default function InvestmentsPage() {
               projections={investmentData.dividendProjections}
               totalAnnualCents={investmentData.totalAnnualDividendsCents}
               totalMonthlyCents={investmentData.totalMonthlyDividendsCents}
+              partial={investmentData.dividendsPartial}
             />
             <GoalsSummaryCard goals={goals} title="Investment Goals" filterType="savings_target" />
           </div>

@@ -1,11 +1,18 @@
 import type { Cents } from '@finance-app/finance-engine'
 
+/**
+ * Override values are stored as typed JSON. The shape varies by
+ * (targetType, fieldName) — see `scenarioOverrideSchema` in
+ * `@finance-app/validation` for the full matrix.
+ */
+export type ScenarioOverrideValue = string | number | boolean | null
+
 export interface ScenarioOverrideResponse {
   id: string
   targetType: 'asset' | 'liability' | 'cash_flow_item'
   entityId: string
   fieldName: string
-  value: string
+  value: ScenarioOverrideValue
 }
 
 export interface ScenarioResponse {

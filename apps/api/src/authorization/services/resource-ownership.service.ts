@@ -25,6 +25,8 @@ export class ResourceOwnershipService {
         return this.getGoalHouseholdId(resourceId)
       case ResourceType.RENTAL_PROPERTY:
         return this.getRentalPropertyHouseholdId(resourceId)
+      case ResourceType.PLAID_ITEM:
+        return this.getPlaidItemHouseholdId(resourceId)
       case ResourceType.ACCOUNT:
         return this.getAccountHouseholdId(resourceId)
       case ResourceType.CATEGORY:
@@ -33,6 +35,8 @@ export class ResourceOwnershipService {
         return this.getBudgetHouseholdId(resourceId)
       case ResourceType.TRANSACTION:
         return this.getTransactionHouseholdId(resourceId)
+      case ResourceType.NOTIFICATION:
+        return this.getNotificationHouseholdId(resourceId)
       default:
         throw new Error(`Unknown resource type: ${resourceType}`)
     }
@@ -124,5 +128,21 @@ export class ResourceOwnershipService {
       select: { householdId: true },
     })
     return resource?.householdId ?? null
+  }
+
+  private async getPlaidItemHouseholdId(id: string): Promise<string | null> {
+    const resource = await this.prisma.plaidItem.findUnique({
+      where: { id },
+      select: { householdId: true },
+    })
+    return resource?.householdId ?? null
+  }
+
+  private async getNotificationHouseholdId(id: string): Promise<string | null> {
+    const resource = await this.prisma.notification.findUnique({
+      where: { id },
+      select: { user: { select: { householdId: true } } },
+    })
+    return resource?.user?.householdId ?? null
   }
 }

@@ -78,10 +78,20 @@ ${l.loans.map((loan) => `- ${loan.name}: $${(loan.currentBalanceCents / 100).toL
     // Investments
     if (investments.status === 'fulfilled') {
       const inv = investments.value
+      // Cost-basis-derived fields are `null` when any holding lacks a cost basis.
+      // Surface that explicitly so the model never sees a fabricated $0.
+      const costBasisLine =
+        inv.summary.totalCostBasisCents !== null
+          ? `- Cost Basis: $${(inv.summary.totalCostBasisCents / 100).toLocaleString()}`
+          : `- Cost Basis: not set on one or more holdings`
+      const gainLine =
+        inv.summary.unrealizedGainCents !== null && inv.summary.unrealizedGainPercent !== null
+          ? `- Unrealized Gain: $${(inv.summary.unrealizedGainCents / 100).toLocaleString()} (${inv.summary.unrealizedGainPercent}%)`
+          : `- Unrealized Gain: cannot be computed without cost basis on every holding`
       sections.push(`## Investments
 - Total Value: $${(inv.summary.totalValueCents / 100).toLocaleString()}
-- Cost Basis: $${(inv.summary.totalCostBasisCents / 100).toLocaleString()}
-- Unrealized Gain: $${(inv.summary.unrealizedGainCents / 100).toLocaleString()} (${inv.summary.unrealizedGainPercent}%)
+${costBasisLine}
+${gainLine}
 ${inv.holdings.map((h) => `- ${h.name}: $${(h.valueCents / 100).toLocaleString()} (${h.allocationPercent}%)`).join('\n')}`)
     }
 

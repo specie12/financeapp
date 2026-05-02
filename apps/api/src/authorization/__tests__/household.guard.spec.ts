@@ -3,7 +3,10 @@ import { Reflector } from '@nestjs/core'
 import { type ExecutionContext, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { HouseholdGuard } from '../guards/household.guard'
 import { ResourceOwnershipService } from '../services/resource-ownership.service'
-import { ResourceType } from '../interfaces/permission.interface'
+import { ResourceType, type ResourceConfig } from '../interfaces/permission.interface'
+import { RESOURCE_KEY } from '../decorators/resource-id.decorator'
+import { PUBLIC_RESOURCE_KEY } from '../decorators/public-resource.decorator'
+import { IS_PUBLIC_KEY } from '../../auth/decorators/public.decorator'
 
 describe('HouseholdGuard', () => {
   let guard: HouseholdGuard
@@ -18,6 +21,20 @@ describe('HouseholdGuard', () => {
       getHandler: () => ({}),
       getClass: () => ({}),
     }) as unknown as ExecutionContext
+
+  // The guard reads three reflection keys: IS_PUBLIC_KEY, PUBLIC_RESOURCE_KEY, RESOURCE_KEY.
+  const stubReflector = (opts: {
+    isPublic?: boolean
+    isPublicResource?: boolean
+    resourceConfig?: ResourceConfig
+  }) => {
+    jest.spyOn(reflector, 'getAllAndOverride').mockImplementation((key: unknown) => {
+      if (key === IS_PUBLIC_KEY) return opts.isPublic ?? undefined
+      if (key === PUBLIC_RESOURCE_KEY) return opts.isPublicResource ?? undefined
+      if (key === RESOURCE_KEY) return opts.resourceConfig ?? undefined
+      return undefined
+    })
+  }
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -39,20 +56,36 @@ describe('HouseholdGuard', () => {
     resourceOwnershipService = module.get<ResourceOwnershipService>(ResourceOwnershipService)
   })
 
-  describe('when no resource config is specified', () => {
-    it('should allow access', async () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined)
+  describe('fail-closed defaults', () => {
+    it('throws when route has path params and no @ResourceId/@PublicResource', async () => {
+      stubReflector({})
+      const context = createMockContext({ householdId: 'h1' }, { id: 'asset1' })
+      await expect(guard.canActivate(context)).rejects.toThrow(ForbiddenException)
+      await expect(guard.canActivate(context)).rejects.toThrow(/Resource ownership not declared/)
+    })
+
+    it('allows access for collection-level routes (no path params, no resource config)', async () => {
+      stubReflector({})
       const context = createMockContext({ householdId: 'h1' }, {})
+      expect(await guard.canActivate(context)).toBe(true)
+    })
+
+    it('allows access when route is marked @PublicResource() even with path params', async () => {
+      stubReflector({ isPublicResource: true })
+      const context = createMockContext({ householdId: 'h1' }, { symbol: 'AAPL' })
+      expect(await guard.canActivate(context)).toBe(true)
+    })
+
+    it('allows access when route is marked @Public() (auth bypass)', async () => {
+      stubReflector({ isPublic: true })
+      const context = createMockContext(null, { id: 'something' })
       expect(await guard.canActivate(context)).toBe(true)
     })
   })
 
   describe('when resource config is specified', () => {
     beforeEach(() => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-        type: ResourceType.ASSET,
-        idParam: 'id',
-      })
+      stubReflector({ resourceConfig: { type: ResourceType.ASSET, idParam: 'id' } })
     })
 
     it('should allow access when resource belongs to user household', async () => {
@@ -81,10 +114,7 @@ describe('HouseholdGuard', () => {
 
   describe('missing user data', () => {
     beforeEach(() => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-        type: ResourceType.ASSET,
-        idParam: 'id',
-      })
+      stubReflector({ resourceConfig: { type: ResourceType.ASSET, idParam: 'id' } })
     })
 
     it('should throw ForbiddenException when user is missing', async () => {
@@ -100,10 +130,7 @@ describe('HouseholdGuard', () => {
 
   describe('different resource types', () => {
     it('should check account resource through user', async () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-        type: ResourceType.ACCOUNT,
-        idParam: 'accountId',
-      })
+      stubReflector({ resourceConfig: { type: ResourceType.ACCOUNT, idParam: 'accountId' } })
       jest.spyOn(resourceOwnershipService, 'getResourceHouseholdId').mockResolvedValue('h1')
 
       const context = createMockContext({ householdId: 'h1' }, { accountId: 'acc1' })
@@ -116,10 +143,7 @@ describe('HouseholdGuard', () => {
     })
 
     it('should check transaction resource through account->user', async () => {
-      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
-        type: ResourceType.TRANSACTION,
-        idParam: 'txId',
-      })
+      stubReflector({ resourceConfig: { type: ResourceType.TRANSACTION, idParam: 'txId' } })
       jest.spyOn(resourceOwnershipService, 'getResourceHouseholdId').mockResolvedValue('h1')
 
       const context = createMockContext({ householdId: 'h1' }, { txId: 'tx1' })
@@ -129,6 +153,42 @@ describe('HouseholdGuard', () => {
         ResourceType.TRANSACTION,
         'tx1',
       )
+    })
+
+    it('should check notification resource through user', async () => {
+      stubReflector({ resourceConfig: { type: ResourceType.NOTIFICATION, idParam: 'id' } })
+      jest.spyOn(resourceOwnershipService, 'getResourceHouseholdId').mockResolvedValue('h1')
+
+      const context = createMockContext({ householdId: 'h1' }, { id: 'notif1' })
+      expect(await guard.canActivate(context)).toBe(true)
+
+      expect(resourceOwnershipService.getResourceHouseholdId).toHaveBeenCalledWith(
+        ResourceType.NOTIFICATION,
+        'notif1',
+      )
+    })
+
+    it('should check plaid_item resource directly by household', async () => {
+      stubReflector({ resourceConfig: { type: ResourceType.PLAID_ITEM, idParam: 'id' } })
+      jest.spyOn(resourceOwnershipService, 'getResourceHouseholdId').mockResolvedValue('h1')
+
+      const context = createMockContext({ householdId: 'h1' }, { id: 'item1' })
+      expect(await guard.canActivate(context)).toBe(true)
+
+      expect(resourceOwnershipService.getResourceHouseholdId).toHaveBeenCalledWith(
+        ResourceType.PLAID_ITEM,
+        'item1',
+      )
+    })
+
+    it('should check scenario resource directly by household', async () => {
+      stubReflector({ resourceConfig: { type: ResourceType.SCENARIO, idParam: 'id' } })
+      jest.spyOn(resourceOwnershipService, 'getResourceHouseholdId').mockResolvedValue('h2')
+
+      const context = createMockContext({ householdId: 'h1' }, { id: 'scn1' })
+      // Cross-household: foreign scenario must surface as NotFound, not Forbidden
+      // (avoids existence disclosure).
+      await expect(guard.canActivate(context)).rejects.toThrow(NotFoundException)
     })
   })
 })

@@ -10,6 +10,35 @@ interface PortfolioSummaryProps {
 }
 
 export function PortfolioSummary({ summary, holdingCount }: PortfolioSummaryProps) {
+  // Cost-basis-derived fields are `null` whenever any holding is missing a
+  // cost basis. Render an explicit "Not set" rather than fabricating a number.
+  const NOT_SET = 'Not set'
+
+  const costBasisLabel =
+    summary.totalCostBasisCents !== null ? formatCents(summary.totalCostBasisCents) : NOT_SET
+
+  const unrealizedGainLabel =
+    summary.unrealizedGainCents !== null ? formatCents(summary.unrealizedGainCents) : NOT_SET
+
+  const unrealizedGainTrend =
+    summary.unrealizedGainCents !== null && summary.unrealizedGainPercent !== null
+      ? {
+          value: formatPercent(summary.unrealizedGainPercent),
+          isPositive: summary.unrealizedGainCents >= 0,
+        }
+      : undefined
+
+  const totalReturnLabel =
+    summary.totalReturnCents !== null ? formatCents(summary.totalReturnCents) : NOT_SET
+
+  const totalReturnTrend =
+    summary.totalReturnCents !== null && summary.totalReturnPercent !== null
+      ? {
+          value: formatPercent(summary.totalReturnPercent),
+          isPositive: summary.totalReturnCents >= 0,
+        }
+      : undefined
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
       <StatCard
@@ -19,25 +48,11 @@ export function PortfolioSummary({ summary, holdingCount }: PortfolioSummaryProp
       />
       <StatCard
         title="Cost Basis"
-        value={formatCents(summary.totalCostBasisCents)}
-        subtitle="Total invested"
+        value={costBasisLabel}
+        subtitle={summary.totalCostBasisCents !== null ? 'Total invested' : 'Set on each asset'}
       />
-      <StatCard
-        title="Unrealized Gain"
-        value={formatCents(summary.unrealizedGainCents)}
-        trend={{
-          value: formatPercent(summary.unrealizedGainPercent),
-          isPositive: summary.unrealizedGainCents >= 0,
-        }}
-      />
-      <StatCard
-        title="Total Return"
-        value={formatCents(summary.totalReturnCents)}
-        trend={{
-          value: formatPercent(summary.totalReturnPercent),
-          isPositive: summary.totalReturnCents >= 0,
-        }}
-      />
+      <StatCard title="Unrealized Gain" value={unrealizedGainLabel} trend={unrealizedGainTrend} />
+      <StatCard title="Total Return" value={totalReturnLabel} trend={totalReturnTrend} />
     </div>
   )
 }

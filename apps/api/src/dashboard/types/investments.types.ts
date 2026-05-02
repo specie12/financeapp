@@ -5,19 +5,23 @@ export interface HoldingSummary {
   name: string
   type: string
   valueCents: Cents
-  costBasisCents: Cents
-  gainLossCents: Cents
-  gainLossPercent: number
+  /** `null` when the asset has no cost basis set. */
+  costBasisCents: Cents | null
+  /** `null` when cost basis is unset (cannot be derived). */
+  gainLossCents: Cents | null
+  /** `null` when cost basis is unset (cannot be derived). */
+  gainLossPercent: number | null
   allocationPercent: number
 }
 
 export interface PortfolioSummary {
   totalValueCents: Cents
-  totalCostBasisCents: Cents
-  unrealizedGainCents: Cents
-  unrealizedGainPercent: number
-  totalReturnCents: Cents
-  totalReturnPercent: number
+  /** `null` when ANY holding lacks cost basis (the total cannot be trusted). */
+  totalCostBasisCents: Cents | null
+  unrealizedGainCents: Cents | null
+  unrealizedGainPercent: number | null
+  totalReturnCents: Cents | null
+  totalReturnPercent: number | null
 }
 
 export interface InvestmentsResponse {

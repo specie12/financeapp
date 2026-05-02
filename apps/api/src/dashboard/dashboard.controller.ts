@@ -2,7 +2,8 @@ import { Controller, Get, Post, Param, Query, Body, ParseUUIDPipe } from '@nestj
 import { DashboardService } from './dashboard.service'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
-import { Permission } from '../authorization/interfaces/permission.interface'
+import { ResourceId } from '../authorization/decorators/resource-id.decorator'
+import { Permission, ResourceType } from '../authorization/interfaces/permission.interface'
 import { type ApiResponse } from '@finance-app/shared-types'
 import type {
   NetWorthResponse,
@@ -49,6 +50,7 @@ export class DashboardController {
 
   @Get('loans/:id/amortization')
   @RequirePermission(Permission.READ)
+  @ResourceId({ type: ResourceType.LIABILITY, idParam: 'id' })
   async getLoanAmortization(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('householdId') householdId: string,
@@ -98,6 +100,7 @@ export class DashboardController {
 
   @Post('loans/:id/simulate')
   @RequirePermission(Permission.READ)
+  @ResourceId({ type: ResourceType.LIABILITY, idParam: 'id' })
   async simulateLoanPayoff(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser('householdId') householdId: string,

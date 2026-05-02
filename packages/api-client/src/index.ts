@@ -733,6 +733,22 @@ export class ApiClient {
   // ============================================
 
   calculators = {
+    /**
+     * Compute the canonical monthly payment (PMT) for a loan.
+     * The server delegates to the finance-engine; clients MUST NOT replicate this math.
+     */
+    pmt: async (request: {
+      principalCents: number
+      annualRatePercent: number
+      termMonths: number
+    }): Promise<ApiResponse<{ monthlyPaymentCents: number }>> => {
+      const response = await this.client.post<ApiResponse<{ monthlyPaymentCents: number }>>(
+        '/calculators/pmt',
+        request,
+      )
+      return response.data
+    },
+
     rentVsBuy: async (
       request: RentVsBuyRequest,
     ): Promise<ApiResponse<RentVsBuyResultWithAffordability>> => {

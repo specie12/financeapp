@@ -410,24 +410,28 @@ export interface LoanAmortizationResponse {
 }
 
 // Investments Dashboard
+//
+// IMPORTANT: cost-basis-derived fields are explicitly nullable.
+// If a holding has no cost basis set, the API returns `null` and the UI
+// must render "Cost basis not set" — never a fabricated `0%` gain.
 export interface InvestmentHoldingSummary {
   id: string
   name: string
   type: string
   valueCents: number
-  costBasisCents: number
-  gainLossCents: number
-  gainLossPercent: number
+  costBasisCents: number | null
+  gainLossCents: number | null
+  gainLossPercent: number | null
   allocationPercent: number
 }
 
 export interface InvestmentPortfolioSummary {
   totalValueCents: number
-  totalCostBasisCents: number
-  unrealizedGainCents: number
-  unrealizedGainPercent: number
-  totalReturnCents: number
-  totalReturnPercent: number
+  totalCostBasisCents: number | null
+  unrealizedGainCents: number | null
+  unrealizedGainPercent: number | null
+  totalReturnCents: number | null
+  totalReturnPercent: number | null
 }
 
 export interface InvestmentsResponse {
@@ -840,14 +844,21 @@ export const DEFAULT_DIVIDEND_YIELDS: Record<AssetType, number> = {
   other: 0,
 }
 
+// Dividend projections.
+//
+// IMPORTANT: yield-derived fields are explicitly nullable.
+// If a holding has no dividend yield configured, the API returns `null`
+// and the UI must render "Dividend yield not configured" — never a
+// fabricated default (the platform previously assumed 4% on bank
+// accounts and 2% on retirement; that has been removed).
 export interface DividendProjection {
   assetId: string
   assetName: string
   assetType: AssetType
   valueCents: number
-  yieldPercent: number
-  annualDividendCents: number
-  monthlyDividendCents: number
+  yieldPercent: number | null
+  annualDividendCents: number | null
+  monthlyDividendCents: number | null
   isCustomYield: boolean
 }
 
@@ -865,8 +876,12 @@ export interface GoalProgressSummary {
 
 export interface EnhancedInvestmentsResponse extends InvestmentsResponse {
   dividendProjections: DividendProjection[]
-  totalAnnualDividendsCents: number
-  totalMonthlyDividendsCents: number
+  /** Sum of configured `annualDividendCents`. `null` if no asset has a yield set. */
+  totalAnnualDividendsCents: number | null
+  /** Sum of configured `monthlyDividendCents`. `null` if no asset has a yield set. */
+  totalMonthlyDividendsCents: number | null
+  /** True when at least one asset is missing dividend yield — totals are partial. */
+  dividendsPartial: boolean
   goalProgress: GoalProgressSummary[]
 }
 
@@ -1242,8 +1257,9 @@ export interface TickerData {
 }
 
 export interface PerformanceMetrics {
-  totalReturn: number
-  totalReturnPercent: number
+  /** `null` when cost basis is unset (cannot derive total return). */
+  totalReturn: number | null
+  totalReturnPercent: number | null
   dayChange: number
   weekChange: number
   monthChange: number
@@ -1263,12 +1279,16 @@ export interface PortfolioPerformance {
   totalValueCents: number
   dayChangeCents: number
   dayChangePercent: number
-  weekChangeCents: number
-  weekChangePercent: number
-  monthChangeCents: number
-  monthChangePercent: number
-  ytdChangeCents: number
-  ytdChangePercent: number
+  /**
+   * Aggregated change windows. These are `null` until the underlying time-series
+   * is implemented; the API must NEVER return `0` as a placeholder for "unknown".
+   */
+  weekChangeCents: number | null
+  weekChangePercent: number | null
+  monthChangeCents: number | null
+  monthChangePercent: number | null
+  ytdChangeCents: number | null
+  ytdChangePercent: number | null
 }
 
 export interface SectorAllocation {

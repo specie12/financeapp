@@ -25,14 +25,15 @@ export enum ResourceType {
   SCENARIO = 'scenario',
   SCENARIO_OVERRIDE = 'scenarioOverride',
   GOAL = 'goal',
-
   RENTAL_PROPERTY = 'rentalProperty',
+  PLAID_ITEM = 'plaidItem',
 
   // User-owned resources (indirect household access)
   ACCOUNT = 'account',
   CATEGORY = 'category',
   BUDGET = 'budget',
   TRANSACTION = 'transaction',
+  NOTIFICATION = 'notification',
 }
 
 export interface ResourceConfig {

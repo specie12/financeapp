@@ -12,10 +12,14 @@ describe('ResourceOwnershipService', () => {
     cashFlowItem: { findUnique: jest.fn() },
     scenario: { findUnique: jest.fn() },
     scenarioOverride: { findUnique: jest.fn() },
+    goal: { findUnique: jest.fn() },
+    rentalProperty: { findUnique: jest.fn() },
+    plaidItem: { findUnique: jest.fn() },
     account: { findUnique: jest.fn() },
     category: { findUnique: jest.fn() },
     budget: { findUnique: jest.fn() },
     transaction: { findUnique: jest.fn() },
+    notification: { findUnique: jest.fn() },
   }
 
   beforeEach(async () => {
@@ -139,6 +143,64 @@ describe('ResourceOwnershipService', () => {
         where: { id: 'so1' },
         select: { scenario: { select: { householdId: true } } },
       })
+    })
+  })
+
+  describe('plaidItem resource', () => {
+    it('should get householdId for plaidItem directly', async () => {
+      mockPrisma.plaidItem.findUnique.mockResolvedValue({ householdId: 'h1' })
+
+      const result = await service.getResourceHouseholdId(ResourceType.PLAID_ITEM, 'pi1')
+
+      expect(result).toBe('h1')
+      expect(mockPrisma.plaidItem.findUnique).toHaveBeenCalledWith({
+        where: { id: 'pi1' },
+        select: { householdId: true },
+      })
+    })
+
+    it('should return null for non-existent plaidItem', async () => {
+      mockPrisma.plaidItem.findUnique.mockResolvedValue(null)
+
+      const result = await service.getResourceHouseholdId(ResourceType.PLAID_ITEM, 'nonexistent')
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('notification resource', () => {
+    it('should get householdId for notification through user', async () => {
+      mockPrisma.notification.findUnique.mockResolvedValue({ user: { householdId: 'h1' } })
+
+      const result = await service.getResourceHouseholdId(ResourceType.NOTIFICATION, 'n1')
+
+      expect(result).toBe('h1')
+      expect(mockPrisma.notification.findUnique).toHaveBeenCalledWith({
+        where: { id: 'n1' },
+        select: { user: { select: { householdId: true } } },
+      })
+    })
+
+    it('should return null for non-existent notification', async () => {
+      mockPrisma.notification.findUnique.mockResolvedValue(null)
+
+      const result = await service.getResourceHouseholdId(ResourceType.NOTIFICATION, 'nonexistent')
+
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('goal and rentalProperty resources', () => {
+    it('should get householdId for goal directly', async () => {
+      mockPrisma.goal.findUnique.mockResolvedValue({ householdId: 'h1' })
+      const result = await service.getResourceHouseholdId(ResourceType.GOAL, 'g1')
+      expect(result).toBe('h1')
+    })
+
+    it('should get householdId for rentalProperty directly', async () => {
+      mockPrisma.rentalProperty.findUnique.mockResolvedValue({ householdId: 'h1' })
+      const result = await service.getResourceHouseholdId(ResourceType.RENTAL_PROPERTY, 'rp1')
+      expect(result).toBe('h1')
     })
   })
 

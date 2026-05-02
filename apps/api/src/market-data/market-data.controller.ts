@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
+import { PublicResource } from '../authorization/decorators/public-resource.decorator'
 import { Permission } from '../authorization/interfaces/permission.interface'
 import { TickerData, ApiResponse as ApiResponseType } from '@finance-app/shared-types'
 import { MarketDataService } from './market-data.service'
@@ -30,6 +31,7 @@ export class MarketDataController {
 
   @Get('ticker/:symbol')
   @RequirePermission(Permission.READ)
+  @PublicResource()
   async getTicker(@Param('symbol') symbol: string): Promise<ApiResponseType<TickerData>> {
     const tickerData = await this.marketDataService.getTickerData(symbol)
 
@@ -69,6 +71,7 @@ export class MarketDataController {
 
   @Get('sector/:sector')
   @RequirePermission(Permission.READ)
+  @PublicResource()
   async getTickersBySector(
     @Param('sector') sector: string,
   ): Promise<ApiResponseType<TickerData[]>> {

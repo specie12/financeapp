@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { PERMISSION_KEY } from '../decorators/require-permission.decorator'
+import { IS_PUBLIC_KEY } from '../../auth/decorators/public.decorator'
 import {
   type Permission,
   type HouseholdRole,
@@ -17,13 +18,24 @@ export class PermissionGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ])
+    if (isPublic) return true
+
     const requiredPermission = this.reflector.getAllAndOverride<Permission>(PERMISSION_KEY, [
       context.getHandler(),
       context.getClass(),
     ])
 
     if (!requiredPermission) {
-      return true
+      // Fail closed: every authenticated route must declare its required
+      // permission via @RequirePermission, or be marked @Public().
+      throw new ForbiddenException(
+        'Permission not declared for this route. ' +
+          'Add @RequirePermission(...) or mark the route @Public() if it should bypass auth.',
+      )
     }
 
     const request = context.switchToHttp().getRequest()

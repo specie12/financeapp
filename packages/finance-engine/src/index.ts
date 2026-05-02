@@ -1,3 +1,4 @@
+import Decimal from 'decimal.js'
 import type { Transaction, Budget, BudgetPeriod, Currency } from '@finance-app/shared-types'
 
 // ============================================
@@ -57,9 +58,13 @@ export interface CompoundInterestParams {
 }
 
 export function calculateCompoundInterest(params: CompoundInterestParams): number {
+  // FV = PV * (1 + r/n)^(n*t). Uses Decimal.pow rather than the float math
+  // primitive so the engine has zero floating-point financial compounding
+  // anywhere — the grep guard in __tests__/no-duplicate-pmt.spec.ts enforces this.
   const { principal, annualRate, compoundsPerYear, years } = params
-  const rate = annualRate / 100
-  return principal * Math.pow(1 + rate / compoundsPerYear, compoundsPerYear * years)
+  const ratePerPeriod = new Decimal(annualRate).dividedBy(100).dividedBy(compoundsPerYear)
+  const periods = compoundsPerYear * years
+  return new Decimal(principal).times(ratePerPeriod.plus(1).pow(periods)).toNumber()
 }
 
 export interface SimpleInterestParams {
@@ -70,8 +75,9 @@ export interface SimpleInterestParams {
 
 export function calculateSimpleInterest(params: SimpleInterestParams): number {
   const { principal, annualRate, years } = params
-  const rate = annualRate / 100
-  return principal * (1 + rate * years)
+  return new Decimal(principal)
+    .times(new Decimal(annualRate).dividedBy(100).times(years).plus(1))
+    .toNumber()
 }
 
 // ============================================

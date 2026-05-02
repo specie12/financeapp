@@ -79,15 +79,24 @@ export function EnhancedHoldingsList({ holdings, isLoading }: EnhancedHoldingsLi
                 <p className="font-semibold">
                   <MoneyDisplay cents={holding.valueCents} />
                 </p>
-                <p
-                  className={cn(
-                    'text-sm',
-                    holding.gainLossCents >= 0 ? 'text-green-600' : 'text-red-600',
-                  )}
-                >
-                  <MoneyDisplay cents={holding.gainLossCents} showSign /> (
-                  {formatPercent(holding.gainLossPercent)})
-                </p>
+                {holding.gainLossCents !== null && holding.gainLossPercent !== null ? (
+                  <p
+                    className={cn(
+                      'text-sm',
+                      holding.gainLossCents >= 0 ? 'text-green-600' : 'text-red-600',
+                    )}
+                  >
+                    <MoneyDisplay cents={holding.gainLossCents} showSign /> (
+                    {formatPercent(holding.gainLossPercent)})
+                  </p>
+                ) : (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    title="Set a cost basis on this asset to see gain/loss"
+                  >
+                    Cost basis not set
+                  </p>
+                )}
               </div>
             </div>
 
@@ -187,7 +196,12 @@ export function EnhancedHoldingsList({ holdings, isLoading }: EnhancedHoldingsLi
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <div className="flex items-center space-x-4">
                 <span>
-                  Cost Basis: <MoneyDisplay cents={holding.costBasisCents} />
+                  Cost Basis:{' '}
+                  {holding.costBasisCents !== null ? (
+                    <MoneyDisplay cents={holding.costBasisCents} />
+                  ) : (
+                    'Not set'
+                  )}
                 </span>
                 {holding.ticker && (
                   <div className="flex items-center space-x-1">

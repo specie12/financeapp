@@ -3,7 +3,8 @@ import { PlaidService } from './plaid.service'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import { plaidExchangeTokenSchema, plaidWebhookSchema } from '@finance-app/validation'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
-import { Permission } from '../authorization/interfaces/permission.interface'
+import { ResourceId } from '../authorization/decorators/resource-id.decorator'
+import { Permission, ResourceType } from '../authorization/interfaces/permission.interface'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import { Public } from '../auth/decorators/public.decorator'
 import type { ExchangeTokenDto } from './dto/exchange-token.dto'
@@ -54,6 +55,7 @@ export class PlaidController {
 
   @Post('sync/:id')
   @RequirePermission(Permission.UPDATE)
+  @ResourceId({ type: ResourceType.PLAID_ITEM, idParam: 'id' })
   async sync(
     @CurrentUser('householdId') householdId: string,
     @Param('id') id: string,
@@ -67,6 +69,7 @@ export class PlaidController {
 
   @Delete('items/:id')
   @RequirePermission(Permission.DELETE)
+  @ResourceId({ type: ResourceType.PLAID_ITEM, idParam: 'id' })
   async deleteItem(
     @CurrentUser('householdId') householdId: string,
     @Param('id') id: string,

@@ -3,7 +3,8 @@ import { NotificationsService } from './notifications.service'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
 import { notificationQuerySchema } from '@finance-app/validation'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
-import { Permission } from '../authorization/interfaces/permission.interface'
+import { ResourceId } from '../authorization/decorators/resource-id.decorator'
+import { Permission, ResourceType } from '../authorization/interfaces/permission.interface'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
 import type { NotificationQueryDto } from './dto/notification-query.dto'
 import type {
@@ -50,6 +51,7 @@ export class NotificationsController {
 
   @Patch(':id/read')
   @RequirePermission(Permission.UPDATE)
+  @ResourceId({ type: ResourceType.NOTIFICATION, idParam: 'id' })
   async markRead(
     @CurrentUser('id') userId: string,
     @Param('id') id: string,
@@ -73,6 +75,7 @@ export class NotificationsController {
 
   @Delete(':id')
   @RequirePermission(Permission.DELETE)
+  @ResourceId({ type: ResourceType.NOTIFICATION, idParam: 'id' })
   async remove(
     @CurrentUser('id') userId: string,
     @Param('id') id: string,

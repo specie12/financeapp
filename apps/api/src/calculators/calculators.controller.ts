@@ -2,8 +2,13 @@ import { Controller, Post, Body } from '@nestjs/common'
 import { CalculatorsService } from './calculators.service'
 import { RentVsBuyDto } from './dto/rent-vs-buy.dto'
 import { MortgageVsInvestDto } from './dto/mortgage-vs-invest.dto'
+import { PmtDto, PmtResponse } from './dto/pmt.dto'
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
-import { rentVsBuyRequestSchema, mortgageVsInvestRequestSchema } from '@finance-app/validation'
+import {
+  rentVsBuyRequestSchema,
+  mortgageVsInvestRequestSchema,
+  pmtRequestSchema,
+} from '@finance-app/validation'
 import { RequirePermission } from '../authorization/decorators/require-permission.decorator'
 import { Permission } from '../authorization/interfaces/permission.interface'
 import { CurrentUser } from '../auth/decorators/current-user.decorator'
@@ -16,6 +21,17 @@ import type {
 @Controller('calculators')
 export class CalculatorsController {
   constructor(private readonly calculatorsService: CalculatorsService) {}
+
+  @Post('pmt')
+  @RequirePermission(Permission.READ)
+  calculatePmt(
+    @Body(new ZodValidationPipe(pmtRequestSchema)) dto: PmtDto,
+  ): ApiResponse<PmtResponse> {
+    return {
+      success: true,
+      data: this.calculatorsService.calculatePmt(dto),
+    }
+  }
 
   @Post('rent-vs-buy')
   @RequirePermission(Permission.READ)

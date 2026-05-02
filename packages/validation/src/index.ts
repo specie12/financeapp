@@ -299,6 +299,164 @@ export const mortgageVsInvestRequestSchema = z.object({
 })
 
 // ============================================
+// PMT (Monthly Payment) Calculator Schema
+// ============================================
+
+export const pmtRequestSchema = z.object({
+  principalCents: z.number().int().positive('Principal must be positive'),
+  annualRatePercent: z.number().min(0).max(50),
+  termMonths: z.number().int().positive().max(600),
+})
+
+// ============================================
+// Scenario Override Schemas
+// ============================================
+//
+// Scenario overrides are validated at the WRITE boundary (the API), not at
+// projection time. Each option below pins the value type for one
+// (targetType, fieldName) pair. Anything that doesn't match a known pair
+// must be rejected with HTTP 400 — never coerced or silently stored.
+//
+// The valid field lists must match
+//   `packages/finance-engine/src/scenario/scenario.types.ts`
+// (ASSET_OVERRIDE_FIELDS / LIABILITY_OVERRIDE_FIELDS / CASH_FLOW_ITEM_OVERRIDE_FIELDS).
+// If you add a new override field there, add the matching Zod option here.
+
+const SAFE_CENTS_MAX = Number.MAX_SAFE_INTEGER
+const SAFE_CENTS_MIN = -Number.MAX_SAFE_INTEGER
+
+const centsValueSchema = z.number().int().min(SAFE_CENTS_MIN).max(SAFE_CENTS_MAX)
+const nonNegativeCentsValueSchema = z.number().int().min(0).max(SAFE_CENTS_MAX)
+const ratePercentSchema = z.number().min(-100).max(100)
+const interestRatePercentSchema = z.number().min(0).max(100)
+const termMonthsSchema = z.number().int().positive().max(600).nullable()
+const nameSchema = z.string().min(1, 'Name cannot be empty').max(100)
+const dateSchema = z.string().datetime({ offset: true }).nullable()
+
+const baseEntityRefs = {
+  entityId: z.string().uuid('Override entityId must be a UUID'),
+}
+
+export const scenarioOverrideSchema = z.union([
+  // Asset overrides
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('asset'),
+    fieldName: z.literal('currentValueCents'),
+    value: nonNegativeCentsValueSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('asset'),
+    fieldName: z.literal('annualGrowthRatePercent'),
+    value: ratePercentSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('asset'),
+    fieldName: z.literal('name'),
+    value: nameSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('asset'),
+    fieldName: z.literal('type'),
+    value: assetTypeSchema,
+  }),
+
+  // Liability overrides
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('liability'),
+    fieldName: z.literal('currentBalanceCents'),
+    value: nonNegativeCentsValueSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('liability'),
+    fieldName: z.literal('interestRatePercent'),
+    value: interestRatePercentSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('liability'),
+    fieldName: z.literal('minimumPaymentCents'),
+    value: nonNegativeCentsValueSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('liability'),
+    fieldName: z.literal('termMonths'),
+    value: termMonthsSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('liability'),
+    fieldName: z.literal('name'),
+    value: nameSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('liability'),
+    fieldName: z.literal('type'),
+    value: liabilityTypeSchema,
+  }),
+
+  // Cash flow item overrides
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('amountCents'),
+    value: centsValueSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('frequency'),
+    value: frequencySchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('annualGrowthRatePercent'),
+    value: ratePercentSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('startDate'),
+    value: dateSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('endDate'),
+    value: dateSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('name'),
+    value: nameSchema,
+  }),
+  z.object({
+    ...baseEntityRefs,
+    targetType: z.literal('cash_flow_item'),
+    fieldName: z.literal('type'),
+    value: cashFlowTypeSchema,
+  }),
+])
+
+export const createScenarioSchema = z.object({
+  name: z.string().min(1, 'Scenario name is required').max(100),
+  description: z.string().max(500).nullable().optional(),
+  isBaseline: z.boolean().optional(),
+  overrides: z.array(scenarioOverrideSchema).max(100).optional(),
+})
+
+export const updateScenarioSchema = createScenarioSchema.partial()
+
+// ============================================
 // Rental Property Schemas
 // ============================================
 
@@ -427,6 +585,10 @@ export type ExtraPaymentInput = z.infer<typeof extraPaymentSchema>
 export type ExtraPaymentSimulationInput = z.infer<typeof extraPaymentSimulationSchema>
 export type RecurringExtraPaymentInput = z.infer<typeof recurringExtraPaymentSchema>
 export type MortgageVsInvestRequestInput = z.infer<typeof mortgageVsInvestRequestSchema>
+export type PmtRequestInput = z.infer<typeof pmtRequestSchema>
+export type ScenarioOverrideInput = z.infer<typeof scenarioOverrideSchema>
+export type CreateScenarioInput = z.infer<typeof createScenarioSchema>
+export type UpdateScenarioInput = z.infer<typeof updateScenarioSchema>
 export type CreateRentalPropertyInput = z.infer<typeof createRentalPropertySchema>
 export type UpdateRentalPropertyInput = z.infer<typeof updateRentalPropertySchema>
 export type RentalPropertyQueryInput = z.infer<typeof rentalPropertyQuerySchema>

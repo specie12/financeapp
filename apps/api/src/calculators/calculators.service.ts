@@ -1,15 +1,19 @@
 import { Injectable } from '@nestjs/common'
+import Decimal from 'decimal.js'
 import { PrismaService } from '../prisma/prisma.service'
 import {
+  calculateMonthlyPayment,
   calculateRentVsBuy,
   calculateMortgageVsInvest,
   cents,
+  type Cents,
   type RentVsBuyInput,
   type RentVsBuyResult,
   type MortgageVsInvestInput,
 } from '@finance-app/finance-engine'
 import type { RentVsBuyDto } from './dto/rent-vs-buy.dto'
 import type { MortgageVsInvestDto } from './dto/mortgage-vs-invest.dto'
+import type { PmtDto, PmtResponse } from './dto/pmt.dto'
 import type {
   AffordabilityAnalysis,
   AffordabilityThresholds,
@@ -40,6 +44,22 @@ export class CalculatorsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Calculate the monthly amortizing payment for a loan.
+   *
+   * Thin wrapper over the canonical finance-engine PMT to enforce that
+   * `principalCents` is a valid integer and that the engine's Decimal-based
+   * implementation is the only PMT source in the system.
+   */
+  calculatePmt(dto: PmtDto): PmtResponse {
+    const monthlyPaymentCents = calculateMonthlyPayment(
+      cents(dto.principalCents),
+      dto.annualRatePercent,
+      dto.termMonths,
+    )
+    return { monthlyPaymentCents }
+  }
+
+  /**
    * Convert any frequency amount to monthly
    */
   private toMonthlyCents(amountCents: number, frequency: Frequency): number {
@@ -47,29 +67,51 @@ export class CalculatorsService {
   }
 
   /**
-   * Calculate monthly mortgage payment using PMT formula
+   * Compute the total monthly housing cost (P+I + property tax + insurance + HOA)
+   * for a candidate home price, using the canonical engine PMT.
    */
-  private calculateMonthlyMortgagePayment(
-    principalCents: number,
-    annualRatePercent: number,
-    termYears: number,
-  ): number {
-    if (annualRatePercent === 0) {
-      return Math.round(principalCents / (termYears * 12))
+  private monthlyHousingCostForHomePrice(params: {
+    homePriceCents: number
+    annualRatePercent: number
+    termYears: number
+    downPaymentPercent: number
+    propertyTaxRatePercent: number
+    monthlyInsuranceCents: number
+    hoaMonthlyDuesCents: number
+  }): number {
+    const homePriceDec = new Decimal(params.homePriceCents)
+    const loanAmountDec = homePriceDec.times(
+      new Decimal(1).minus(new Decimal(params.downPaymentPercent).dividedBy(100)),
+    )
+    const loanAmountCents = loanAmountDec.toDecimalPlaces(0, Decimal.ROUND_HALF_UP).toNumber()
+
+    let principalAndInterestCents = 0
+    if (loanAmountCents > 0 && params.termYears > 0) {
+      principalAndInterestCents = calculateMonthlyPayment(
+        cents(loanAmountCents),
+        params.annualRatePercent,
+        params.termYears * 12,
+      )
     }
 
-    const monthlyRate = annualRatePercent / 100 / 12
-    const numPayments = termYears * 12
+    const monthlyPropertyTaxCents = homePriceDec
+      .times(params.propertyTaxRatePercent)
+      .dividedBy(100)
+      .dividedBy(12)
+      .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+      .toNumber()
 
-    const payment =
-      (principalCents * (monthlyRate * Math.pow(1 + monthlyRate, numPayments))) /
-      (Math.pow(1 + monthlyRate, numPayments) - 1)
-
-    return Math.round(payment)
+    return (
+      principalAndInterestCents +
+      monthlyPropertyTaxCents +
+      params.monthlyInsuranceCents +
+      params.hoaMonthlyDuesCents
+    )
   }
 
   /**
-   * Calculate maximum affordable home price based on income
+   * Calculate maximum affordable home price via binary search using the
+   * canonical engine PMT. Avoids any closed-form PMT inversion.
    */
   private calculateMaxAffordableHomePrice(
     monthlyIncomeCents: number,
@@ -81,48 +123,50 @@ export class CalculatorsService {
     hoaMonthlyDuesCents: number,
     maxHousingPercent: number,
   ): number {
-    // Maximum monthly housing payment allowed
-    const maxHousingPaymentCents = Math.round(monthlyIncomeCents * (maxHousingPercent / 100))
+    const maxHousingPaymentCents = new Decimal(monthlyIncomeCents)
+      .times(maxHousingPercent)
+      .dividedBy(100)
+      .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+      .toNumber()
 
-    // Monthly insurance and HOA
-    const monthlyInsuranceCents = Math.round(homeInsuranceAnnualCents / 12)
-    const monthlyFixedCosts = monthlyInsuranceCents + hoaMonthlyDuesCents
+    const monthlyInsuranceCents = new Decimal(homeInsuranceAnnualCents)
+      .dividedBy(12)
+      .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+      .toNumber()
 
-    // Maximum P+I+T payment
-    const maxPITCents = maxHousingPaymentCents - monthlyFixedCosts
+    // Fixed monthly costs floor: if insurance + HOA already exceed cap, no home is affordable.
+    if (monthlyInsuranceCents + hoaMonthlyDuesCents >= maxHousingPaymentCents) return 0
 
-    if (maxPITCents <= 0) return 0
+    const evaluate = (homePriceCents: number) =>
+      this.monthlyHousingCostForHomePrice({
+        homePriceCents,
+        annualRatePercent,
+        termYears,
+        downPaymentPercent,
+        propertyTaxRatePercent,
+        monthlyInsuranceCents,
+        hoaMonthlyDuesCents,
+      })
 
-    // Estimate property tax as percentage of home value per month
-    const monthlyPropertyTaxRate = propertyTaxRatePercent / 100 / 12
-
-    // We need to solve: P+I + PropertyTax = maxPITCents
-    // where PropertyTax = HomePrice * monthlyPropertyTaxRate
-    // and P+I = (HomePrice * (1 - downPayment%)) * PMT_factor
-
-    const loanPercent = 1 - downPaymentPercent / 100
-
-    if (annualRatePercent === 0) {
-      const numPayments = termYears * 12
-      // P+I = loan / numPayments = HomePrice * loanPercent / numPayments
-      // HomePrice * loanPercent / numPayments + HomePrice * monthlyPropertyTaxRate = maxPITCents
-      // HomePrice * (loanPercent / numPayments + monthlyPropertyTaxRate) = maxPITCents
-      const factor = loanPercent / numPayments + monthlyPropertyTaxRate
-      return Math.round(maxPITCents / factor)
+    // Binary search [0, 100M USD]. 100M is a generous upper bound for residential.
+    let lo = 0
+    let hi = 100_000_000_00 // $100,000,000 in cents
+    // Ensure hi is high enough: scale up if needed.
+    while (evaluate(hi) <= maxHousingPaymentCents && hi < Number.MAX_SAFE_INTEGER / 2) {
+      hi *= 2
     }
 
-    const monthlyRate = annualRatePercent / 100 / 12
-    const numPayments = termYears * 12
-    const pmtFactor =
-      (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
-      (Math.pow(1 + monthlyRate, numPayments) - 1)
-
-    // P+I = HomePrice * loanPercent * pmtFactor
-    // PropertyTax = HomePrice * monthlyPropertyTaxRate
-    // Total = HomePrice * (loanPercent * pmtFactor + monthlyPropertyTaxRate) = maxPITCents
-    const totalFactor = loanPercent * pmtFactor + monthlyPropertyTaxRate
-
-    return Math.round(maxPITCents / totalFactor)
+    for (let i = 0; i < 60; i++) {
+      const mid = Math.floor((lo + hi) / 2)
+      if (mid === lo) break
+      const cost = evaluate(mid)
+      if (cost <= maxHousingPaymentCents) {
+        lo = mid
+      } else {
+        hi = mid
+      }
+    }
+    return lo
   }
 
   /**
@@ -158,14 +202,19 @@ export class CalculatorsService {
     }, 0)
 
     // Calculate monthly housing costs for buy scenario
-    const loanAmountCents = Math.round(
-      dto.buy.homePriceCents * (1 - dto.buy.downPaymentPercent / 100),
-    )
-    const monthlyMortgagePaymentCents = this.calculateMonthlyMortgagePayment(
-      loanAmountCents,
-      dto.buy.mortgageInterestRatePercent,
-      dto.buy.mortgageTermYears,
-    )
+    const loanAmountCents = new Decimal(dto.buy.homePriceCents)
+      .times(new Decimal(1).minus(new Decimal(dto.buy.downPaymentPercent).dividedBy(100)))
+      .toDecimalPlaces(0, Decimal.ROUND_HALF_UP)
+      .toNumber()
+
+    const monthlyMortgagePaymentCents =
+      loanAmountCents > 0
+        ? calculateMonthlyPayment(
+            cents(loanAmountCents) as Cents,
+            dto.buy.mortgageInterestRatePercent,
+            dto.buy.mortgageTermYears * 12,
+          )
+        : 0
 
     // Property tax rate (use override or default)
     const propertyTaxRatePercent =

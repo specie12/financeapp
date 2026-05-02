@@ -409,7 +409,10 @@ model ScenarioOverride {
   cashFlowItemId String?            @map("cash_flow_item_id") @db.Uuid
   cashFlowItem   CashFlowItem?      @relation(fields: [cashFlowItemId], references: [id], onDelete: Cascade)
   fieldName      String             @map("field_name")
-  overrideValue  String             @map("override_value")
+  // P0.3: Stored as JSON so override values preserve their typed shape
+  // (number, string, boolean, null). Validated at the API write boundary
+  // via `scenarioOverrideSchema` keyed by (targetType, fieldName).
+  overrideValue  Json               @map("override_value")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

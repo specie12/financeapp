@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+import type { Prisma } from '@prisma/client'
 import { PrismaService } from '../prisma/prisma.service'
 import { PlanLimitsService } from '../plan-limits/plan-limits.service'
 import {
@@ -14,6 +15,11 @@ import {
 } from '@finance-app/finance-engine'
 import { CreateScenarioDto, ScenarioOverrideDto, OverrideTargetType } from './dto'
 import { UpdateScenarioDto } from './dto'
+
+// Field names that store ISO datetime strings on the JSON column. Scenario
+// override values keep their typed shape end-to-end; we only translate ISO
+// strings → Date objects right before handing off to the projection engine.
+const DATE_OVERRIDE_FIELDS = new Set<string>(['startDate', 'endDate'])
 import type {
   ScenarioResponse,
   ScenarioOverrideResponse,
@@ -236,17 +242,20 @@ export class ScenariosService {
   }
 
   private mapOverrideToCreate(dto: ScenarioOverrideDto) {
+    // dto.value is the typed JSON value already validated by
+    // `scenarioOverrideSchema` at the controller boundary. We hand it to
+    // Prisma without coercion. The DB column is `Json`.
     const data: {
       targetType: 'asset' | 'liability' | 'cash_flow_item'
       fieldName: string
-      overrideValue: string
+      overrideValue: Prisma.InputJsonValue
       assetId?: string
       liabilityId?: string
       cashFlowItemId?: string
     } = {
       targetType: dto.targetType,
       fieldName: dto.fieldName,
-      overrideValue: dto.value,
+      overrideValue: dto.value as Prisma.InputJsonValue,
     }
 
     switch (dto.targetType) {
@@ -276,7 +285,7 @@ export class ScenariosService {
       id: string
       targetType: string
       fieldName: string
-      overrideValue: string
+      overrideValue: Prisma.JsonValue
       assetId: string | null
       liabilityId: string | null
       cashFlowItemId: string | null
@@ -296,14 +305,21 @@ export class ScenariosService {
           targetType: o.targetType as 'asset' | 'liability' | 'cash_flow_item',
           entityId: o.assetId ?? o.liabilityId ?? o.cashFlowItemId ?? '',
           fieldName: o.fieldName,
-          value: o.overrideValue,
+          value: o.overrideValue as ScenarioOverrideResponse['value'],
         }),
       ),
     }
   }
 
+  /**
+   * Build the engine-shaped scenario from a stored scenario.
+   *
+   * Each override value is the typed JSON we wrote at create time
+   * (validated by `scenarioOverrideSchema`). The only transformation we
+   * apply here is ISO-string → `Date` for fields the projection engine
+   * compares as Dates (`startDate` / `endDate` on cash flow items).
+   */
   private convertToEngineScenario(scenario: ScenarioResponse): EngineScenario {
-    // Group overrides by entity
     const entityOverridesMap = new Map<string, EntityOverride>()
 
     for (const override of scenario.overrides) {
@@ -321,7 +337,7 @@ export class ScenariosService {
 
       const fieldOverride: FieldOverride = {
         fieldName: override.fieldName,
-        value: this.parseOverrideValue(override.fieldName, override.value),
+        value: this.toEngineValue(override.fieldName, override.value),
       }
       entityOverride.overrides.push(fieldOverride)
     }
@@ -335,31 +351,22 @@ export class ScenariosService {
     }
   }
 
-  private parseOverrideValue(fieldName: string, value: string): unknown {
-    // Parse numeric fields
-    const numericFields = [
-      'currentValueCents',
-      'annualGrowthRatePercent',
-      'currentBalanceCents',
-      'interestRatePercent',
-      'minimumPaymentCents',
-      'termMonths',
-      'amountCents',
-    ]
-
-    if (numericFields.includes(fieldName)) {
-      const parsed = Number(value)
-      return isNaN(parsed) ? value : parsed
+  /**
+   * Translate a stored override value into the shape the engine expects.
+   * Only date fields need a conversion (ISO string → Date); everything else
+   * is already typed correctly because Zod accepted it as-is on write.
+   */
+  private toEngineValue(fieldName: string, value: unknown): unknown {
+    if (DATE_OVERRIDE_FIELDS.has(fieldName)) {
+      if (value === null) return null
+      if (typeof value === 'string') {
+        const d = new Date(value)
+        return isNaN(d.getTime()) ? null : d
+      }
+      // Defensive: anything else is malformed legacy data — surface as null
+      // rather than crashing the projection.
+      return null
     }
-
-    // Parse date fields
-    const dateFields = ['startDate', 'endDate']
-    if (dateFields.includes(fieldName)) {
-      const date = new Date(value)
-      return isNaN(date.getTime()) ? null : date
-    }
-
-    // Return as string for other fields (name, type, frequency)
     return value
   }
 }
