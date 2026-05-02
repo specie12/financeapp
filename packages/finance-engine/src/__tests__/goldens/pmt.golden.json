@@ -1,0 +1,54 @@
+{
+  "$schema": "fixture",
+  "description": "PMT (monthly amortizing payment) reference outputs. Each `expected.monthlyPaymentCents` is the canonical Decimal-based result of P * r(1+r)^n / ((1+r)^n - 1) with monthly compounding; values for the standard 30-yr / 15-yr fixed cases match published references (e.g. bankrate.com mortgage calculator).",
+  "cases": [
+    {
+      "label": "30-yr fixed $300k @ 6.5%",
+      "source": "Bankrate mortgage calculator: $1,896.20/mo",
+      "input": { "principalCents": 30000000, "annualRatePercent": 6.5, "termMonths": 360 },
+      "expected": { "monthlyPaymentCents": 189620 }
+    },
+    {
+      "label": "15-yr fixed $150k @ 5.0%",
+      "source": "Bankrate mortgage calculator: $1,186.19/mo",
+      "input": { "principalCents": 15000000, "annualRatePercent": 5.0, "termMonths": 180 },
+      "expected": { "monthlyPaymentCents": 118619 }
+    },
+    {
+      "label": "5-yr auto loan $25k @ 7%",
+      "source": "Standard auto loan PMT formula",
+      "input": { "principalCents": 2500000, "annualRatePercent": 7, "termMonths": 60 },
+      "expected": { "monthlyPaymentCents": 49503 }
+    },
+    {
+      "label": "30-yr fixed $400k @ 3% (low-rate scenario)",
+      "source": "Hand-verified PMT formula",
+      "input": { "principalCents": 40000000, "annualRatePercent": 3.0, "termMonths": 360 },
+      "expected": { "monthlyPaymentCents": 168642 }
+    },
+    {
+      "label": "Subprime: 30-yr $200k @ 12%",
+      "source": "Hand-verified PMT formula (high-rate stress test)",
+      "input": { "principalCents": 20000000, "annualRatePercent": 12, "termMonths": 360 },
+      "expected": { "monthlyPaymentCents": 205723 }
+    },
+    {
+      "label": "Zero-rate 36-month $10k loan",
+      "source": "Trivial: principal / term = $10000/36 = $277.78",
+      "input": { "principalCents": 1000000, "annualRatePercent": 0, "termMonths": 36 },
+      "expected": { "monthlyPaymentCents": 27778 }
+    },
+    {
+      "label": "One-month payoff: $1k @ 5%",
+      "source": "Edge: single payment = principal + 1 month interest at 5%/12",
+      "input": { "principalCents": 100000, "annualRatePercent": 5, "termMonths": 1 },
+      "expected": { "monthlyPaymentCents": 100417 }
+    },
+    {
+      "label": "Tiny principal: $1.00 @ 5% over 12 months",
+      "source": "Edge: micropayment rounding ($0.0856/mo → 9 cents)",
+      "input": { "principalCents": 100, "annualRatePercent": 5, "termMonths": 12 },
+      "expected": { "monthlyPaymentCents": 9 }
+    }
+  ]
+}

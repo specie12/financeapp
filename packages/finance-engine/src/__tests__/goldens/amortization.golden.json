@@ -1,0 +1,38 @@
+{
+  "$schema": "fixture",
+  "description": "Full amortization schedule totals. Locks `monthlyPaymentCents` against PMT goldens, and locks `totalPaymentsCents` / `totalInterestCents` end-to-end. The invariant `totalInterestCents = totalPaymentsCents - principalCents` is asserted by the spec for every case (this is hand-verifiable arithmetic).",
+  "cases": [
+    {
+      "label": "30-yr $300k @ 6.5%",
+      "source": "Canonical Decimal-based amortization. Total interest matches Bankrate amortization table within rounding (~$382,634).",
+      "input": {
+        "principalCents": 30000000,
+        "annualInterestRatePercent": 6.5,
+        "termMonths": 360,
+        "startDate": "2026-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "monthlyPaymentCents": 189620,
+        "totalPaymentsCents": 68263671,
+        "totalInterestCents": 38263671,
+        "actualPayoffMonth": 360
+      }
+    },
+    {
+      "label": "15-yr $150k @ 5.0%",
+      "source": "Canonical Decimal-based amortization. Total interest matches Bankrate amortization table (~$63,514).",
+      "input": {
+        "principalCents": 15000000,
+        "annualInterestRatePercent": 5.0,
+        "termMonths": 180,
+        "startDate": "2026-01-01T00:00:00.000Z"
+      },
+      "expected": {
+        "monthlyPaymentCents": 118619,
+        "totalPaymentsCents": 21351428,
+        "totalInterestCents": 6351428,
+        "actualPayoffMonth": 180
+      }
+    }
+  ]
+}

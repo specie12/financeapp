@@ -1,0 +1,94 @@
+{
+  "$schema": "fixture",
+  "description": "Rent vs Buy summary outputs. The full per-year arrays are not snapshotted (long & dependent on default assumptions); we lock the headline `summary` fields and the year-1 / year-N cost numbers. These values come from the canonical Decimal engine with default assumptions (3% appreciation, 7% investment return, 2% inflation, 1% maintenance, 0.012 property tax, 3% rent growth, 24% marginal tax, 6% selling costs). If a default changes, these fixtures must be updated consciously.",
+  "cases": [
+    {
+      "label": "Buy-favored: $800k home, 20% down, 30-yr at 6.5%, 10-yr horizon, $4000/mo rent",
+      "input": {
+        "startDate": "2026-01-01T00:00:00.000Z",
+        "projectionYears": 10,
+        "buy": {
+          "homePriceCents": 80000000,
+          "downPaymentPercent": 20,
+          "mortgageInterestRatePercent": 6.5,
+          "mortgageTermYears": 30,
+          "closingCostPercent": 3,
+          "homeownersInsuranceAnnualCents": 200000,
+          "hoaMonthlyDuesCents": 0
+        },
+        "rent": {
+          "monthlyRentCents": 400000,
+          "securityDepositMonths": 1,
+          "rentersInsuranceAnnualCents": 30000
+        }
+      },
+      "expected": {
+        "summary": {
+          "initialBuyCostsCents": 18400000,
+          "initialRentCostsCents": 400000,
+          "totalBuyCostsCents": 86264100,
+          "totalRentCostsCents": 62251945,
+          "finalHomeEquityCents": 54624551,
+          "finalInvestmentBalanceCents": 36195585,
+          "finalBuyNetWorthCents": 48173752,
+          "finalRentNetWorthCents": 36195585,
+          "netWorthAdvantageCents": 11978167,
+          "breakEvenYear": 1,
+          "recommendation": "buy",
+          "yearsBuyingIsBetter": 10,
+          "yearsRentingIsBetter": 1,
+          "totalMortgageInterestPaidCents": 42285927,
+          "totalPropertyTaxesPaidCents": 12295483,
+          "totalMaintenancePaidCents": 10246237,
+          "totalTaxSavingsCents": 10571483,
+          "totalRentPaidCents": 61477440,
+          "totalInvestmentGainsCents": 17795585
+        }
+      }
+    },
+    {
+      "label": "Low COL, short horizon: $300k home, 5% down, 30-yr at 7.5%, 5-yr horizon, $1500/mo rent",
+      "input": {
+        "startDate": "2026-01-01T00:00:00.000Z",
+        "projectionYears": 5,
+        "buy": {
+          "homePriceCents": 30000000,
+          "downPaymentPercent": 5,
+          "mortgageInterestRatePercent": 7.5,
+          "mortgageTermYears": 30,
+          "closingCostPercent": 4,
+          "homeownersInsuranceAnnualCents": 150000,
+          "hoaMonthlyDuesCents": 30000
+        },
+        "rent": {
+          "monthlyRentCents": 150000,
+          "securityDepositMonths": 1,
+          "rentersInsuranceAnnualCents": 25000
+        }
+      },
+      "expected": {
+        "summary": {
+          "initialBuyCostsCents": 2700000,
+          "initialRentCostsCents": 150000,
+          "totalBuyCostsCents": 21466759,
+          "totalRentCostsCents": 11952825,
+          "finalHomeEquityCents": 8194052,
+          "finalInvestmentBalanceCents": 3786890,
+          "finalBuyNetWorthCents": 6107359,
+          "finalRentNetWorthCents": 3786890,
+          "netWorthAdvantageCents": 2320469,
+          "breakEvenYear": 1,
+          "recommendation": "buy",
+          "yearsBuyingIsBetter": 5,
+          "yearsRentingIsBetter": 1,
+          "totalMortgageInterestPaidCents": 12432042,
+          "totalPropertyTaxesPaidCents": 2328628,
+          "totalMaintenancePaidCents": 1940523,
+          "totalTaxSavingsCents": 3108011,
+          "totalRentPaidCents": 11643132,
+          "totalInvestmentGainsCents": 1086890
+        }
+      }
+    }
+  ]
+}

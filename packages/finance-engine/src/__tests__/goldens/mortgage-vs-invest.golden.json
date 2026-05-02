@@ -1,0 +1,108 @@
+{
+  "$schema": "fixture",
+  "description": "Mortgage-vs-Invest decision-engine reference outputs. Three cases: a headline 30-yr mortgage with extra payments and 7% expected return; a degenerate (zero-extra) baseline that must agree with canonical amortization; and a high-rate / low-return case that exercises the binary search at its boundary.",
+  "cases": [
+    {
+      "label": "Headline: 30-yr $300k @ 6.5%, $200/mo extra, 7% return, 30-yr horizon",
+      "source": "Canonical Decimal-based simulator. Hand-verifiable invariants: invest path total contributed = $200 * 360 = $72,000 = 7,200,000 cents. Pay-extra interest savings positive. Recommendation 'invest' since $7%/30y compounding > $200/mo extra principal payment value.",
+      "input": {
+        "currentBalanceCents": 30000000,
+        "mortgageRatePercent": 6.5,
+        "remainingTermMonths": 360,
+        "extraMonthlyPaymentCents": 20000,
+        "expectedReturnPercent": 7,
+        "capitalGainsTaxPercent": 15,
+        "horizonYears": 30,
+        "mortgageInterestDeductible": false,
+        "marginalTaxRatePercent": 24
+      },
+      "expected": {
+        "payExtraSummary": {
+          "totalInterestWithoutExtraCents": 38263671,
+          "totalInterestWithExtraCents": 27918652,
+          "interestSavedCents": 10345019,
+          "originalPayoffMonths": 360,
+          "newPayoffMonths": 277,
+          "monthsSaved": 83
+        },
+        "investSummary": {
+          "totalContributedCents": 7200000,
+          "finalPortfolioValueCents": 24399406,
+          "totalGainCents": 17199406,
+          "afterTaxGainCents": 14619495,
+          "afterTaxPortfolioValueCents": 21819495
+        },
+        "recommendation": "invest",
+        "breakEvenReturnPercent": 2.61
+      }
+    },
+    {
+      "label": "Degenerate baseline: 15-yr $150k @ 5.0%, $0 extra",
+      "source": "Engine output MUST equal canonical amortization in the no-extra case.",
+      "input": {
+        "currentBalanceCents": 15000000,
+        "mortgageRatePercent": 5.0,
+        "remainingTermMonths": 180,
+        "extraMonthlyPaymentCents": 0,
+        "expectedReturnPercent": 7,
+        "capitalGainsTaxPercent": 15,
+        "horizonYears": 15,
+        "mortgageInterestDeductible": false,
+        "marginalTaxRatePercent": 0
+      },
+      "expected": {
+        "payExtraSummary": {
+          "totalInterestWithoutExtraCents": 6351428,
+          "totalInterestWithExtraCents": 6351428,
+          "interestSavedCents": 0,
+          "originalPayoffMonths": 180,
+          "newPayoffMonths": 180,
+          "monthsSaved": 0
+        },
+        "investSummary": {
+          "totalContributedCents": 0,
+          "finalPortfolioValueCents": 0,
+          "totalGainCents": 0,
+          "afterTaxGainCents": 0,
+          "afterTaxPortfolioValueCents": 0
+        },
+        "recommendation": "neutral",
+        "breakEvenReturnPercent": 15
+      }
+    },
+    {
+      "label": "Pay-extra-friendly setup: 20-yr $200k @ 9%, $500/mo extra, 3% return",
+      "source": "Even with high mortgage rate vs low expected return, the 20-yr horizon and capped pay-extra benefit (loan paid off mid-horizon) means the invest path can still net out positive. Locks the engine's exact behavior at this boundary.",
+      "input": {
+        "currentBalanceCents": 20000000,
+        "mortgageRatePercent": 9,
+        "remainingTermMonths": 240,
+        "extraMonthlyPaymentCents": 50000,
+        "expectedReturnPercent": 3,
+        "capitalGainsTaxPercent": 15,
+        "horizonYears": 20,
+        "mortgageInterestDeductible": false,
+        "marginalTaxRatePercent": 0
+      },
+      "expected": {
+        "payExtraSummary": {
+          "totalInterestWithoutExtraCents": 23186927,
+          "totalInterestWithExtraCents": 12513140,
+          "interestSavedCents": 10673787,
+          "originalPayoffMonths": 240,
+          "newPayoffMonths": 142,
+          "monthsSaved": 98
+        },
+        "investSummary": {
+          "totalContributedCents": 12000000,
+          "finalPortfolioValueCents": 16415100,
+          "totalGainCents": 4415100,
+          "afterTaxGainCents": 3752835,
+          "afterTaxPortfolioValueCents": 15752835
+        },
+        "recommendation": "invest",
+        "breakEvenReturnPercent": 0
+      }
+    }
+  ]
+}

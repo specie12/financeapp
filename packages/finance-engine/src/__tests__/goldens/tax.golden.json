@@ -1,0 +1,90 @@
+{
+  "$schema": "fixture",
+  "description": "US federal tax bracket reference outputs for tax year 2025. Cross-referenced against the engine's bracket table in `tax-brackets.ts`. The bracket data itself reflects published 2025 IRS Rev. Proc. 2024-40 figures and must be updated when IRS issues annual inflation adjustments. The invariant `taxableIncome = grossIncome - standardDeduction (when itemized < standard)` is asserted per case.",
+  "cases": [
+    {
+      "label": "Single, $50k gross, 2025",
+      "source": "IRS 2025 brackets (10%, 12%); standard deduction $15,500.",
+      "input": { "taxYear": 2025, "filingStatus": "single", "grossIncomeCents": 5000000 },
+      "expected": {
+        "standardDeductionCents": 1550000,
+        "taxableIncomeCents": 3450000,
+        "estimatedTaxLiabilityCents": 390750,
+        "effectiveTaxRatePercent": 7.82,
+        "marginalTaxRatePercent": 12
+      }
+    },
+    {
+      "label": "Single, $150k gross, 2025",
+      "source": "IRS 2025 brackets (10/12/22/24%); standard deduction $15,500.",
+      "input": { "taxYear": 2025, "filingStatus": "single", "grossIncomeCents": 15000000 },
+      "expected": {
+        "standardDeductionCents": 1550000,
+        "taxableIncomeCents": 13450000,
+        "estimatedTaxLiabilityCents": 2530800,
+        "effectiveTaxRatePercent": 16.87,
+        "marginalTaxRatePercent": 24
+      }
+    },
+    {
+      "label": "Single, $500k gross, 2025",
+      "source": "IRS 2025 brackets (all up through 35%); marginal hits 35% bracket.",
+      "input": { "taxYear": 2025, "filingStatus": "single", "grossIncomeCents": 50000000 },
+      "expected": {
+        "standardDeductionCents": 1550000,
+        "taxableIncomeCents": 48450000,
+        "estimatedTaxLiabilityCents": 13999800,
+        "effectiveTaxRatePercent": 28,
+        "marginalTaxRatePercent": 35
+      }
+    },
+    {
+      "label": "MFJ, $50k gross, 2025",
+      "source": "IRS 2025 MFJ brackets; std deduction $31,000 → fully covers $50k income beyond first bracket.",
+      "input": {
+        "taxYear": 2025,
+        "filingStatus": "married_filing_jointly",
+        "grossIncomeCents": 5000000
+      },
+      "expected": {
+        "standardDeductionCents": 3100000,
+        "taxableIncomeCents": 1900000,
+        "estimatedTaxLiabilityCents": 190000,
+        "effectiveTaxRatePercent": 3.8,
+        "marginalTaxRatePercent": 10
+      }
+    },
+    {
+      "label": "MFJ, $150k gross, 2025",
+      "source": "IRS 2025 MFJ brackets; marginal in 22% bracket.",
+      "input": {
+        "taxYear": 2025,
+        "filingStatus": "married_filing_jointly",
+        "grossIncomeCents": 15000000
+      },
+      "expected": {
+        "standardDeductionCents": 3100000,
+        "taxableIncomeCents": 11900000,
+        "estimatedTaxLiabilityCents": 1626000,
+        "effectiveTaxRatePercent": 10.84,
+        "marginalTaxRatePercent": 22
+      }
+    },
+    {
+      "label": "Head of household, $50k gross, 2025",
+      "source": "IRS 2025 HoH brackets; std deduction $23,000.",
+      "input": {
+        "taxYear": 2025,
+        "filingStatus": "head_of_household",
+        "grossIncomeCents": 5000000
+      },
+      "expected": {
+        "standardDeductionCents": 2300000,
+        "taxableIncomeCents": 2700000,
+        "estimatedTaxLiabilityCents": 291000,
+        "effectiveTaxRatePercent": 5.82,
+        "marginalTaxRatePercent": 12
+      }
+    }
+  ]
+}

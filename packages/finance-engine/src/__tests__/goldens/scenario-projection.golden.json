@@ -1,0 +1,746 @@
+{
+  "$schema": "fixture",
+  "description": "Scenario projection regression fixtures. Each case captures the canonical engine output for a representative scenario (empty, single-field, cross-entity, null-value). The spec asserts byte-exact equality of the JSON-serialized form across every run, asserts determinism over 10 repeated calls, and asserts that the engine never mutates its input objects (baseline immutability).",
+  "cases": [
+    {
+      "label": "Empty scenario — projection equals base",
+      "input": {
+        "horizonYears": 5,
+        "scenarioId": "s1"
+      },
+      "expected": {
+        "startDate": "2026-01-01T00:00:00.000Z",
+        "horizonYears": 5,
+        "yearlySnapshots": [
+          {
+            "year": 0,
+            "date": "2026-01-01T00:00:00.000Z",
+            "totalAssetsCents": 11500000,
+            "totalLiabilitiesCents": 24720569,
+            "netWorthCents": -13220569,
+            "totalIncomeCents": 9600000,
+            "totalExpensesCents": 4800000,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 2903796,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 10000000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1500000
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24720569
+              }
+            ]
+          },
+          {
+            "year": 1,
+            "date": "2027-01-01T00:00:00.000Z",
+            "totalAssetsCents": 12207500,
+            "totalLiabilitiesCents": 24422424,
+            "netWorthCents": -12214924,
+            "totalIncomeCents": 9888000,
+            "totalExpensesCents": 4896000,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3095796,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 10700000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1507500
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24422424
+              }
+            ]
+          },
+          {
+            "year": 2,
+            "date": "2028-01-01T00:00:00.000Z",
+            "totalAssetsCents": 12964038,
+            "totalLiabilitiesCents": 24104313,
+            "netWorthCents": -11140275,
+            "totalIncomeCents": 10184640,
+            "totalExpensesCents": 4993920,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3294516,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 11449000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1515038
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24104313
+              }
+            ]
+          },
+          {
+            "year": 3,
+            "date": "2029-01-01T00:00:00.000Z",
+            "totalAssetsCents": 13773043,
+            "totalLiabilitiesCents": 23764895,
+            "netWorthCents": -9991852,
+            "totalIncomeCents": 10490179,
+            "totalExpensesCents": 5093798,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3500177,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 12250430
+              },
+              {
+                "id": "a2",
+                "valueCents": 1522613
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23764895
+              }
+            ]
+          },
+          {
+            "year": 4,
+            "date": "2030-01-01T00:00:00.000Z",
+            "totalAssetsCents": 14638186,
+            "totalLiabilitiesCents": 23402748,
+            "netWorthCents": -8764562,
+            "totalIncomeCents": 10804885,
+            "totalExpensesCents": 5195674,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3713007,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 13107960
+              },
+              {
+                "id": "a2",
+                "valueCents": 1530226
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23402748
+              }
+            ]
+          },
+          {
+            "year": 5,
+            "date": "2031-01-01T00:00:00.000Z",
+            "totalAssetsCents": 15563394,
+            "totalLiabilitiesCents": 23016345,
+            "netWorthCents": -7452951,
+            "totalIncomeCents": 11129031,
+            "totalExpensesCents": 5299588,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3933239,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 14025517
+              },
+              {
+                "id": "a2",
+                "valueCents": 1537877
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23016345
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "startingNetWorthCents": -13220569,
+          "endingNetWorthCents": -7452951,
+          "netWorthChangeCents": 5767618,
+          "netWorthChangePercent": 43.63,
+          "totalIncomeOverPeriodCents": 62096735,
+          "totalExpensesOverPeriodCents": 30278980,
+          "totalDebtPaidCents": 11377224,
+          "totalInterestPaidCents": 9393569
+        }
+      }
+    },
+    {
+      "label": "Single asset override — currentValueCents bumped 50%",
+      "input": {
+        "horizonYears": 5,
+        "scenarioId": "s2"
+      },
+      "expected": {
+        "startDate": "2026-01-01T00:00:00.000Z",
+        "horizonYears": 5,
+        "yearlySnapshots": [
+          {
+            "year": 0,
+            "date": "2026-01-01T00:00:00.000Z",
+            "totalAssetsCents": 16500000,
+            "totalLiabilitiesCents": 24720569,
+            "netWorthCents": -8220569,
+            "totalIncomeCents": 9600000,
+            "totalExpensesCents": 4800000,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 2903796,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 15000000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1500000
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24720569
+              }
+            ]
+          },
+          {
+            "year": 1,
+            "date": "2027-01-01T00:00:00.000Z",
+            "totalAssetsCents": 17557500,
+            "totalLiabilitiesCents": 24422424,
+            "netWorthCents": -6864924,
+            "totalIncomeCents": 9888000,
+            "totalExpensesCents": 4896000,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3095796,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 16050000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1507500
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24422424
+              }
+            ]
+          },
+          {
+            "year": 2,
+            "date": "2028-01-01T00:00:00.000Z",
+            "totalAssetsCents": 18688538,
+            "totalLiabilitiesCents": 24104313,
+            "netWorthCents": -5415775,
+            "totalIncomeCents": 10184640,
+            "totalExpensesCents": 4993920,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3294516,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 17173500
+              },
+              {
+                "id": "a2",
+                "valueCents": 1515038
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24104313
+              }
+            ]
+          },
+          {
+            "year": 3,
+            "date": "2029-01-01T00:00:00.000Z",
+            "totalAssetsCents": 19898258,
+            "totalLiabilitiesCents": 23764895,
+            "netWorthCents": -3866637,
+            "totalIncomeCents": 10490179,
+            "totalExpensesCents": 5093798,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3500177,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 18375645
+              },
+              {
+                "id": "a2",
+                "valueCents": 1522613
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23764895
+              }
+            ]
+          },
+          {
+            "year": 4,
+            "date": "2030-01-01T00:00:00.000Z",
+            "totalAssetsCents": 21192166,
+            "totalLiabilitiesCents": 23402748,
+            "netWorthCents": -2210582,
+            "totalIncomeCents": 10804885,
+            "totalExpensesCents": 5195674,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3713007,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 19661940
+              },
+              {
+                "id": "a2",
+                "valueCents": 1530226
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23402748
+              }
+            ]
+          },
+          {
+            "year": 5,
+            "date": "2031-01-01T00:00:00.000Z",
+            "totalAssetsCents": 22576153,
+            "totalLiabilitiesCents": 23016345,
+            "netWorthCents": -440192,
+            "totalIncomeCents": 11129031,
+            "totalExpensesCents": 5299588,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3933239,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 21038276
+              },
+              {
+                "id": "a2",
+                "valueCents": 1537877
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23016345
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "startingNetWorthCents": -8220569,
+          "endingNetWorthCents": -440192,
+          "netWorthChangeCents": 7780377,
+          "netWorthChangePercent": 94.65,
+          "totalIncomeOverPeriodCents": 62096735,
+          "totalExpensesOverPeriodCents": 30278980,
+          "totalDebtPaidCents": 11377224,
+          "totalInterestPaidCents": 9393569
+        }
+      }
+    },
+    {
+      "label": "Cross-entity override — asset value + liability balance + cash flow amount",
+      "input": {
+        "horizonYears": 5,
+        "scenarioId": "s3"
+      },
+      "expected": {
+        "startDate": "2026-01-01T00:00:00.000Z",
+        "horizonYears": 5,
+        "yearlySnapshots": [
+          {
+            "year": 0,
+            "date": "2026-01-01T00:00:00.000Z",
+            "totalAssetsCents": 16500000,
+            "totalLiabilitiesCents": 19776450,
+            "netWorthCents": -3276450,
+            "totalIncomeCents": 12000000,
+            "totalExpensesCents": 4800000,
+            "debtPaymentsCents": 1516968,
+            "netCashFlowCents": 5683032,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 15000000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1500000
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 19776450
+              }
+            ]
+          },
+          {
+            "year": 1,
+            "date": "2027-01-01T00:00:00.000Z",
+            "totalAssetsCents": 17557500,
+            "totalLiabilitiesCents": 19537927,
+            "netWorthCents": -1980427,
+            "totalIncomeCents": 12360000,
+            "totalExpensesCents": 4896000,
+            "debtPaymentsCents": 1516968,
+            "netCashFlowCents": 5947032,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 16050000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1507500
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 19537927
+              }
+            ]
+          },
+          {
+            "year": 2,
+            "date": "2028-01-01T00:00:00.000Z",
+            "totalAssetsCents": 18688538,
+            "totalLiabilitiesCents": 19283430,
+            "netWorthCents": -594892,
+            "totalIncomeCents": 12730800,
+            "totalExpensesCents": 4993920,
+            "debtPaymentsCents": 1516968,
+            "netCashFlowCents": 6219912,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 17173500
+              },
+              {
+                "id": "a2",
+                "valueCents": 1515038
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 19283430
+              }
+            ]
+          },
+          {
+            "year": 3,
+            "date": "2029-01-01T00:00:00.000Z",
+            "totalAssetsCents": 19898258,
+            "totalLiabilitiesCents": 19011890,
+            "netWorthCents": 886368,
+            "totalIncomeCents": 13112724,
+            "totalExpensesCents": 5093798,
+            "debtPaymentsCents": 1516968,
+            "netCashFlowCents": 6501958,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 18375645
+              },
+              {
+                "id": "a2",
+                "valueCents": 1522613
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 19011890
+              }
+            ]
+          },
+          {
+            "year": 4,
+            "date": "2030-01-01T00:00:00.000Z",
+            "totalAssetsCents": 21192166,
+            "totalLiabilitiesCents": 18722164,
+            "netWorthCents": 2470002,
+            "totalIncomeCents": 13506106,
+            "totalExpensesCents": 5195674,
+            "debtPaymentsCents": 1516968,
+            "netCashFlowCents": 6793464,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 19661940
+              },
+              {
+                "id": "a2",
+                "valueCents": 1530226
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 18722164
+              }
+            ]
+          },
+          {
+            "year": 5,
+            "date": "2031-01-01T00:00:00.000Z",
+            "totalAssetsCents": 22576153,
+            "totalLiabilitiesCents": 18413035,
+            "netWorthCents": 4163118,
+            "totalIncomeCents": 13911289,
+            "totalExpensesCents": 5299588,
+            "debtPaymentsCents": 1516968,
+            "netCashFlowCents": 7094733,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 21038276
+              },
+              {
+                "id": "a2",
+                "valueCents": 1537877
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 18413035
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "startingNetWorthCents": -3276450,
+          "endingNetWorthCents": 4163118,
+          "netWorthChangeCents": 7439568,
+          "netWorthChangePercent": 227.06,
+          "totalIncomeOverPeriodCents": 77620919,
+          "totalExpensesOverPeriodCents": 30278980,
+          "totalDebtPaidCents": 9101808,
+          "totalInterestPaidCents": 7514843
+        }
+      }
+    },
+    {
+      "label": "Null override — termMonths cleared",
+      "input": {
+        "horizonYears": 5,
+        "scenarioId": "s4"
+      },
+      "expected": {
+        "startDate": "2026-01-01T00:00:00.000Z",
+        "horizonYears": 5,
+        "yearlySnapshots": [
+          {
+            "year": 0,
+            "date": "2026-01-01T00:00:00.000Z",
+            "totalAssetsCents": 11500000,
+            "totalLiabilitiesCents": 24720569,
+            "netWorthCents": -13220569,
+            "totalIncomeCents": 9600000,
+            "totalExpensesCents": 4800000,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 2903796,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 10000000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1500000
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24720569
+              }
+            ]
+          },
+          {
+            "year": 1,
+            "date": "2027-01-01T00:00:00.000Z",
+            "totalAssetsCents": 12207500,
+            "totalLiabilitiesCents": 24422424,
+            "netWorthCents": -12214924,
+            "totalIncomeCents": 9888000,
+            "totalExpensesCents": 4896000,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3095796,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 10700000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1507500
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24422424
+              }
+            ]
+          },
+          {
+            "year": 2,
+            "date": "2028-01-01T00:00:00.000Z",
+            "totalAssetsCents": 12964038,
+            "totalLiabilitiesCents": 24104313,
+            "netWorthCents": -11140275,
+            "totalIncomeCents": 10184640,
+            "totalExpensesCents": 4993920,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3294516,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 11449000
+              },
+              {
+                "id": "a2",
+                "valueCents": 1515038
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 24104313
+              }
+            ]
+          },
+          {
+            "year": 3,
+            "date": "2029-01-01T00:00:00.000Z",
+            "totalAssetsCents": 13773043,
+            "totalLiabilitiesCents": 23764895,
+            "netWorthCents": -9991852,
+            "totalIncomeCents": 10490179,
+            "totalExpensesCents": 5093798,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3500177,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 12250430
+              },
+              {
+                "id": "a2",
+                "valueCents": 1522613
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23764895
+              }
+            ]
+          },
+          {
+            "year": 4,
+            "date": "2030-01-01T00:00:00.000Z",
+            "totalAssetsCents": 14638186,
+            "totalLiabilitiesCents": 23402748,
+            "netWorthCents": -8764562,
+            "totalIncomeCents": 10804885,
+            "totalExpensesCents": 5195674,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3713007,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 13107960
+              },
+              {
+                "id": "a2",
+                "valueCents": 1530226
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23402748
+              }
+            ]
+          },
+          {
+            "year": 5,
+            "date": "2031-01-01T00:00:00.000Z",
+            "totalAssetsCents": 15563394,
+            "totalLiabilitiesCents": 23016345,
+            "netWorthCents": -7452951,
+            "totalIncomeCents": 11129031,
+            "totalExpensesCents": 5299588,
+            "debtPaymentsCents": 1896204,
+            "netCashFlowCents": 3933239,
+            "assetValues": [
+              {
+                "id": "a1",
+                "valueCents": 14025517
+              },
+              {
+                "id": "a2",
+                "valueCents": 1537877
+              }
+            ],
+            "liabilityBalances": [
+              {
+                "id": "l1",
+                "balanceCents": 23016345
+              }
+            ]
+          }
+        ],
+        "summary": {
+          "startingNetWorthCents": -13220569,
+          "endingNetWorthCents": -7452951,
+          "netWorthChangeCents": 5767618,
+          "netWorthChangePercent": 43.63,
+          "totalIncomeOverPeriodCents": 62096735,
+          "totalExpensesOverPeriodCents": 30278980,
+          "totalDebtPaidCents": 11377224,
+          "totalInterestPaidCents": 9393569
+        }
+      }
+    }
+  ]
+}
