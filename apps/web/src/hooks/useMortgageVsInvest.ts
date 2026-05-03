@@ -4,6 +4,9 @@ import type { MortgageVsInvestRequest, MortgageVsInvestResult } from '@finance-a
 
 interface UseMortgageVsInvestReturn {
   result: MortgageVsInvestResult | null
+  /** The request that produced `result` — needed by the disclosure layer
+   *  to label which assumptions the user supplied. */
+  lastRequest: MortgageVsInvestRequest | null
   isLoading: boolean
   error: string | null
   calculate: (request: MortgageVsInvestRequest) => Promise<void>
@@ -12,6 +15,7 @@ interface UseMortgageVsInvestReturn {
 
 export function useMortgageVsInvest(accessToken: string | null): UseMortgageVsInvestReturn {
   const [result, setResult] = useState<MortgageVsInvestResult | null>(null)
+  const [lastRequest, setLastRequest] = useState<MortgageVsInvestRequest | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,6 +39,7 @@ export function useMortgageVsInvest(accessToken: string | null): UseMortgageVsIn
 
         if (response.success && response.data) {
           setResult(response.data)
+          setLastRequest(request)
         } else {
           setError('Failed to calculate mortgage vs invest comparison')
         }
@@ -50,8 +55,9 @@ export function useMortgageVsInvest(accessToken: string | null): UseMortgageVsIn
 
   const reset = useCallback(() => {
     setResult(null)
+    setLastRequest(null)
     setError(null)
   }, [])
 
-  return { result, isLoading, error, calculate, reset }
+  return { result, lastRequest, isLoading, error, calculate, reset }
 }

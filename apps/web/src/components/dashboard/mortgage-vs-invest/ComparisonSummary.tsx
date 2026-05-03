@@ -1,23 +1,26 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { MortgageVsInvestResult } from '@finance-app/shared-types'
+import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
+import { buildMortgageVsInvestDisclosure } from './disclosure'
+import type { MortgageVsInvestRequest, MortgageVsInvestResult } from '@finance-app/shared-types'
 
 interface ComparisonSummaryProps {
   result: MortgageVsInvestResult
+  request: MortgageVsInvestRequest
 }
 
 function formatDollars(cents: number): string {
   return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
-export function ComparisonSummary({ result }: ComparisonSummaryProps) {
+export function ComparisonSummary({ result, request }: ComparisonSummaryProps) {
   const { payExtraSummary, investSummary, recommendation, breakEvenReturnPercent } = result
 
   const recommendationText = {
-    invest: 'Investing the extra money is projected to be more profitable',
-    pay_extra: 'Paying down the mortgage saves more money overall',
-    neutral: 'Both strategies produce similar outcomes',
+    invest: 'Under these assumptions, investing the extra money projects to a higher net result',
+    pay_extra: 'Under these assumptions, paying down the mortgage projects to a higher net result',
+    neutral: 'Under these assumptions, the two strategies produce similar projected outcomes',
   }
 
   const recommendationColor = {
@@ -30,15 +33,20 @@ export function ComparisonSummary({ result }: ComparisonSummaryProps) {
     <div className="space-y-4">
       <Card className="border-2 border-primary/20">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Recommendation</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">Projected Recommendation</CardTitle>
+            <DisclosureBadge kind="projection" />
+          </div>
         </CardHeader>
         <CardContent>
           <p className={`text-lg font-semibold ${recommendationColor[recommendation]}`}>
             {recommendationText[recommendation]}
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Breakeven investment return: {breakEvenReturnPercent}% — above this rate, investing
-            wins.
+            Break-even investment return:{' '}
+            <span className="font-mono">{breakEvenReturnPercent}%</span> — at this return rate the
+            two strategies tie. Above it, investing wins; below, paying extra wins. (Calculated
+            against the rest of your inputs.)
           </p>
         </CardContent>
       </Card>
@@ -122,6 +130,8 @@ export function ComparisonSummary({ result }: ComparisonSummaryProps) {
           </CardContent>
         </Card>
       </div>
+
+      <DisclosurePanel payload={buildMortgageVsInvestDisclosure(request, result)} />
     </div>
   )
 }

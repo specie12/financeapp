@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { DisclosureBadge } from '@/components/dashboard/shared'
 import type { RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 interface RentVsBuyChartProps {
@@ -84,10 +85,14 @@ export function RentVsBuyChart({ result }: RentVsBuyChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Net Worth Over Time</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle>Projected Net Worth Over Time</CardTitle>
+          <DisclosureBadge kind="projection" />
+        </div>
         <CardDescription>
-          Comparison of your net worth if you buy vs rent over{' '}
-          {result.calculation.input.projectionYears} years
+          A projection of net worth if you buy vs rent over{' '}
+          {result.calculation.input.projectionYears} years. Each line compounds the assumptions
+          shown in the &ldquo;How this was calculated&rdquo; panel.
         </CardDescription>
       </CardHeader>
       <CardContent>

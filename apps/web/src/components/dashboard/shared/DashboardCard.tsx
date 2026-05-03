@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 interface DashboardCardProps {
-  title: string
+  /** Title text or a small ReactNode (used to inline a disclosure badge). */
+  title: React.ReactNode
   description?: string
   children: React.ReactNode
   className?: string

@@ -1,6 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
+import { buildRentVsBuyDisclosure } from './disclosure'
 import type { RentVsBuyResultWithAffordability } from '@finance-app/shared-types'
 
 interface RentVsBuySummaryProps {
@@ -40,17 +42,20 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
         }
       >
         <CardHeader>
+          <div className="flex justify-center mb-2">
+            <DisclosureBadge kind="projection" />
+          </div>
           <CardTitle className="text-2xl text-center">
             {isBuyBetter
-              ? 'Buying is better for you'
+              ? 'Buying may be better for you'
               : isRentBetter
-                ? 'Renting is better for you'
+                ? 'Renting may be better for you'
                 : 'It&apos;s a close call'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-lg text-muted-foreground">
-            After {projectionYears} years, your net worth would be{' '}
+            Under these assumptions, after {projectionYears} years your projected net worth would be{' '}
             <span className="font-bold">
               {formatCurrency(Math.abs(summary.netWorthAdvantageCents))}
             </span>{' '}
@@ -93,33 +98,37 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
         </CardContent>
       </Card>
 
-      {/* Summary Cards */}
+      {/* Summary Cards — every value below is a year-{projectionYears} projection. */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Buy Net Worth
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              Projected Buy Net Worth
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
               {formatCurrency(summary.finalBuyNetWorthCents)}
             </p>
-            <p className="text-xs text-muted-foreground">Home equity after selling costs</p>
+            <p className="text-xs text-muted-foreground">
+              Home equity at year {projectionYears}, net of selling costs
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Rent Net Worth
+              Projected Rent Net Worth
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-emerald-600">
               {formatCurrency(summary.finalRentNetWorthCents)}
             </p>
-            <p className="text-xs text-muted-foreground">Investment portfolio value</p>
+            <p className="text-xs text-muted-foreground">
+              Investment portfolio at year {projectionYears} at the assumed return
+            </p>
           </CardContent>
         </Card>
 
@@ -131,7 +140,9 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatCurrency(summary.totalBuyCostsCents)}</p>
-            <p className="text-xs text-muted-foreground">Including down payment</p>
+            <p className="text-xs text-muted-foreground">
+              Down payment + cumulative carrying costs over {projectionYears} years
+            </p>
           </CardContent>
         </Card>
 
@@ -143,10 +154,16 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">{formatCurrency(summary.totalRentCostsCents)}</p>
-            <p className="text-xs text-muted-foreground">Over {projectionYears} years</p>
+            <p className="text-xs text-muted-foreground">
+              Cumulative rent + insurance over {projectionYears} years
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Assumption & disclosure layer — surfaces what the engine assumed,
+          what it didn't model, and how to interpret the headline figures. */}
+      <DisclosurePanel payload={buildRentVsBuyDisclosure(result)} />
 
       {/* Key Insights */}
       <Card>
@@ -169,8 +186,12 @@ export function RentVsBuySummary({ result }: RentVsBuySummaryProps) {
                   Total maintenance costs: {formatCurrency(summary.totalMaintenancePaidCents)}
                 </li>
                 <li>
-                  Tax savings from interest deduction:{' '}
+                  Estimated tax savings from interest deduction:{' '}
                   {formatCurrency(summary.totalTaxSavingsCents)}
+                  <span className="text-xs">
+                    {' '}
+                    (assumes the marginal rate below; ignores TCJA caps)
+                  </span>
                 </li>
                 <li>Final home equity: {formatCurrency(summary.finalHomeEquityCents)}</li>
               </ul>

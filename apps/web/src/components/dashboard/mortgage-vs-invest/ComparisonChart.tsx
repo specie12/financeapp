@@ -12,6 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DisclosureBadge } from '@/components/dashboard/shared'
 import type { MortgageVsInvestResult } from '@finance-app/shared-types'
 
 interface ComparisonChartProps {
@@ -19,21 +20,29 @@ interface ComparisonChartProps {
 }
 
 export function ComparisonChart({ result }: ComparisonChartProps) {
+  // Plot the values the engine returned. The "Net Advantage" series already
+  // accounts for capital-gains tax (engine: subTax(gain, capitalGainsTaxPercent))
+  // and any lost mortgage-interest deduction. Earlier code re-applied a hardcoded
+  // 0.85 factor here — that double-counted tax for users at any rate other than
+  // 15% and duplicated engine logic in the UI. Removed.
   const chartData = result.yearlyComparisons.map((c) => ({
     year: `Year ${c.year}`,
-    'Interest Saved': Math.round(c.payExtraInterestSavedCents / 100),
-    'Portfolio (After Tax)': Math.round(
-      (c.investCumulativeContributedCents +
-        (c.investPortfolioValueCents - c.investCumulativeContributedCents) * 0.85) /
-        100,
-    ),
-    'Net Advantage': Math.round(c.investAdvantageNetCents / 100),
+    'Interest Saved (after tax)': Math.round(c.payExtraInterestSavedCents / 100),
+    'Portfolio Value': Math.round(c.investPortfolioValueCents / 100),
+    'Net Advantage (after tax)': Math.round(c.investAdvantageNetCents / 100),
   }))
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Year-by-Year Comparison</CardTitle>
+        <div className="flex items-center gap-2">
+          <CardTitle className="text-base">Projected Year-by-Year Comparison</CardTitle>
+          <DisclosureBadge kind="projection" />
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Lines compound the assumptions you entered. Real-world returns vary year to year — this
+          chart smooths them.
+        </p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={400}>
@@ -46,21 +55,21 @@ export function ComparisonChart({ result }: ComparisonChartProps) {
             <ReferenceLine y={0} stroke="#666" strokeDasharray="3 3" />
             <Line
               type="monotone"
-              dataKey="Interest Saved"
+              dataKey="Interest Saved (after tax)"
               stroke="#22c55e"
               strokeWidth={2}
               dot={false}
             />
             <Line
               type="monotone"
-              dataKey="Portfolio (After Tax)"
+              dataKey="Portfolio Value"
               stroke="#3b82f6"
               strokeWidth={2}
               dot={false}
             />
             <Line
               type="monotone"
-              dataKey="Net Advantage"
+              dataKey="Net Advantage (after tax)"
               stroke="#f59e0b"
               strokeWidth={2}
               strokeDasharray="5 5"

@@ -9,6 +9,7 @@ import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { DashboardCard } from '@/components/dashboard/shared/DashboardCard'
 import { MoneyDisplay } from '@/components/dashboard/shared/MoneyDisplay'
+import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -143,15 +144,21 @@ export default function ScenarioDetailPage() {
         </Select>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary Cards — every value is a year-{horizonYears} projection. */}
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-medium text-muted-foreground">Projection summary</h2>
+        <DisclosureBadge kind="projection" />
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <DashboardCard title="Starting Net Worth">
           <MoneyDisplay cents={summary.startingNetWorthCents} className="text-2xl font-bold" />
+          <p className="text-xs text-muted-foreground mt-1">As of today (no projection)</p>
         </DashboardCard>
-        <DashboardCard title="Ending Net Worth">
+        <DashboardCard title="Projected Ending Net Worth">
           <MoneyDisplay cents={summary.endingNetWorthCents} className="text-2xl font-bold" />
+          <p className="text-xs text-muted-foreground mt-1">At year {horizonYears}</p>
         </DashboardCard>
-        <DashboardCard title="Net Worth Change">
+        <DashboardCard title="Projected Net Worth Change">
           <MoneyDisplay
             cents={summary.netWorthChangeCents}
             showSign
@@ -160,13 +167,13 @@ export default function ScenarioDetailPage() {
           />
           <p className="text-sm text-muted-foreground mt-1">
             {summary.netWorthChangePercent >= 0 ? '+' : ''}
-            {summary.netWorthChangePercent.toFixed(1)}%
+            {summary.netWorthChangePercent.toFixed(1)}% over {horizonYears} years
           </p>
         </DashboardCard>
-        <DashboardCard title="Total Debt Paid">
+        <DashboardCard title="Projected Total Debt Paid">
           <MoneyDisplay cents={summary.totalDebtPaidCents} className="text-2xl font-bold" />
           <p className="text-sm text-muted-foreground mt-1">
-            Interest: <MoneyDisplay cents={summary.totalInterestPaidCents} compact />
+            Interest projected: <MoneyDisplay cents={summary.totalInterestPaidCents} compact />
           </p>
         </DashboardCard>
       </div>
@@ -251,6 +258,27 @@ export default function ScenarioDetailPage() {
           </div>
         </div>
       </DashboardCard>
+
+      <DisclosurePanel
+        payload={{
+          kind: 'projection',
+          framing:
+            'A what-if projection over your full financial picture. The same scenario re-run on a different day uses today’s date as the start, so the numbers will shift slightly with calendar time even when nothing else changes.',
+          notModeled: [
+            'Market volatility — assets compound at flat per-year rates set on each asset.',
+            'Tax events on asset sales, withdrawals, or required distributions.',
+            'Income shocks, job changes, raises, or one-off windfalls beyond the cash-flow items in your data.',
+            'Variable rates on loans (HELOC, ARM resets, credit-card APR changes).',
+            'Inflation in expenses beyond the per-item growth rates you set.',
+            'Behavioral effects — actually following the plan over a long horizon is rarely linear.',
+          ],
+          caveats: [
+            scenario.overrides.length > 0
+              ? `Overrides applied: ${scenario.overrides.length}. The base data below is unchanged; overrides are layered on at projection time only.`
+              : 'No overrides applied — this is the baseline projection of your current data.',
+          ],
+        }}
+      />
 
       {/* Override Summary */}
       {scenario.overrides.length > 0 && (

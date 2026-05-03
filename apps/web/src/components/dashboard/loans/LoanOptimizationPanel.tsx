@@ -10,6 +10,7 @@ import { InterestSavingsCard } from './InterestSavingsCard'
 import { PayoffComparisonChart } from './PayoffComparisonChart'
 import type { LoanDetail, LoanSimulationResponse } from '@finance-app/shared-types'
 import { MoneyDisplay } from '../shared/MoneyDisplay'
+import { DisclosureBadge, DisclosurePanel } from '../shared'
 
 interface LoanOptimizationPanelProps {
   loan: LoanDetail
@@ -152,9 +153,12 @@ export function LoanOptimizationPanel({
             <div>
               <Label htmlFor="biweekly" className="text-base">
                 Bi-Weekly Payments
+                <DisclosureBadge kind="estimate" />
               </Label>
               <p className="text-sm text-muted-foreground">
-                Pay ${biweeklyPayment.toFixed(0)} every 2 weeks (equals 13 monthly payments/year)
+                Approximated as a constant 1/12 extra each month (≈ ${biweeklyPayment.toFixed(0)}{' '}
+                every 2 weeks). True bi-weekly accrual timing is not modeled — the savings shown are
+                an upper-bound estimate.
               </p>
             </div>
             <button
@@ -200,6 +204,24 @@ export function LoanOptimizationPanel({
             monthsSaved={result.savings.monthsSaved}
           />
 
+          <DisclosurePanel
+            payload={{
+              kind: 'projection',
+              framing:
+                'A what-if simulation against your current balance, rate, and term. Real-world payoff differs when any of those change.',
+              notModeled: [
+                'Variable rates (ARM resets, HELOC, credit-card APR changes).',
+                'Missed or late payments and any associated fees.',
+                'Prepayment penalties — some loans charge for paying off early.',
+                'Mortgage interest deduction — savings shown are pre-tax.',
+                'Refinancing — recasting at a lower rate is often cheaper than paying down.',
+              ],
+              caveats: [
+                'Bi-weekly is approximated by adding 1/12 of a payment monthly. True bi-weekly accrual is timing-sensitive and produces slightly less savings than shown.',
+              ],
+            }}
+          />
+
           {/* Quick Stats */}
           <Card>
             <CardContent className="pt-6">
@@ -211,7 +233,12 @@ export function LoanOptimizationPanel({
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">New Payment</p>
+                  <p
+                    className="text-sm text-muted-foreground"
+                    title="Sum of the regular monthly payment plus extra and bi-weekly equivalents. Not the literal amount your servicer will bill."
+                  >
+                    Total Monthly Outflow
+                  </p>
                   <p className="text-lg font-semibold">
                     <MoneyDisplay cents={result.modified.monthlyPaymentCents} />
                   </p>

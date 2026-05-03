@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { formatCurrency } from '@/lib/utils'
+import { DisclosureBadge } from '@/components/dashboard/shared'
 
 interface GoalProgressCardProps {
   goal: GoalProgressWithInsights
@@ -147,7 +148,13 @@ export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCard
           )}
           {monthlySavingsNeededCents > 0 && !isComplete && (
             <div>
-              <p className="text-muted-foreground">Monthly Needed</p>
+              <p
+                className="text-muted-foreground flex items-center gap-1"
+                title="Linear estimate: remaining ÷ months until target date. Assumes constant savings; real contributions vary."
+              >
+                Monthly Needed
+                <DisclosureBadge kind="estimate" />
+              </p>
               <p
                 className={`font-semibold ${
                   isAheadOfSchedule ? 'text-green-600' : 'text-amber-600'
@@ -159,7 +166,13 @@ export function GoalProgressCard({ goal, variant = 'default' }: GoalProgressCard
           )}
           {monthsToGoal !== null && !isComplete && (
             <div>
-              <p className="text-muted-foreground">Est. Completion</p>
+              <p
+                className="text-muted-foreground flex items-center gap-1"
+                title="Estimate based on your current contribution rate. Does not account for raises, market returns on the saved amount, or skipped months."
+              >
+                Est. Completion
+                <DisclosureBadge kind="estimate" />
+              </p>
               <p className="font-semibold">
                 {monthsToGoal} month{monthsToGoal !== 1 ? 's' : ''}
               </p>

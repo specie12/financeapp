@@ -14,6 +14,7 @@ import {
 } from '@/components/dashboard/investments'
 import { EnhancedHoldingsList } from '@/components/dashboard/investments/EnhancedHoldingsList'
 import { GoalsSummaryCard } from '@/components/dashboard/goals'
+import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
 import type { TickerData, EnhancedInvestmentsWithTickers } from '@finance-app/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
@@ -229,7 +230,15 @@ export default function InvestmentsPage() {
             <AllocationChart holdings={investmentData.holdings} />
           </div>
 
-          {/* Portfolio Performance */}
+          {/* Portfolio Performance — labeled as snapshot/estimate so users
+              don't read these as projections. Day-change is real ticker data;
+              week/month/YTD are not yet implemented and are surfaced as null. */}
+          {tickerData?.portfolioPerformance && (
+            <div className="flex items-center gap-2 mt-2">
+              <h3 className="text-sm font-medium text-muted-foreground">Portfolio Performance</h3>
+              <DisclosureBadge kind="snapshot" />
+            </div>
+          )}
           {tickerData?.portfolioPerformance && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
               <div className="text-center">
@@ -259,6 +268,25 @@ export default function InvestmentsPage() {
               </div>
             </div>
           )}
+
+          <DisclosurePanel
+            payload={{
+              kind: 'snapshot',
+              framing:
+                'A current-state view of your investments. Cost basis, gain/loss, and dividend yield are surfaced only when you have set them on the asset — missing inputs render as “Not set,” never as zero.',
+              notModeled: [
+                'Realized vs unrealized gain — every gain shown here is unrealized.',
+                'Dividend reinvestment or DRIP behavior.',
+                'Fund expense ratios, advisor fees, and other portfolio drag.',
+                'Tax-lot accounting — cost basis is per-asset, not per-purchase.',
+                'Market price movements between page loads.',
+              ],
+              caveats: [
+                'Day change comes from ticker data when configured. Week / month / YTD windows are not yet implemented and will read as “—,” not “0%.”',
+                'Default dividend yields are not assumed. Dollars shown are only summed across assets where you set a yield.',
+              ],
+            }}
+          />
         </>
       )}
     </div>

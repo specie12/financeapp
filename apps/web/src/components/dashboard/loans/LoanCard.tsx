@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { MoneyDisplay } from '../shared/MoneyDisplay'
+import { DisclosureBadge } from '../shared'
 import {
   getLiabilityTypeLabel,
   formatPercentPlain,
@@ -74,8 +75,14 @@ export function LoanCard({ loan }: LoanCardProps) {
               </p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Est. Payoff</p>
-              <p className="font-medium">
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                Est. Payoff
+                <DisclosureBadge kind="estimate" />
+              </p>
+              <p
+                className="font-medium"
+                title="Assumes the current interest rate and minimum payment hold for the full term. Variable-rate loans, missed payments, and rate changes are not modeled."
+              >
                 {loan.estimatedPayoffDate ? formatDateShort(loan.estimatedPayoffDate) : 'N/A'}
               </p>
             </div>

@@ -18,7 +18,7 @@ export default function MortgageVsInvestPage() {
     setAccessToken(token)
   }, [])
 
-  const { result, isLoading, error, calculate } = useMortgageVsInvest(accessToken)
+  const { result, lastRequest, isLoading, error, calculate } = useMortgageVsInvest(accessToken)
 
   if (!accessToken) {
     return (
@@ -49,11 +49,11 @@ export default function MortgageVsInvestPage() {
 
       <MortgageVsInvestForm onCalculate={calculate} isLoading={isLoading} />
 
-      {result && (
+      {result && lastRequest && (
         <div className="space-y-6">
           <div className="border-t pt-6">
             <h2 className="text-2xl font-bold mb-6">Results</h2>
-            <ComparisonSummary result={result} />
+            <ComparisonSummary result={result} request={lastRequest} />
           </div>
 
           <ComparisonChart result={result} />
