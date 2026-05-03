@@ -175,6 +175,8 @@ async function main() {
         interestRatePercent: liability.interestRatePercent,
         minimumPaymentCents: liability.minimumPaymentCents,
         paymentFrequency: liability.paymentFrequency,
+        // Schema requires startDate; seed defaults to one year ago.
+        startDate: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000),
       },
     })
   }
