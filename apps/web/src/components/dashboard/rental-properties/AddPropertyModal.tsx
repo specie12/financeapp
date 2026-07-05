@@ -26,6 +26,7 @@ export function AddPropertyModal({ onSubmit, onCancel }: AddPropertyModalProps) 
     propertyTaxAnnual: '',
     mortgagePayment: '',
     mortgageRate: '',
+    appreciationRate: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,6 +47,7 @@ export function AddPropertyModal({ onSubmit, onCancel }: AddPropertyModalProps) 
           ? Math.round(parseFloat(form.mortgagePayment) * 100)
           : null,
         mortgageRatePercent: form.mortgageRate ? parseFloat(form.mortgageRate) : null,
+        appreciationRatePercent: form.appreciationRate ? parseFloat(form.appreciationRate) : null,
       })
     } finally {
       setIsSubmitting(false)
@@ -191,6 +193,20 @@ export function AddPropertyModal({ onSubmit, onCancel }: AddPropertyModalProps) 
                 max="25"
                 step="0.1"
                 placeholder="Optional"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="appreciationRate">Annual Appreciation (%)</Label>
+              <Input
+                id="appreciationRate"
+                type="number"
+                value={form.appreciationRate}
+                onChange={(e) => updateField('appreciationRate', e.target.value)}
+                min="-20"
+                max="50"
+                step="0.1"
+                placeholder="Defaults to 3%"
               />
             </div>
 

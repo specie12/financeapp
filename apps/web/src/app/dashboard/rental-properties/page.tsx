@@ -11,6 +11,8 @@ import {
   PropertyMetricsTable,
   AddPropertyModal,
 } from '@/components/dashboard/rental-properties'
+import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
+import { buildRentalDisclosure } from '@/components/dashboard/rental-properties/disclosure'
 
 export default function RentalPropertiesPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
@@ -40,7 +42,10 @@ export default function RentalPropertiesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Rental Properties</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            Rental Properties
+            <DisclosureBadge kind="estimate" />
+          </h1>
           <p className="text-muted-foreground mt-2">
             Track and analyze your rental property portfolio
           </p>
@@ -72,6 +77,8 @@ export default function RentalPropertiesPage() {
           </div>
 
           <PropertyMetricsTable properties={summary.properties} />
+
+          <DisclosurePanel payload={buildRentalDisclosure(summary)} />
         </>
       )}
 

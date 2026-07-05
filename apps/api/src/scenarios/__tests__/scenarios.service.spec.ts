@@ -28,6 +28,7 @@ describe('ScenariosService — typed override storage (P0.3)', () => {
     asset: { findMany: jest.fn().mockResolvedValue([]) },
     liability: { findMany: jest.fn().mockResolvedValue([]) },
     cashFlowItem: { findMany: jest.fn().mockResolvedValue([]) },
+    rentalProperty: { findMany: jest.fn().mockResolvedValue([]) },
   }
 
   const mockPlanLimits = {

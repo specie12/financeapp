@@ -472,6 +472,7 @@ export const createRentalPropertySchema = z.object({
   propertyTaxAnnualCents: z.number().int().nonnegative('Property tax must be non-negative'),
   mortgagePaymentCents: z.number().int().nonnegative().nullable().optional(),
   mortgageRatePercent: z.number().min(0).max(25).nullable().optional(),
+  appreciationRatePercent: z.number().min(-20).max(50).nullable().optional(),
   linkedAssetId: z.string().uuid().nullable().optional(),
   linkedLiabilityId: z.string().uuid().nullable().optional(),
 })

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { PlanLimitsService } from '../plan-limits/plan-limits.service'
 import { MarketDataService } from '../market-data/market-data.service'
+import { buildRentalProjectionContributions } from '../rental-properties/rental-projection.util'
 import {
   runProjection,
   generateAmortizationSchedule,
@@ -56,18 +57,40 @@ export class DashboardService {
   async getNetWorth(householdId: string, horizonYears = 5): Promise<NetWorthResponse> {
     await this.planLimitsService.assertHorizonWithinLimit(householdId, horizonYears)
 
-    const [assets, liabilities, cashFlowItems] = await Promise.all([
+    const [assets, liabilities, cashFlowItems, rentalProperties] = await Promise.all([
       this.prisma.asset.findMany({ where: { householdId }, orderBy: { createdAt: 'desc' } }),
       this.prisma.liability.findMany({ where: { householdId }, orderBy: { createdAt: 'desc' } }),
       this.prisma.cashFlowItem.findMany({ where: { householdId }, orderBy: { createdAt: 'desc' } }),
+      this.prisma.rentalProperty.findMany({ where: { householdId } }),
     ])
 
-    // Calculate current totals
-    const totalAssetsCents = assets.reduce((sum, a) => sum + a.currentValueCents, 0) as Cents
-    const totalLiabilitiesCents = liabilities.reduce(
+    const projectionStartDate = new Date()
+
+    // Fold rental properties into net worth: a synthesized asset for the
+    // property value and a liability for the mortgage, skipping any already
+    // represented by a linked asset/liability to avoid double counting. The
+    // same contributions drive both the current totals and the projection so
+    // the headline and the year-0 chart point stay consistent.
+    const rentalContributions = buildRentalProjectionContributions(
+      rentalProperties,
+      new Set(assets.map((a) => a.id)),
+      new Set(liabilities.map((l) => l.id)),
+      projectionStartDate,
+    )
+    const rentalAssetValueCents = rentalContributions.assets.reduce(
+      (sum, a) => sum + a.currentValueCents,
+      0,
+    )
+    const rentalLiabilityBalanceCents = rentalContributions.liabilities.reduce(
       (sum, l) => sum + l.currentBalanceCents,
       0,
-    ) as Cents
+    )
+
+    // Calculate current totals (including unlinked rental equity)
+    const totalAssetsCents = (assets.reduce((sum, a) => sum + a.currentValueCents, 0) +
+      rentalAssetValueCents) as Cents
+    const totalLiabilitiesCents = (liabilities.reduce((sum, l) => sum + l.currentBalanceCents, 0) +
+      rentalLiabilityBalanceCents) as Cents
     const netWorthCents = (totalAssetsCents - totalLiabilitiesCents) as Cents
 
     // Group assets by type
@@ -78,45 +101,59 @@ export class DashboardService {
 
     // Run projection if there's data
     let projection: NetWorthProjection[] = []
-    if (assets.length > 0 || liabilities.length > 0 || cashFlowItems.length > 0) {
+    if (
+      assets.length > 0 ||
+      liabilities.length > 0 ||
+      cashFlowItems.length > 0 ||
+      rentalProperties.length > 0
+    ) {
       const projectionInput: ProjectionInput = {
-        startDate: new Date(),
+        startDate: projectionStartDate,
         horizonYears,
-        assets: assets.map(
-          (a): ProjectionAsset => ({
-            id: a.id,
-            name: a.name,
-            currentValueCents: a.currentValueCents as Cents,
-            annualGrowthRatePercent: a.annualGrowthRatePercent
-              ? Number(a.annualGrowthRatePercent)
-              : 0,
-          }),
-        ),
-        liabilities: liabilities.map(
-          (l): ProjectionLiability => ({
-            id: l.id,
-            name: l.name,
-            currentBalanceCents: l.currentBalanceCents as Cents,
-            interestRatePercent: Number(l.interestRatePercent),
-            minimumPaymentCents: l.minimumPaymentCents as Cents,
-            termMonths: l.termMonths ?? null,
-            startDate: l.startDate,
-          }),
-        ),
-        cashFlowItems: cashFlowItems.map(
-          (c): ProjectionCashFlowItem => ({
-            id: c.id,
-            name: c.name,
-            type: c.type,
-            amountCents: c.amountCents as Cents,
-            frequency: c.frequency,
-            startDate: c.startDate ?? null,
-            endDate: c.endDate ?? null,
-            annualGrowthRatePercent: c.annualGrowthRatePercent
-              ? Number(c.annualGrowthRatePercent)
-              : null,
-          }),
-        ),
+        assets: [
+          ...assets.map(
+            (a): ProjectionAsset => ({
+              id: a.id,
+              name: a.name,
+              currentValueCents: a.currentValueCents as Cents,
+              annualGrowthRatePercent: a.annualGrowthRatePercent
+                ? Number(a.annualGrowthRatePercent)
+                : 0,
+            }),
+          ),
+          ...rentalContributions.assets,
+        ],
+        liabilities: [
+          ...liabilities.map(
+            (l): ProjectionLiability => ({
+              id: l.id,
+              name: l.name,
+              currentBalanceCents: l.currentBalanceCents as Cents,
+              interestRatePercent: Number(l.interestRatePercent),
+              minimumPaymentCents: l.minimumPaymentCents as Cents,
+              termMonths: l.termMonths ?? null,
+              startDate: l.startDate,
+            }),
+          ),
+          ...rentalContributions.liabilities,
+        ],
+        cashFlowItems: [
+          ...cashFlowItems.map(
+            (c): ProjectionCashFlowItem => ({
+              id: c.id,
+              name: c.name,
+              type: c.type,
+              amountCents: c.amountCents as Cents,
+              frequency: c.frequency,
+              startDate: c.startDate ?? null,
+              endDate: c.endDate ?? null,
+              annualGrowthRatePercent: c.annualGrowthRatePercent
+                ? Number(c.annualGrowthRatePercent)
+                : null,
+            }),
+          ),
+          ...rentalContributions.cashFlowItems,
+        ],
       }
 
       const result = runProjection(projectionInput)

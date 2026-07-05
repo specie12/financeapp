@@ -14,6 +14,7 @@ import {
   calculateTaxLiability,
   calculateRentVsBuy,
   calculateMortgageVsInvest,
+  computeRentalMetrics,
   cents,
 } from '../index'
 
@@ -22,6 +23,7 @@ import amortizationGoldens from './goldens/amortization.golden.json'
 import taxGoldens from './goldens/tax.golden.json'
 import rentVsBuyGoldens from './goldens/rent-vs-buy.golden.json'
 import mortgageVsInvestGoldens from './goldens/mortgage-vs-invest.golden.json'
+import rentalGoldens from './goldens/rental.golden.json'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PMT
@@ -151,6 +153,38 @@ describe('Goldens — Mortgage vs Invest', () => {
     expect(result.payExtraSummary.interestSavedCents).toBe(
       result.payExtraSummary.totalInterestWithoutExtraCents -
         result.payExtraSummary.totalInterestWithExtraCents,
+    )
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rental Property Metrics
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Goldens — Rental Metrics', () => {
+  it.each(rentalGoldens.cases)('$label', ({ input, expected }) => {
+    const result = computeRentalMetrics({
+      currentValueCents: cents(input.currentValueCents),
+      downPaymentCents: cents(input.downPaymentCents),
+      monthlyRentCents: cents(input.monthlyRentCents),
+      vacancyRatePercent: input.vacancyRatePercent,
+      annualExpensesCents: cents(input.annualExpensesCents),
+      propertyTaxAnnualCents: cents(input.propertyTaxAnnualCents),
+      mortgagePaymentCents:
+        input.mortgagePaymentCents === null ? null : cents(input.mortgagePaymentCents),
+    })
+
+    expect(result.effectiveGrossIncomeCents).toBe(expected.effectiveGrossIncomeCents)
+    expect(result.noiCents).toBe(expected.noiCents)
+    expect(result.cashFlowCents).toBe(expected.cashFlowCents)
+    expect(result.capRatePercent).toBe(expected.capRatePercent)
+    expect(result.cashOnCashReturnPercent).toBe(expected.cashOnCashReturnPercent)
+    expect(result.grossRentMultiplier).toBe(expected.grossRentMultiplier)
+    expect(result.dscrRatio).toBe(expected.dscrRatio)
+
+    // Hand-verifiable invariant: NOI = EGI − operating expenses − property tax.
+    expect(result.noiCents).toBe(
+      result.effectiveGrossIncomeCents - input.annualExpensesCents - input.propertyTaxAnnualCents,
     )
   })
 })
