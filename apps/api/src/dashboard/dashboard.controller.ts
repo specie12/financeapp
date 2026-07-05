@@ -16,7 +16,10 @@ import type {
   CashFlowSummaryResponse,
   BudgetStatusResponse,
 } from './types'
-import type { EnhancedInvestmentsWithTickers } from '@finance-app/shared-types'
+import type {
+  EnhancedInvestmentsWithTickers,
+  MonteCarloNetWorthResponse,
+} from '@finance-app/shared-types'
 
 @Controller('dashboard')
 export class DashboardController {
@@ -30,6 +33,24 @@ export class DashboardController {
   ): Promise<ApiResponse<NetWorthResponse>> {
     const years = horizonYears ? parseInt(horizonYears, 10) : 5
     const data = await this.dashboardService.getNetWorth(householdId, years)
+    return {
+      success: true,
+      data,
+    }
+  }
+
+  @Get('net-worth/monte-carlo')
+  @RequirePermission(Permission.READ)
+  async getNetWorthMonteCarlo(
+    @CurrentUser('householdId') householdId: string,
+    @Query('horizonYears') horizonYears?: string,
+    @Query('iterations') iterations?: string,
+    @Query('volatilityPercent') volatilityPercent?: string,
+  ): Promise<ApiResponse<MonteCarloNetWorthResponse>> {
+    const years = horizonYears ? parseInt(horizonYears, 10) : 5
+    const iters = iterations ? parseInt(iterations, 10) : undefined
+    const vol = volatilityPercent ? parseFloat(volatilityPercent) : undefined
+    const data = await this.dashboardService.getNetWorthMonteCarlo(householdId, years, iters, vol)
     return {
       success: true,
       data,

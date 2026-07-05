@@ -360,6 +360,33 @@ export interface NetWorthResponse {
   projection: NetWorthProjection[]
 }
 
+// Monte Carlo net-worth projection
+
+export interface MonteCarloYearBand {
+  year: number
+  date: Date
+  p10NetWorthCents: number
+  p50NetWorthCents: number
+  p90NetWorthCents: number
+}
+
+export interface MonteCarloNetWorthResponse {
+  iterations: number
+  seed: number
+  returnVolatilityPercent: number
+  startDate: Date
+  horizonYears: number
+  yearlyBands: MonteCarloYearBand[]
+  summary: {
+    startingNetWorthCents: number
+    endingP10NetWorthCents: number
+    endingP50NetWorthCents: number
+    endingP90NetWorthCents: number
+    probEndAboveStartPercent: number
+    probEndPositivePercent: number
+  }
+}
+
 // Loans Dashboard
 export interface LoanSummary {
   totalOutstandingCents: number

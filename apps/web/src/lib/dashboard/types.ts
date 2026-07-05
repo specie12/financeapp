@@ -4,6 +4,8 @@ export type {
   AssetsByType,
   LiabilitiesByType,
   NetWorthProjection,
+  MonteCarloNetWorthResponse,
+  MonteCarloYearBand,
   AssetBreakdown,
   LiabilityBreakdown,
   LoansResponse,
