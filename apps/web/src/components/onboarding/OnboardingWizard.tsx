@@ -53,6 +53,8 @@ export function OnboardingWizard() {
         return (
           <GoalsStep
             goals={state.goals}
+            primaryIntent={state.primaryIntent}
+            onSetIntent={actions.setIntent}
             onAddGoal={actions.addGoal}
             onRemoveGoal={actions.removeGoal}
             onNext={actions.nextStep}

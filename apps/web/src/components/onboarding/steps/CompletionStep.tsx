@@ -5,24 +5,37 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { StepContainer } from '../shared/StepContainer'
-import { calculateDashboardPreview, formatDollars } from '@/lib/onboarding/utils'
+import {
+  calculateDashboardPreview,
+  formatDollars,
+  recommendedToolForIntent,
+} from '@/lib/onboarding/utils'
 import type { OnboardingState } from '@/lib/onboarding/types'
 
 interface CompletionStepProps {
   state: OnboardingState
 }
 
+/** Secondary tools offered alongside the personalized recommendation. */
+const OTHER_TOOLS: Array<{ href: string; label: string }> = [
+  { href: '/dashboard/decisions/rental', label: 'Analyze a rental purchase' },
+  { href: '/dashboard/rent-vs-buy', label: 'Rent vs. buy' },
+  { href: '/dashboard/net-worth', label: 'Net worth projection' },
+  { href: '/dashboard/scenarios', label: 'What-if scenarios' },
+]
+
 export function CompletionStep({ state }: CompletionStepProps) {
   const router = useRouter()
   const preview = calculateDashboardPreview(state)
+  const recommended = recommendedToolForIntent(state.primaryIntent)
 
-  const handleGoToDashboard = () => {
-    // Store tokens in localStorage for the dashboard to use
+  const goTo = (href: string) => {
+    // Store tokens in localStorage for the dashboard to use, then navigate.
     if (state.tokens) {
       localStorage.setItem('accessToken', state.tokens.accessToken)
       localStorage.setItem('refreshToken', state.tokens.refreshToken)
     }
-    router.push('/dashboard')
+    router.push(href)
   }
 
   return (
@@ -153,8 +166,44 @@ export function CompletionStep({ state }: CompletionStepProps) {
           </Card>
         </div>
 
-        {/* CTA Button */}
-        <Button size="lg" onClick={handleGoToDashboard} className="w-full">
+        {/* What to do first — route straight to the value tools */}
+        <div className="text-left space-y-3">
+          <h3 className="text-lg font-semibold text-center">What would you like to do first?</h3>
+
+          {/* Personalized recommendation from the intent chosen earlier */}
+          <button
+            type="button"
+            onClick={() => goTo(recommended.href)}
+            className="w-full text-left rounded-lg border-2 border-primary bg-primary/5 p-4 transition-colors hover:bg-primary/10"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-xs font-medium uppercase tracking-wide text-primary">
+                  Recommended for you
+                </div>
+                <div className="font-semibold">{recommended.label}</div>
+                <div className="text-sm text-muted-foreground">{recommended.description}</div>
+              </div>
+              <span className="text-primary">→</span>
+            </div>
+          </button>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {OTHER_TOOLS.filter((t) => t.href !== recommended.href).map((tool) => (
+              <button
+                key={tool.href}
+                type="button"
+                onClick={() => goTo(tool.href)}
+                className="text-left rounded-lg border p-3 text-sm font-medium transition-colors hover:bg-muted/50"
+              >
+                {tool.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Secondary: full dashboard */}
+        <Button variant="outline" size="lg" onClick={() => goTo('/dashboard')} className="w-full">
           Go to Dashboard
         </Button>
       </div>

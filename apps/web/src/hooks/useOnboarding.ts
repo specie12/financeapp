@@ -7,6 +7,7 @@ import type {
   OnboardingStep,
   MonthlyExpenses,
   OnboardingGoal,
+  OnboardingIntent,
 } from '@/lib/onboarding/types'
 import type { IncomeItem, AssetItem, LiabilityItem } from '@/lib/onboarding/schemas'
 import type { AuthUser, AuthTokens, Country } from '@finance-app/shared-types'
@@ -28,6 +29,7 @@ const initialState: OnboardingState = {
   user: null,
   tokens: null,
   country: 'US',
+  primaryIntent: null,
   goals: [],
   incomeItems: [],
   expenses: {
@@ -67,6 +69,9 @@ function onboardingReducer(state: OnboardingState, action: OnboardingAction): On
 
     case 'SET_COUNTRY':
       return { ...state, country: action.country }
+
+    case 'SET_INTENT':
+      return { ...state, primaryIntent: action.intent }
 
     case 'ADD_GOAL':
       return { ...state, goals: [...state.goals, action.goal] }
@@ -185,6 +190,11 @@ export function useOnboarding() {
     dispatch({ type: 'SET_COUNTRY', country })
   }, [])
 
+  // Intent Actions
+  const setIntent = useCallback((intent: OnboardingIntent) => {
+    dispatch({ type: 'SET_INTENT', intent })
+  }, [])
+
   // Goal Actions
   const addGoal = useCallback((goal: OnboardingGoal) => {
     dispatch({ type: 'ADD_GOAL', goal })
@@ -279,6 +289,7 @@ export function useOnboarding() {
       prevStep,
       setUser,
       setCountry,
+      setIntent,
       addGoal,
       updateGoal,
       removeGoal,
