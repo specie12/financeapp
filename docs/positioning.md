@@ -10,6 +10,28 @@
 
 ---
 
+## Scope update (2026-07): it's a decision engine, not a niche
+
+An earlier read of this doc over-narrowed the product to "property investors."
+Correction: the product is the **broad all-in-one finance/investment platform**
+the founder set out to build — real estate is the go-to-market **wedge / entry
+point**, not the boundary. Breadth stays in the product; the pitch leads with one
+sharp thing.
+
+The framing that reconciles "all-in-one" with "sharp identity": this is a
+**financial-_decisions_ platform.** Aggregators track your money; budgeters help
+you spend; **nobody helps you _decide_** — rent vs buy, this rental or not, pay
+off vs invest, lease vs finance a car, Roth vs traditional — honestly, against
+your real data, in one place. Budgeting, net worth, and investment tracking
+aren't competing features; they're the _fuel_ the decision engine runs on. The
+trust/disclosure layer is what makes an "advice engine" defensible rather than a
+liability.
+
+The prioritized build order for that engine — what exists, what's missing, and
+where the real money hides — lives in **`decision-catalog.md`**.
+
+---
+
 ## Why this doc exists
 
 This project started from a ChatGPT conversation that asked, roughly, "does an
