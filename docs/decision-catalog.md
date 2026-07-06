@@ -46,11 +46,49 @@ identity is "help people decide," this is the sharpest edge.
 The single biggest hidden-money lever, and it makes every existing tool more
 correct (after-tax is the only number that matters).
 
+**It's "hub AND layer," not either/or.** Keep a Tax hub (set your profile, see
+strategy/opportunities). The mistake to avoid is tax living _only_ there. As a
+layer, tax threads into every decision so users never decide on a pre-tax number
+that's quietly wrong. Two mechanics:
+
+1. **One tax profile the whole app reads.** The existing tax-profile form
+   (filing status, state, marginal/effective rate) becomes a shared input the
+   _engine_ reads — no re-asking, no ignoring it.
+2. **After-tax outputs everywhere**, behind a "show after-tax" lens.
+
+Surface-by-surface state:
+
+- **Rent vs Buy** — 🟡 already models the mortgage-interest deduction at the
+  marginal rate. That's the pattern to spread.
+- **Mortgage vs Invest** — 🟡 already models capital-gains tax + deductibility.
+- **Buy-a-Rental / rental analysis** — ❌ **no tax modeled today** (the disclosure
+  says so). The biggest gap and the most important place: for rentals,
+  **depreciation** is often what flips a deal from "meh pre-tax" to "favorable
+  after-tax." A rental verdict without it misleads in the wrong direction.
+- **Net worth / investments** — ❌ pre-tax today; after-tax is the honest number.
+
+**Recommended first slice** (highest leverage, do this before the rest):
+
+1. A **shared `TaxProfile` the finance-engine reads** (the data exists; wire it
+   into the engine so calculators pick it up automatically).
+2. **Add after-tax modeling to the rental decision flow — starting with
+   depreciation** (plus deductibility and a note on recapture at sale). This
+   makes the wedge tool dramatically more correct and is a real "it actually
+   models the tax shield" moment.
+
+Then spread the after-tax lens to net worth and investments over time.
+
+**Hub opportunities** (the strategy side of the Tax hub, pulling from all data):
+
 - **Asset location** — same portfolio, right accounts (bonds in tax-advantaged,
   growth in Roth). Quietly worth five figures over decades; almost no consumer
   app does it.
 - **Tax-loss harvesting** and **capital-gains timing** (short vs long-term).
 - **Roth conversion analysis** — "convert $X this year in a low bracket."
+
+Caveat: this is the highest-value _and_ most cross-cutting item — it touches the
+engine, a shared profile, and every surface. Do it deliberately, in slices; it
+upgrades everything already built rather than being one more tab.
 
 **2. Insurance adequacy — "Am I underinsured?"** ⬜
 High-stakes, emotionally resonant, and _totally unclaimed_ by finance apps.
