@@ -1,6 +1,8 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
+import { buildTaxSummaryDisclosure } from './disclosure'
 import type { TaxSummaryResponse } from '@finance-app/shared-types'
 
 interface TaxSummaryCardProps {
@@ -20,79 +22,88 @@ const filingStatusLabels: Record<string, string> = {
 
 export function TaxSummaryCard({ summary }: TaxSummaryCardProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{summary.taxYear} Tax Summary</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Filing Status</p>
-              <p className="text-lg font-semibold">
-                {filingStatusLabels[summary.filingStatus] || summary.filingStatus}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Estimated Gross Income</p>
-              <p className="text-lg font-semibold">
-                {formatDollars(summary.estimatedGrossIncomeCents)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Standard Deduction</p>
-              <p className="text-lg font-semibold">
-                {formatDollars(summary.standardDeductionCents)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Taxable Income</p>
-              <p className="text-lg font-semibold">{formatDollars(summary.taxableIncomeCents)}</p>
-            </div>
-          </div>
-
-          <div className="border-t pt-4">
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Estimated Tax</p>
-                <p className="text-2xl font-bold text-destructive">
-                  {formatDollars(summary.estimatedTaxLiabilityCents)}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            {summary.taxYear} Tax Summary
+            <DisclosureBadge kind="estimate" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Filing Status</p>
+                <p className="text-lg font-semibold">
+                  {filingStatusLabels[summary.filingStatus] || summary.filingStatus}
                 </p>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Effective Rate</p>
-                <p className="text-2xl font-bold">{summary.effectiveTaxRatePercent}%</p>
+              <div>
+                <p className="text-sm text-muted-foreground">Estimated Gross Income</p>
+                <p className="text-lg font-semibold">
+                  {formatDollars(summary.estimatedGrossIncomeCents)}
+                </p>
               </div>
-              <div className="text-center">
-                <p className="text-sm text-muted-foreground">Marginal Rate</p>
-                <p className="text-2xl font-bold">{summary.marginalTaxRatePercent}%</p>
+              <div>
+                <p className="text-sm text-muted-foreground">Standard Deduction</p>
+                <p className="text-lg font-semibold">
+                  {formatDollars(summary.standardDeductionCents)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Taxable Income</p>
+                <p className="text-lg font-semibold">{formatDollars(summary.taxableIncomeCents)}</p>
               </div>
             </div>
-          </div>
 
-          {/* Deductions */}
-          {(summary.deductions.mortgageInterestCents > 0 ||
-            summary.deductions.propertyTaxCents > 0) && (
             <div className="border-t pt-4">
-              <h4 className="text-sm font-semibold mb-2">Potential Deductions</h4>
-              <div className="space-y-1 text-sm">
-                {summary.deductions.mortgageInterestCents > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Mortgage Interest</span>
-                    <span>{formatDollars(summary.deductions.mortgageInterestCents)}</span>
-                  </div>
-                )}
-                {summary.deductions.propertyTaxCents > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Property Tax</span>
-                    <span>{formatDollars(summary.deductions.propertyTaxCents)}</span>
-                  </div>
-                )}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Estimated Tax</p>
+                  <p className="text-2xl font-bold text-destructive">
+                    {formatDollars(summary.estimatedTaxLiabilityCents)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Effective Rate</p>
+                  <p className="text-2xl font-bold">{summary.effectiveTaxRatePercent}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">Marginal Rate</p>
+                  <p className="text-2xl font-bold">{summary.marginalTaxRatePercent}%</p>
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+
+            {/* Deductions */}
+            {(summary.deductions.mortgageInterestCents > 0 ||
+              summary.deductions.propertyTaxCents > 0) && (
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-semibold mb-2">Potential Deductions</h4>
+                <div className="space-y-1 text-sm">
+                  {summary.deductions.mortgageInterestCents > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Mortgage Interest</span>
+                      <span>{formatDollars(summary.deductions.mortgageInterestCents)}</span>
+                    </div>
+                  )}
+                  {summary.deductions.propertyTaxCents > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Property Tax</span>
+                      <span>{formatDollars(summary.deductions.propertyTaxCents)}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Assumption & disclosure layer — what this estimate excludes vs a real
+          return (state tax, FICA, credits, AMT, preferential gains rates). */}
+      <DisclosurePanel payload={buildTaxSummaryDisclosure(summary)} />
+    </div>
   )
 }
