@@ -156,7 +156,7 @@ export default function InvestmentsPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Investments</h1>
 
-      {tickerData && (
+      {tickerData?.marketDataSource === 'simulated' && (
         <Alert>
           <AlertDescription>
             <span className="font-medium">Demo data.</span> Live prices, day/week/month/YTD/1-year
@@ -247,7 +247,10 @@ export default function InvestmentsPage() {
           {tickerData?.portfolioPerformance && (
             <div className="flex items-center gap-2 mt-2">
               <h3 className="text-sm font-medium text-muted-foreground">
-                Portfolio Performance <span className="font-normal">(demo)</span>
+                Portfolio Performance{' '}
+                {tickerData.marketDataSource === 'simulated' && (
+                  <span className="font-normal">(demo)</span>
+                )}
               </h3>
               <DisclosureBadge kind="snapshot" />
             </div>

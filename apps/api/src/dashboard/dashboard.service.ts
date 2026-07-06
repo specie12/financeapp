@@ -873,6 +873,7 @@ export class DashboardService {
       },
       sectorAllocations,
       enhancedHoldings,
+      marketDataSource: this.marketDataService.getSource(),
     }
   }
 

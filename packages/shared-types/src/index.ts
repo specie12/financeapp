@@ -1314,6 +1314,9 @@ export interface PlaidExchangeRequest {
 // Ticker Data and Performance Types
 // ============================================
 
+/** Whether market data came from a live feed or simulated demo data. */
+export type MarketDataSource = 'live' | 'simulated'
+
 export interface TickerData {
   symbol: string
   name: string
@@ -1375,4 +1378,6 @@ export interface EnhancedInvestmentsWithTickers extends EnhancedInvestmentsRespo
   portfolioPerformance: PortfolioPerformance
   sectorAllocations: SectorAllocation[]
   enhancedHoldings: EnhancedHolding[]
+  /** Where the ticker prices/performance came from — drives the demo-data notice. */
+  marketDataSource: MarketDataSource
 }
