@@ -33,6 +33,8 @@ export class RentalPropertiesService {
         propertyTaxAnnualCents: dto.propertyTaxAnnualCents,
         mortgagePaymentCents: dto.mortgagePaymentCents ?? null,
         mortgageRatePercent: dto.mortgageRatePercent ?? null,
+        mortgageBalanceCents: dto.mortgageBalanceCents ?? null,
+        mortgageTermMonths: dto.mortgageTermMonths ?? null,
         appreciationRatePercent: dto.appreciationRatePercent ?? null,
         linkedAssetId: dto.linkedAssetId ?? null,
         linkedLiabilityId: dto.linkedLiabilityId ?? null,
@@ -122,6 +124,8 @@ export class RentalPropertiesService {
         mortgageRatePercent: property.mortgageRatePercent
           ? Number(property.mortgageRatePercent)
           : null,
+        mortgageBalanceCents: property.mortgageBalanceCents,
+        mortgageTermMonths: property.mortgageTermMonths,
         appreciationRatePercent: property.appreciationRatePercent
           ? Number(property.appreciationRatePercent)
           : null,
@@ -167,7 +171,10 @@ export class RentalPropertiesService {
       if (p.linkedLiabilityId && balanceByLiabilityId.has(p.linkedLiabilityId)) {
         return sum + (balanceByLiabilityId.get(p.linkedLiabilityId) ?? 0)
       }
-      // Fallback proxy for unlinked mortgaged properties.
+      // Exact balance when entered, else the (value − down payment) proxy.
+      if (p.mortgageBalanceCents != null) {
+        return sum + p.mortgageBalanceCents
+      }
       return sum + (p.mortgagePaymentCents ? p.currentValueCents - p.downPaymentCents : 0)
     }, 0)
     const totalMonthlyRentCents = properties.reduce((sum, p) => sum + p.monthlyRentCents, 0)

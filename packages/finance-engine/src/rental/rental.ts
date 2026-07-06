@@ -1,7 +1,13 @@
 import Decimal from 'decimal.js'
 import { type Cents, RoundingMode } from '../money/money.types'
 import { cents, subtractCents } from '../money/money'
-import type { RentalMetricsInput, RentalMetrics } from './rental.types'
+import type {
+  RentalMetricsInput,
+  RentalMetrics,
+  RentalDealInput,
+  RentalDealAssessment,
+  RentalDealFactor,
+} from './rental.types'
 
 // Configure Decimal.js for financial calculations (matches projection engine).
 Decimal.set({
@@ -82,4 +88,76 @@ export function computeRentalMetrics(input: RentalMetricsInput): RentalMetrics {
     grossRentMultiplier,
     dscrRatio,
   }
+}
+
+function formatDollars(centsValue: number): string {
+  const sign = centsValue < 0 ? '-' : ''
+  return `${sign}$${Math.abs(Math.round(centsValue / 100)).toLocaleString('en-US')}`
+}
+
+/**
+ * Rules-based assessment of a candidate rental deal. Deliberately transparent:
+ * it returns the individual factors it weighed, and an overall signal derived
+ * from them — never a black-box "buy." Thresholds are conventional rules of
+ * thumb, not guarantees, and are surfaced to the user via the disclosure layer.
+ */
+export function assessRentalDeal(input: RentalDealInput): RentalDealAssessment {
+  const factors: RentalDealFactor[] = []
+
+  // Cash flow: is the property self-supporting after debt service?
+  factors.push({
+    label: 'Monthly cash flow',
+    status: input.cashFlowCents >= 0 ? 'positive' : 'negative',
+    detail:
+      input.cashFlowCents >= 0
+        ? `Positive — about ${formatDollars(input.cashFlowCents / 12)}/mo after the mortgage.`
+        : `Negative — about ${formatDollars(input.cashFlowCents / 12)}/mo out of pocket after the mortgage.`,
+  })
+
+  // DSCR: only meaningful when there is a mortgage.
+  if (input.dscrRatio !== null) {
+    const dscr = input.dscrRatio
+    factors.push({
+      label: 'Debt-service coverage',
+      status: dscr >= 1.25 ? 'positive' : dscr >= 1.0 ? 'neutral' : 'negative',
+      detail:
+        dscr >= 1.25
+          ? `Strong — income covers the mortgage ${dscr.toFixed(2)}×.`
+          : dscr >= 1.0
+            ? `Tight — income covers the mortgage ${dscr.toFixed(2)}×.`
+            : `Short — income covers only ${dscr.toFixed(2)}× of the mortgage.`,
+    })
+  }
+
+  // Cap rate: a rough yield gauge (market-dependent).
+  factors.push({
+    label: 'Cap rate',
+    status:
+      input.capRatePercent >= 5 ? 'positive' : input.capRatePercent >= 3 ? 'neutral' : 'negative',
+    detail: `${input.capRatePercent.toFixed(2)}% — unleveraged yield on today's value.`,
+  })
+
+  // Long-run effect on net worth (from the projection).
+  factors.push({
+    label: 'Long-term net worth',
+    status: input.netWorthDeltaCents >= 0 ? 'positive' : 'negative',
+    detail:
+      input.netWorthDeltaCents >= 0
+        ? `Higher by about ${formatDollars(input.netWorthDeltaCents)} at the horizon vs not buying.`
+        : `Lower by about ${formatDollars(input.netWorthDeltaCents)} at the horizon vs not buying.`,
+  })
+
+  const hardFail = input.dscrRatio !== null && input.dscrRatio < 1.0
+  const negatives = factors.filter((f) => f.status === 'negative').length
+
+  let signal: RentalDealAssessment['signal']
+  if (hardFail || negatives >= 2) {
+    signal = 'unfavorable'
+  } else if (negatives === 0) {
+    signal = 'favorable'
+  } else {
+    signal = 'caution'
+  }
+
+  return { signal, factors }
 }

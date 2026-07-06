@@ -75,16 +75,22 @@ export function buildRentalProjectionContributions(
 
     const hasLinkedLiability =
       r.linkedLiabilityId != null && existingLiabilityIds.has(r.linkedLiabilityId)
-    if (!hasLinkedLiability && r.mortgagePaymentCents) {
-      const approxBalanceCents = Math.max(0, r.currentValueCents - r.downPaymentCents)
-      if (approxBalanceCents > 0) {
+    const hasMortgage = r.mortgageBalanceCents != null || r.mortgagePaymentCents != null
+    if (!hasLinkedLiability && hasMortgage) {
+      // Prefer the exact outstanding balance when the user entered it; otherwise
+      // approximate it with the same (value − down payment) proxy as equity.
+      const balanceCents =
+        r.mortgageBalanceCents != null
+          ? r.mortgageBalanceCents
+          : Math.max(0, r.currentValueCents - r.downPaymentCents)
+      if (balanceCents > 0) {
         liabilities.push({
           id: `rental-liability:${r.id}`,
           name: `${r.name} (mortgage)`,
-          currentBalanceCents: approxBalanceCents as Cents,
+          currentBalanceCents: balanceCents as Cents,
           interestRatePercent: r.mortgageRatePercent != null ? Number(r.mortgageRatePercent) : 0,
-          minimumPaymentCents: r.mortgagePaymentCents as Cents,
-          termMonths: DEFAULT_MORTGAGE_TERM_MONTHS,
+          minimumPaymentCents: (r.mortgagePaymentCents ?? 0) as Cents,
+          termMonths: r.mortgageTermMonths ?? DEFAULT_MORTGAGE_TERM_MONTHS,
           startDate,
         })
       }

@@ -9,6 +9,8 @@ import {
 import {
   runProjection,
   runMonteCarloProjection,
+  computeRentalMetrics,
+  assessRentalDeal,
   generateAmortizationSchedule,
   generateAmortizationScheduleWithExtras,
   type ProjectionInput,
@@ -41,13 +43,22 @@ import type {
   BudgetStatusResponse,
   BudgetStatusItem,
 } from './types'
-import type { Frequency, BudgetPeriod, Asset, Liability, CashFlowItem } from '@prisma/client'
+import type {
+  Frequency,
+  BudgetPeriod,
+  Asset,
+  Liability,
+  CashFlowItem,
+  RentalProperty,
+} from '@prisma/client'
 import type {
   AssetType,
   EnhancedInvestmentsWithTickers,
   EnhancedHolding,
   SectorAllocation,
   MonteCarloNetWorthResponse,
+  RentalDecisionRequest,
+  RentalDecisionResponse,
 } from '@finance-app/shared-types'
 import Decimal from 'decimal.js'
 
@@ -252,6 +263,139 @@ export class DashboardService {
       seed: DEFAULT_MC_SEED,
       returnVolatilityPercent,
     })
+  }
+
+  /**
+   * "Should I buy this rental?" analysis. Computes the candidate property's deal
+   * metrics, projects the household's net worth with vs without it, runs a Monte
+   * Carlo range for the with-it case, and returns a rules-based verdict. The
+   * candidate is NOT persisted.
+   */
+  async getRentalDecision(
+    householdId: string,
+    candidate: RentalDecisionRequest,
+    horizonYears = 5,
+  ): Promise<RentalDecisionResponse> {
+    await this.planLimitsService.assertHorizonWithinLimit(householdId, horizonYears)
+
+    const [assets, liabilities, cashFlowItems, rentalProperties] = await Promise.all([
+      this.prisma.asset.findMany({ where: { householdId } }),
+      this.prisma.liability.findMany({ where: { householdId } }),
+      this.prisma.cashFlowItem.findMany({ where: { householdId } }),
+      this.prisma.rentalProperty.findMany({ where: { householdId } }),
+    ])
+
+    const startDate = new Date()
+    const assetIds = new Set(assets.map((a) => a.id))
+    const liabilityIds = new Set(liabilities.map((l) => l.id))
+
+    // Baseline: existing portfolio only.
+    const baseContributions = buildRentalProjectionContributions(
+      rentalProperties,
+      assetIds,
+      liabilityIds,
+      startDate,
+    )
+    const withoutInput = buildDashboardProjectionInput(
+      assets,
+      liabilities,
+      cashFlowItems,
+      baseContributions,
+      startDate,
+      horizonYears,
+    )
+
+    // Candidate treated as an unlinked rental (its own asset + mortgage + NOI).
+    const candidateRental = {
+      id: 'candidate',
+      name: candidate.name,
+      currentValueCents: candidate.currentValueCents,
+      downPaymentCents: candidate.downPaymentCents,
+      monthlyRentCents: candidate.monthlyRentCents,
+      vacancyRatePercent: candidate.vacancyRatePercent ?? 5,
+      annualExpensesCents: candidate.annualExpensesCents,
+      propertyTaxAnnualCents: candidate.propertyTaxAnnualCents,
+      mortgagePaymentCents: candidate.mortgagePaymentCents ?? null,
+      mortgageRatePercent: candidate.mortgageRatePercent ?? null,
+      mortgageBalanceCents: candidate.mortgageBalanceCents ?? null,
+      mortgageTermMonths: candidate.mortgageTermMonths ?? null,
+      appreciationRatePercent: candidate.appreciationRatePercent ?? null,
+      linkedAssetId: null,
+      linkedLiabilityId: null,
+    } as unknown as RentalProperty
+
+    const candidateContribs = buildRentalProjectionContributions(
+      [candidateRental],
+      assetIds,
+      liabilityIds,
+      startDate,
+    )
+    const withInput = buildDashboardProjectionInput(
+      assets,
+      liabilities,
+      cashFlowItems,
+      {
+        assets: [...baseContributions.assets, ...candidateContribs.assets],
+        liabilities: [...baseContributions.liabilities, ...candidateContribs.liabilities],
+        cashFlowItems: [...baseContributions.cashFlowItems, ...candidateContribs.cashFlowItems],
+      },
+      startDate,
+      horizonYears,
+    )
+
+    const withoutResult = runProjection(withoutInput)
+    const withResult = runProjection(withInput)
+    const netWorthDeltaCents =
+      withResult.summary.endingNetWorthCents - withoutResult.summary.endingNetWorthCents
+
+    const metrics = computeRentalMetrics({
+      currentValueCents: candidate.currentValueCents as Cents,
+      downPaymentCents: candidate.downPaymentCents as Cents,
+      monthlyRentCents: candidate.monthlyRentCents as Cents,
+      vacancyRatePercent: candidate.vacancyRatePercent ?? 5,
+      annualExpensesCents: candidate.annualExpensesCents as Cents,
+      propertyTaxAnnualCents: candidate.propertyTaxAnnualCents as Cents,
+      mortgagePaymentCents: (candidate.mortgagePaymentCents ?? null) as Cents | null,
+    })
+
+    const monteCarlo = runMonteCarloProjection(withInput, {
+      iterations: DEFAULT_MC_ITERATIONS,
+      seed: DEFAULT_MC_SEED,
+      returnVolatilityPercent: DEFAULT_RETURN_VOLATILITY_PERCENT,
+    })
+
+    const verdict = assessRentalDeal({
+      cashFlowCents: metrics.cashFlowCents,
+      dscrRatio: metrics.dscrRatio,
+      capRatePercent: metrics.capRatePercent,
+      netWorthDeltaCents,
+    })
+
+    const toProjection = (result: typeof withResult): NetWorthProjection[] =>
+      result.yearlySnapshots.map((s) => ({
+        year: s.year,
+        date: s.date,
+        totalAssetsCents: s.totalAssetsCents,
+        totalLiabilitiesCents: s.totalLiabilitiesCents,
+        netWorthCents: s.netWorthCents,
+      }))
+
+    return {
+      horizonYears,
+      metrics: {
+        noiCents: metrics.noiCents,
+        capRatePercent: metrics.capRatePercent,
+        cashOnCashReturnPercent: metrics.cashOnCashReturnPercent,
+        grossRentMultiplier: metrics.grossRentMultiplier,
+        dscrRatio: metrics.dscrRatio,
+        monthlyCashFlowCents: Math.round(metrics.cashFlowCents / 12),
+      },
+      withoutProperty: toProjection(withoutResult),
+      withProperty: toProjection(withResult),
+      netWorthDeltaCents,
+      monteCarlo,
+      verdict,
+    }
   }
 
   async getLoans(householdId: string): Promise<LoansResponse> {

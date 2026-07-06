@@ -1,5 +1,5 @@
-import { computeRentalMetrics } from '../rental/rental'
-import type { RentalMetricsInput } from '../rental/rental.types'
+import { computeRentalMetrics, assessRentalDeal } from '../rental/rental'
+import type { RentalMetricsInput, RentalDealInput } from '../rental/rental.types'
 import { cents } from '../money/money'
 
 /**
@@ -71,5 +71,52 @@ describe('computeRentalMetrics', () => {
     for (let i = 0; i < 10; i++) {
       expect(computeRentalMetrics(mortgaged)).toEqual(first)
     }
+  })
+})
+
+describe('assessRentalDeal', () => {
+  const strong: RentalDealInput = {
+    cashFlowCents: 600_000, // +$500/mo
+    dscrRatio: 1.5,
+    capRatePercent: 6,
+    netWorthDeltaCents: 5_000_000,
+  }
+
+  it('is favorable when every factor is positive', () => {
+    const a = assessRentalDeal(strong)
+    expect(a.signal).toBe('favorable')
+    expect(a.factors.every((f) => f.status === 'positive')).toBe(true)
+  })
+
+  it('is unfavorable when DSCR is below 1 (can’t cover the mortgage)', () => {
+    const a = assessRentalDeal({ ...strong, dscrRatio: 0.8, cashFlowCents: -200_000 })
+    expect(a.signal).toBe('unfavorable')
+  })
+
+  it('omits the DSCR factor for an unmortgaged property', () => {
+    const a = assessRentalDeal({ ...strong, dscrRatio: null })
+    expect(a.factors.some((f) => f.label === 'Debt-service coverage')).toBe(false)
+    expect(a.factors).toHaveLength(3)
+  })
+
+  it('flags caution on a single negative factor', () => {
+    // Negative long-term net worth, but cash flow positive and no mortgage.
+    const a = assessRentalDeal({
+      cashFlowCents: 120_000,
+      dscrRatio: null,
+      capRatePercent: 6,
+      netWorthDeltaCents: -1_000_000,
+    })
+    expect(a.signal).toBe('caution')
+  })
+
+  it('is unfavorable when two or more factors are negative', () => {
+    const a = assessRentalDeal({
+      cashFlowCents: -300_000,
+      dscrRatio: null,
+      capRatePercent: 2, // below 3% → negative
+      netWorthDeltaCents: -2_000_000,
+    })
+    expect(a.signal).toBe('unfavorable')
   })
 })

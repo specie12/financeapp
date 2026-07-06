@@ -48,3 +48,31 @@ export interface RentalMetrics {
   /** Debt-service coverage ratio: NOI / annual debt service; null if no mortgage. */
   dscrRatio: number | null
 }
+
+/** Overall read on a candidate rental deal. */
+export type RentalDealSignal = 'favorable' | 'caution' | 'unfavorable'
+
+/** A single factor that fed the deal assessment. */
+export interface RentalDealFactor {
+  label: string
+  status: 'positive' | 'neutral' | 'negative'
+  detail: string
+}
+
+/** Inputs for assessing whether a rental is a good buy. */
+export interface RentalDealInput {
+  /** Annual pre-tax cash flow (NOI − debt service). */
+  cashFlowCents: number
+  /** Debt-service coverage ratio; null if unmortgaged. */
+  dscrRatio: number | null
+  /** Capitalization rate (%). */
+  capRatePercent: number
+  /** Projected net-worth difference at the horizon: buying minus not buying. */
+  netWorthDeltaCents: number
+}
+
+/** Structured, rules-based verdict for a candidate rental. */
+export interface RentalDealAssessment {
+  signal: RentalDealSignal
+  factors: RentalDealFactor[]
+}

@@ -17,6 +17,8 @@ function metrics(appreciationRatePercent: number | null): RentalPropertyMetrics 
       propertyTaxAnnualCents: 600_000,
       mortgagePaymentCents: 200_000,
       mortgageRatePercent: 6,
+      mortgageBalanceCents: null,
+      mortgageTermMonths: null,
       appreciationRatePercent,
       linkedAssetId: null,
       linkedLiabilityId: null,

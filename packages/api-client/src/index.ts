@@ -38,6 +38,8 @@ import type {
   CashFlowType,
   NetWorthResponse,
   MonteCarloNetWorthResponse,
+  RentalDecisionRequest,
+  RentalDecisionResponse,
   LoansResponse,
   LoanAmortizationResponse,
   InvestmentsResponse,
@@ -505,6 +507,16 @@ export class ApiClient {
       const response = await this.client.get<ApiResponse<MonteCarloNetWorthResponse>>(
         '/dashboard/net-worth/monte-carlo',
         { params },
+      )
+      return response.data
+    },
+
+    getRentalDecision: async (
+      request: RentalDecisionRequest,
+    ): Promise<ApiResponse<RentalDecisionResponse>> => {
+      const response = await this.client.post<ApiResponse<RentalDecisionResponse>>(
+        '/dashboard/rental-decision',
+        request,
       )
       return response.data
     },

@@ -1021,6 +1021,8 @@ export interface RentalProperty {
   propertyTaxAnnualCents: number
   mortgagePaymentCents: number | null
   mortgageRatePercent: number | null
+  mortgageBalanceCents: number | null
+  mortgageTermMonths: number | null
   appreciationRatePercent: number | null
   linkedAssetId: string | null
   linkedLiabilityId: string | null
@@ -1040,6 +1042,8 @@ export interface CreateRentalPropertyDto {
   propertyTaxAnnualCents: number
   mortgagePaymentCents?: number | null
   mortgageRatePercent?: number | null
+  mortgageBalanceCents?: number | null
+  mortgageTermMonths?: number | null
   appreciationRatePercent?: number | null
   linkedAssetId?: string | null
   linkedLiabilityId?: string | null
@@ -1057,6 +1061,8 @@ export interface UpdateRentalPropertyDto {
   propertyTaxAnnualCents?: number
   mortgagePaymentCents?: number | null
   mortgageRatePercent?: number | null
+  mortgageBalanceCents?: number | null
+  mortgageTermMonths?: number | null
   appreciationRatePercent?: number | null
   linkedAssetId?: string | null
   linkedLiabilityId?: string | null
@@ -1080,6 +1086,43 @@ export interface RentalPortfolioSummary {
   averageCapRatePercent: number
   averageCashOnCashPercent: number
   properties: RentalPropertyMetrics[]
+}
+
+// Rental "should I buy this?" decision analysis
+
+export interface RentalDecisionRequest extends CreateRentalPropertyDto {
+  /** Projection horizon in years (defaults server-side). */
+  horizonYears?: number
+}
+
+export interface RentalDealFactorDto {
+  label: string
+  status: 'positive' | 'neutral' | 'negative'
+  detail: string
+}
+
+export interface RentalDecisionResponse {
+  horizonYears: number
+  metrics: {
+    noiCents: number
+    capRatePercent: number
+    cashOnCashReturnPercent: number
+    grossRentMultiplier: number
+    dscrRatio: number | null
+    monthlyCashFlowCents: number
+  }
+  /** Deterministic net-worth path with the current portfolio only. */
+  withoutProperty: NetWorthProjection[]
+  /** Deterministic net-worth path including the candidate property. */
+  withProperty: NetWorthProjection[]
+  /** Ending net-worth difference (with − without) at the horizon. */
+  netWorthDeltaCents: number
+  /** Monte Carlo range of outcomes including the candidate property. */
+  monteCarlo: MonteCarloNetWorthResponse
+  verdict: {
+    signal: 'favorable' | 'caution' | 'unfavorable'
+    factors: RentalDealFactorDto[]
+  }
 }
 
 // ============================================

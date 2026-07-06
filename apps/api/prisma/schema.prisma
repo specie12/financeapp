@@ -466,6 +466,8 @@ model RentalProperty {
   propertyTaxAnnualCents Int       @map("property_tax_annual_cents")
   mortgagePaymentCents   Int?      @map("mortgage_payment_cents")
   mortgageRatePercent    Decimal?  @map("mortgage_rate_percent") @db.Decimal(5,3)
+  mortgageBalanceCents   Int?      @map("mortgage_balance_cents")
+  mortgageTermMonths     Int?      @map("mortgage_term_months")
   appreciationRatePercent Decimal? @map("appreciation_rate_percent") @db.Decimal(5,2)
   linkedAssetId          String?   @map("linked_asset_id") @db.Uuid
   linkedLiabilityId      String?   @map("linked_liability_id") @db.Uuid
