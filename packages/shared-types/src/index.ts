@@ -477,7 +477,9 @@ export interface ScenarioOverride {
   targetType: OverrideTargetType
   entityId: string
   fieldName: string
-  value: string
+  // Typed by (targetType, fieldName): numeric fields (…Cents, …Percent) are
+  // numbers, name/type fields are strings. Enforced at the write boundary.
+  value: string | number
 }
 
 export interface Scenario {
@@ -495,7 +497,7 @@ export interface CreateScenarioOverrideDto {
   targetType: OverrideTargetType
   entityId: string
   fieldName: string
-  value: string
+  value: string | number
 }
 
 export interface CreateScenarioDto {
