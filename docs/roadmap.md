@@ -36,15 +36,19 @@ one-off.**
 Goal: no silent, trust-breaking bugs in the core flows. This is the direct lesson
 of the test.
 
-- [ ] **Form contract audit (the bug class).** The scenario bug was a form sending
-      the wrong _type_ vs the Zod schema. Audit every create/update form against
-      its schema: **assets, liabilities, cash-flow, goals, rental (add + decision),
-      tax profile, budget, transactions, scenarios.** Look for string-vs-number,
-      dollars-vs-cents, and missing coercion. Fix + add a coercion/regression test
-      per form.
-- [ ] **Surface API errors in the UI.** The scenario 400 showed nothing to the
-      user. Every form submit should show the error, not fail silently. (Highest
-      trust win for the least code.)
+- [x] **Form contract audit (the bug class).** Audited every create/update form
+      vs its Zod schema. **Result: the scenario editor was the only offender** —
+      Asset, Liability, CashFlow, Goal, Budget, Tax profile, rental, and onboarding
+      forms all already coerce numerics correctly (`Math.round(…*100)` /
+      `parseFloat`). No manual transaction form exists (Plaid-imported). Bug class
+      is contained.
+- [x] **Surface API errors in the UI.** The scenario new/edit pages were
+      swallowing save errors (console-only). Added `getApiErrorMessage()` + a
+      destructive Alert on both pages. _Follow-up:_ apply the same helper to any
+      other page that only `console.error`s a failed mutation.
+- [ ] _Minor (low priority):_ tax profile form — `taxYear` becomes `NaN` if the
+      field is cleared (parseInt of ''), and `stateCode` must be exactly 2 chars;
+      guard both.
 - [ ] **Fold in the rest of the test findings** (pending — see the running list at
       the bottom).
 - [ ] **Grow web-test coverage** on the wedge flows (harness exists; coverage is
@@ -149,4 +153,6 @@ core flows + a few more watched sessions.
 
 - ✅ Rent-vs-buy: landed well, no comments.
 - ✅→fixed: Scenarios "Update" silently failed (string-vs-typed override values).
+  Root cause fixed + form-contract audit done (only offender) + save errors now
+  surface in the UI.
 - _(add further observations here)_
