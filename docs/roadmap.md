@@ -42,10 +42,11 @@ of the test.
       forms all already coerce numerics correctly (`Math.round(…*100)` /
       `parseFloat`). No manual transaction form exists (Plaid-imported). Bug class
       is contained.
-- [x] **Surface API errors in the UI.** The scenario new/edit pages were
-      swallowing save errors (console-only). Added `getApiErrorMessage()` + a
-      destructive Alert on both pages. _Follow-up:_ apply the same helper to any
-      other page that only `console.error`s a failed mutation.
+- [x] **Surface API errors in the UI.** Swept every mutation handler that only
+      `console.error`'d (or left an unhandled rejection). Now visible: scenario
+      new/edit/delete, settings Asset/CashFlow/Goal/Liability deletes, and budget
+      create/update/delete. All via the shared `getApiErrorMessage()` helper.
+      Fetch hooks already render `ErrorState`, so they were left as-is.
 - [x] _Minor:_ tax profile form — `stateCode` now sent only when exactly 2 chars
       (was 400-ing on a partial entry). (`taxYear` was a false alarm — a fixed
       `<select>`, never `NaN`.)
