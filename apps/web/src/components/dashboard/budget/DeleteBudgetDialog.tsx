@@ -9,6 +9,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface DeleteBudgetDialogProps {
   open: boolean
@@ -16,6 +17,7 @@ interface DeleteBudgetDialogProps {
   categoryName: string
   isMutating: boolean
   onConfirm: () => void
+  error?: string | null
 }
 
 export function DeleteBudgetDialog({
@@ -24,6 +26,7 @@ export function DeleteBudgetDialog({
   categoryName,
   isMutating,
   onConfirm,
+  error = null,
 }: DeleteBudgetDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -35,6 +38,11 @@ export function DeleteBudgetDialog({
             action cannot be undone.
           </DialogDescription>
         </DialogHeader>
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel

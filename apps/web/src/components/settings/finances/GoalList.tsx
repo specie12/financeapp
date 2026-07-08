@@ -8,6 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { formatCurrency } from '@/lib/utils'
 import { GoalModal } from './GoalModal'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface GoalListProps {
   goals: GoalProgressResponse[]
@@ -26,6 +27,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [deletingGoal, setDeletingGoal] = useState<GoalProgressResponse | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Group goals by type
   const goalsByType = goals.reduce(
@@ -57,6 +59,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
     if (!deletingGoal || !accessToken) return
 
     setIsDeleting(true)
+    setDeleteError(null)
     try {
       const apiClient = createAuthenticatedApiClient(accessToken)
       await apiClient.goals.delete(deletingGoal.goal.id)
@@ -64,6 +67,7 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
       setDeletingGoal(null)
     } catch (err) {
       console.error('Failed to delete goal:', err)
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete goal. Please try again.'))
     } finally {
       setIsDeleting(false)
     }
@@ -178,11 +182,17 @@ export function GoalList({ goals, onRefresh, accessToken }: GoalListProps) {
 
       <DeleteConfirmDialog
         open={!!deletingGoal}
-        onOpenChange={(open) => !open && setDeletingGoal(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingGoal(null)
+            setDeleteError(null)
+          }
+        }}
         title="Delete Goal"
         description={`Are you sure you want to delete "${deletingGoal?.goal.name}"? This action cannot be undone.`}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
+        error={deleteError}
       />
     </div>
   )

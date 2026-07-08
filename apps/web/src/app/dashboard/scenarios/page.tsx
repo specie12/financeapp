@@ -7,9 +7,12 @@ import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { ScenarioCard } from '@/components/dashboard/scenarios/ScenarioCard'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 export default function ScenariosPage() {
   const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -20,10 +23,12 @@ export default function ScenariosPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this scenario?')) {
+      setDeleteError(null)
       try {
         await deleteScenario(id)
       } catch (err) {
         console.error('Failed to delete scenario:', err)
+        setDeleteError(getApiErrorMessage(err, 'Failed to delete scenario. Please try again.'))
       }
     }
   }
@@ -75,6 +80,12 @@ export default function ScenariosPage() {
         Create &quot;what-if&quot; scenarios to explore how changes to your financial assumptions
         affect your projections.
       </p>
+
+      {deleteError && (
+        <Alert variant="destructive">
+          <AlertDescription>{deleteError}</AlertDescription>
+        </Alert>
+      )}
 
       {scenarios.length === 0 ? (
         <div className="text-center py-12 border border-dashed rounded-lg">

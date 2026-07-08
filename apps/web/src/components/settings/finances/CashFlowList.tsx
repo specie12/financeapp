@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { CashFlowModal } from './CashFlowModal'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface CashFlowListProps {
   items: CashFlowItem[]
@@ -29,6 +30,7 @@ export function CashFlowList({ items, type, onRefresh, accessToken }: CashFlowLi
   const [editingItem, setEditingItem] = useState<CashFlowItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<CashFlowItem | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const isIncome = type === 'income'
   const label = isIncome ? 'Income' : 'Expense'
@@ -70,6 +72,7 @@ export function CashFlowList({ items, type, onRefresh, accessToken }: CashFlowLi
     if (!deletingItem || !accessToken) return
 
     setIsDeleting(true)
+    setDeleteError(null)
     try {
       const apiClient = createAuthenticatedApiClient(accessToken)
       await apiClient.cashFlowItems.delete(deletingItem.id)
@@ -77,6 +80,7 @@ export function CashFlowList({ items, type, onRefresh, accessToken }: CashFlowLi
       setDeletingItem(null)
     } catch (err) {
       console.error('Failed to delete cash flow item:', err)
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete this item. Please try again.'))
     } finally {
       setIsDeleting(false)
     }
@@ -158,11 +162,17 @@ export function CashFlowList({ items, type, onRefresh, accessToken }: CashFlowLi
 
       <DeleteConfirmDialog
         open={!!deletingItem}
-        onOpenChange={(open) => !open && setDeletingItem(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingItem(null)
+            setDeleteError(null)
+          }
+        }}
         title={`Delete ${label}`}
         description={`Are you sure you want to delete "${deletingItem?.name}"? This action cannot be undone.`}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
+        error={deleteError}
       />
     </div>
   )

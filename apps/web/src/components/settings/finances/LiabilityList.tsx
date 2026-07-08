@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { LiabilityModal } from './LiabilityModal'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface LiabilityListProps {
   liabilities: Liability[]
@@ -28,6 +29,7 @@ export function LiabilityList({ liabilities, onRefresh, accessToken }: Liability
   const [editingLiability, setEditingLiability] = useState<Liability | null>(null)
   const [deletingLiability, setDeletingLiability] = useState<Liability | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Group liabilities by type
   const liabilitiesByType = liabilities.reduce(
@@ -61,6 +63,7 @@ export function LiabilityList({ liabilities, onRefresh, accessToken }: Liability
     if (!deletingLiability || !accessToken) return
 
     setIsDeleting(true)
+    setDeleteError(null)
     try {
       const apiClient = createAuthenticatedApiClient(accessToken)
       await apiClient.liabilities.delete(deletingLiability.id)
@@ -68,6 +71,7 @@ export function LiabilityList({ liabilities, onRefresh, accessToken }: Liability
       setDeletingLiability(null)
     } catch (err) {
       console.error('Failed to delete liability:', err)
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete liability. Please try again.'))
     } finally {
       setIsDeleting(false)
     }
@@ -154,11 +158,17 @@ export function LiabilityList({ liabilities, onRefresh, accessToken }: Liability
 
       <DeleteConfirmDialog
         open={!!deletingLiability}
-        onOpenChange={(open) => !open && setDeletingLiability(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingLiability(null)
+            setDeleteError(null)
+          }
+        }}
         title="Delete Debt"
         description={`Are you sure you want to delete "${deletingLiability?.name}"? This action cannot be undone.`}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
+        error={deleteError}
       />
     </div>
   )
