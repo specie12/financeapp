@@ -45,10 +45,10 @@ Goal: no silent, trust-breaking bugs in the core flows.
 
 Goal: prove the wedge actually helps real people decide, before building more.
 
-- **M1.1 — Watched sessions.** 3–5 sessions (homebuyer + property investor),
-  using the `path-to-first-user.md` script; observe, don't demo. **Done-when:**
-  ≥2 testers reach a decision they trust unaided, and you can name the single
-  "aha" and the single biggest drop-off.
+- **M1.1 — Watched sessions.** 3–5 sessions (homebuyer + property investor).
+  Run each with the ready-to-use `session-checklist.md`; observe, don't demo.
+  **Done-when:** ≥2 testers reach a decision they trust unaided, and you can name
+  the single "aha" and the single biggest drop-off.
 - **M1.2 — Fold findings into fixes.** Fast-loop the rough edges each session
   surfaces (like the scenario bug). **Done-when:** the running-findings list
   below is triaged and the blockers are fixed.
@@ -156,6 +156,7 @@ Goal: retention and growth; deepen the moat where users pull.
 | `positioning.md`                  | **The why** — north star, wedge, decision-engine framing                  |
 | `decision-catalog.md`             | **The feature backlog** — prioritized decision tools + tax hub/layer plan |
 | `path-to-first-user.md`           | **The ops gate** — deploy steps + security checklist + validation script  |
+| `session-checklist.md`            | **Run a session** — ready-to-use watched-validation checklist (M1.1)      |
 | `ux-backlog.md`                   | **UX debt** — deferred IA (personal-vs-investment nav)                    |
 | `competitive-analysis-empower.md` | **The market** — feature comparison vs Empower                            |
 
