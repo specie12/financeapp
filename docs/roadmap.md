@@ -46,9 +46,9 @@ of the test.
       swallowing save errors (console-only). Added `getApiErrorMessage()` + a
       destructive Alert on both pages. _Follow-up:_ apply the same helper to any
       other page that only `console.error`s a failed mutation.
-- [ ] _Minor (low priority):_ tax profile form — `taxYear` becomes `NaN` if the
-      field is cleared (parseInt of ''), and `stateCode` must be exactly 2 chars;
-      guard both.
+- [x] _Minor:_ tax profile form — `stateCode` now sent only when exactly 2 chars
+      (was 400-ing on a partial entry). (`taxYear` was a false alarm — a fixed
+      `<select>`, never `NaN`.)
 - [ ] **Fold in the rest of the test findings** (pending — see the running list at
       the bottom).
 - [ ] **Grow web-test coverage** on the wedge flows (harness exists; coverage is
