@@ -1,159 +1,169 @@
-# Master Plan: Sequenced Roadmap to a Successful App
+# Master Plan: End-to-End to a Sellable Product
 
-**Date:** July 6, 2026
-**Companion to:** `positioning.md`, `decision-catalog.md`, `path-to-first-user.md`, `ux-backlog.md`
-**Voice:** Founder-honest. The living plan — update it as validation teaches you things.
+**Updated:** July 7, 2026
+**Status:** the single source of truth. The other docs are references (see the
+Doc Map at the bottom). Voice: founder-honest.
 
-> **North star (`positioning.md`):** a financial-**decisions** engine — every major
-> money fork, modeled honestly against real data, in one place. Real estate is the
-> go-to-market wedge; trust (the disclosure layer) is the moat.
+> **North star:** a financial-**decisions** engine — every major money fork,
+> modeled honestly against real data, in one place. Real estate is the go-to-
+> market wedge; **trust** (the disclosure layer) is the moat. Full rationale in
+> `positioning.md`.
 
-**Chosen posture:** _polish + validate the wedge first_, solo-focused. So the near
-sequence is **Stabilize → Validate → Deploy → Harden → Deepen** — not more features
-yet. Slice everything into small, shippable chunks.
+**How to read this:** five sequenced phases from where we are now to a product
+people pay for. Each **milestone** has a Goal and a **Done-when**. Do them in
+order — the whole point is orderly implementation. Solo-focused, so slice each
+milestone into small shippable chunks.
 
----
-
-## Where we are (honest)
-
-- A credible, **differentiated MVP of the wedge** exists and is tested
-  (finance-engine 503, api 122, web 33). Rent-vs-buy, mortgage-vs-invest, the
-  rental decision flow, Monte Carlo, scenarios, net worth all work.
-- **One watched session done:** rent-vs-buy landed well; **Scenarios "Update" was
-  silently broken** (fixed) — a frontend/backend contract drift (string vs typed
-  value) that unit tests missed.
-- **Local-only.** Not deployed, sandbox Plaid, seeded demo account still present.
-- The strategy is fully mapped in the companion docs; this ties it into an order.
-
-**The signal from the test:** the flows aren't yet trustworthy enough to put in
-front of strangers — and the scenario bug is almost certainly **a class, not a
-one-off.**
+**Assumption to confirm (monetization):** the plan assumes a **SaaS subscription
+(Free / Pro / Premium)** — consistent with `competitive-analysis-empower.md` and
+the existing plan-limits infra. If the model should be different (one-time,
+advisor marketplace, etc.), Phase 3 changes. Everything before Phase 3 is
+model-agnostic.
 
 ---
 
-## Phase 0 — Stabilize the wedge (do now)
+## ▶ You are here
 
-Goal: no silent, trust-breaking bugs in the core flows. This is the direct lesson
-of the test.
-
-- [x] **Form contract audit (the bug class).** Audited every create/update form
-      vs its Zod schema. **Result: the scenario editor was the only offender** —
-      Asset, Liability, CashFlow, Goal, Budget, Tax profile, rental, and onboarding
-      forms all already coerce numerics correctly (`Math.round(…*100)` /
-      `parseFloat`). No manual transaction form exists (Plaid-imported). Bug class
-      is contained.
-- [x] **Surface API errors in the UI.** Swept every mutation handler that only
-      `console.error`'d (or left an unhandled rejection). Now visible: scenario
-      new/edit/delete, settings Asset/CashFlow/Goal/Liability deletes, and budget
-      create/update/delete. All via the shared `getApiErrorMessage()` helper.
-      Fetch hooks already render `ErrorState`, so they were left as-is.
-- [x] _Minor:_ tax profile form — `stateCode` now sent only when exactly 2 chars
-      (was 400-ing on a partial entry). (`taxYear` was a false alarm — a fixed
-      `<select>`, never `NaN`.)
-- [ ] **Fold in the rest of the test findings** (pending — see the running list at
-      the bottom).
-- [ ] **Grow web-test coverage** on the wedge flows (harness exists; coverage is
-      thin). Lock each form's submit → API contract.
-
-**Done when:** you can click through every create/update form for the wedge and
-each either succeeds or shows a clear error — no silent no-ops.
+Phase 0 (stabilize) is **done**. We're early in **Phase 1 (validate)** — one
+watched session done, wedge flows now trustworthy. Everything below is the road
+from here.
 
 ---
 
-## Phase 1 — Validate deeper (overlaps Phase 0)
+## Phase 0 — Stabilize the wedge ✅ (done)
 
-Goal: learn whether the wedge actually helps people decide, across both personas.
+Goal: no silent, trust-breaking bugs in the core flows.
 
-- [ ] 2–3 more **watched sessions** (`path-to-first-user.md` script): a homebuyer
-      (rent-vs-buy) _and_ a property investor (rental decision). Pre-commit the
-      pass bar; observe, don't demo.
-- [ ] After each, feed fixes back into Phase 0 and note the one thing people love /
-      get stuck on.
-- [ ] Use the sessions to settle the **personal-vs-investment nav question**
-      (`ux-backlog.md`) with behavior, not a guess.
-
-**Done when:** ≥2 testers reach a decision they trust without you intervening, and
-you can name the single sharpest "aha" and the single biggest drop-off.
+- ✅ Wedge built & tested (rentals→engine, Monte Carlo, decision flow, scenarios).
+- ✅ Form-contract audit — scenario editor was the only offender.
+- ✅ Error-surfacing sweep — no mutation fails silently.
+- ✅ Trust/disclosure layer across the decision surfaces.
 
 ---
 
-## Phase 2 — Get deployable (after the wedge is trustworthy)
+## Phase 1 — Validate the wedge 🔶 (in progress)
 
-Goal: move validation from "over your shoulder" to "here's a link."
+Goal: prove the wedge actually helps real people decide, before building more.
 
-- [ ] Gate-1 deploy (`path-to-first-user.md`): managed Postgres (Neon/Railway) →
-      API (Railway/Render/Fly) → web (Vercel). Real JWT secrets, `CORS_ORIGIN`
-      locked, `NEXT_PUBLIC_API_URL` wired, `prisma migrate deploy`.
-- [ ] **Kill the seeded demo account** + the dev password.
-- [ ] Smoke the full fresh-signup → onboarding → decision flow on the deployed URLs
-      (already validated locally this session).
+- **M1.1 — Watched sessions.** 3–5 sessions (homebuyer + property investor),
+  using the `path-to-first-user.md` script; observe, don't demo. **Done-when:**
+  ≥2 testers reach a decision they trust unaided, and you can name the single
+  "aha" and the single biggest drop-off.
+- **M1.2 — Fold findings into fixes.** Fast-loop the rough edges each session
+  surfaces (like the scenario bug). **Done-when:** the running-findings list
+  below is triaged and the blockers are fixed.
+- **M1.3 — Settle key UX from behavior.** e.g., the personal-vs-investment nav
+  grouping (`ux-backlog.md`) — decide by what testers do, not by guessing.
+  **Done-when:** the nav/IA decisions are made and logged.
 
-**Done when:** a stranger can sign up at a URL and reach the decision flow with
-sample data.
-
----
-
-## Phase 3 — Security hardening (before real bank data / open signups)
-
-Grounded in the repo audit (`path-to-first-user.md`). Already in place: Plaid token
-encryption, household isolation guard, bcrypt. Gaps to close:
-
-- [ ] **Auth rate limiting** (`@nestjs/throttler`) + lockout — brute-force is open
-      today.
-- [ ] **Security headers** (`helmet`).
-- [ ] **Refresh-token rotation + revoke on logout / reuse detection.**
-- [ ] **Explicit IDOR test** — user A must 403/404 on user B's ids.
-- [ ] No stack traces to clients in prod; dependency/secret scanning in CI.
-- [ ] **Privacy policy + terms**, and a working **data export + delete** path.
-- [ ] Plaid production access — only after all the above.
-
-**Done when:** you'd be comfortable letting a stranger connect a real account.
+**Gate:** don't start Phase 2 until the wedge earns "yes, I'd use this for my
+next decision" from real people. If it doesn't, iterate the wedge here.
 
 ---
 
-## Phase 4 — Deepen the moat (features, once validated + deployable)
+## Phase 2 — Make it real: deploy + secure ⬜
 
-Order from `decision-catalog.md`, adjusted by what validation taught you.
+Goal: a stranger can sign up at a URL and use it safely with real data.
 
-1. [ ] **Tax as a layer — first slice:** a shared `TaxProfile` the finance-engine
-       reads, then **after-tax modeling in the rental decision flow starting with
-       depreciation** (the tax shield that often flips a rental deal).
-2. [ ] **Insurance adequacy** ("Am I underinsured?") — high-stakes, unclaimed.
-3. [ ] **Fee & drag analyzer** — concrete, switch-inducing, low effort.
-4. [ ] **Personal-vs-investment nav regroup** (`ux-backlog.md`) + rename Rental
-       Properties → My Rentals.
-5. [ ] Then Tier 2/3 (refinance engine, retirement + Social Security, equity comp,
-       concentration/liquidity, car buy-vs-lease) as demand directs.
+- **M2.1 — Deploy (Gate 1).** Managed Postgres (Neon/Railway) → API
+  (Railway/Render/Fly) → web (Vercel); real secrets, CORS locked, migrations on
+  release; kill the seeded demo account. **Done-when:** fresh signup → onboarding
+  → decision flow works on live URLs.
+- **M2.2 — Security hardening (Gate 2).** Auth rate limiting + lockout, `helmet`,
+  refresh-token rotation, an explicit IDOR test, no stack traces in prod, dep/
+  secret scanning. **Done-when:** you'd let a stranger connect a real bank.
+- **M2.3 — Legal + data rights.** Privacy policy, terms, working data
+  export + delete. **Done-when:** the basics a finance app must have are live.
+- **M2.4 — Real market data (optional here).** Flip the provider to live
+  (`FINNHUB_API_KEY`) so the demo-data banner comes off. **Done-when:** investments
+  show live quotes.
 
-**Guiding rule:** every new decision tool ships with its disclosure payload and a
-contract test — the moat and the bug-class prevention, built in.
-
----
-
-## Cross-cutting / housekeeping (ongoing)
-
-- [ ] **Open the PRs** and merge to `main`: `feat/rental-wedge-engine` (M1–P4 +
-      fixes) and `docs/…` (strategy docs). Set your real git author identity first.
-- [ ] Keep **test coverage** growing with each flow (harness in place).
-- [ ] Treat the docs as living: `decision-catalog.md` = feature backlog,
-      `path-to-first-user.md` = ops gate, `positioning.md` = north star, this file
-      = the order.
+Details + the grounded security checklist: `path-to-first-user.md`.
 
 ---
 
-## Immediate next action
+## Phase 3 — Make it sellable: monetization + depth + polish ⬜
 
-**Start the Phase 0 form-contract audit** — it's the direct, systemic fix for the
-class of bug the test exposed, and it's exactly the "polish the wedge so it's
-trustworthy" work you chose to front-load. Everything else waits behind trustworthy
-core flows + a few more watched sessions.
+Goal: something people will pay for, with a working way to pay.
+
+- **M3.1 — Billing + plan gating.** Stripe (or similar), wire the Free/Pro/
+  Premium tiers to the existing plan-limits, upgrade/downgrade flow, paywall on
+  gated features. **Done-when:** a user can subscribe and hit tier limits.
+- **M3.2 — Depth that justifies paying: tax as a layer.** Ship the first slice
+  from `decision-catalog.md` — a shared `TaxProfile` the engine reads, then
+  **after-tax modeling in the rental decision flow starting with depreciation.**
+  After-tax is what makes the decision tools _correct_ and worth money.
+  **Done-when:** the rental verdict reflects the tax shield; other tools read the
+  same profile.
+- **M3.3 — One or two more Tier-1 "wow"s.** Insurance adequacy and/or the fee &
+  drag analyzer — high-value, unclaimed, switch-inducing. **Done-when:** each
+  ships with its disclosure + a contract test.
+- **M3.4 — Product polish.** Onboarding, empty states, mobile responsiveness,
+  the nav regroup, and **proactive nudges** (the "advisor" feel — "rates dropped,
+  refinancing now breaks even in 14 months"). **Done-when:** the app feels like a
+  product, not a prototype.
 
 ---
 
-## Running list: test findings (update as they come)
+## Phase 4 — Launch ⬜
+
+Goal: real users signing up, and some paying.
+
+- **M4.1 — Landing page + pitch.** The "decision engine" positioning, wedge-first
+  hero, honest-about-uncertainty angle. **Done-when:** a stranger understands the
+  value in 10 seconds.
+- **M4.2 — Analytics + funnel.** Instrument signup → onboarding → first decision
+  → upgrade, plus error monitoring (Sentry). **Done-when:** you can see where
+  users drop.
+- **M4.3 — Beta → paid.** Small cohort first (Empower refugees, FIRE/Bogleheads,
+  r/personalfinance), then open paid signups. **Done-when:** the first paying
+  customers exist.
+- **M4.4 — Support loop.** In-app feedback, a way to answer users. **Done-when:**
+  you can hear and act on real usage.
+
+---
+
+## Phase 5 — Grow (demand-driven) ⬜
+
+Goal: retention and growth; deepen the moat where users pull.
+
+- Work the `decision-catalog.md` Tier 2/3 by demand: refinance/debt engine,
+  retirement + Social Security claiming, equity comp (RSU/ISO/ESPP),
+  concentration/liquidity health, car buy-vs-lease, dividend calendar,
+  benchmarking.
+- **Cross-decision integration** — the unique feature no one has ("you're weighing
+  this rental, but your car lease ends and you could refi").
+- Distribution/content marketing against the Empower pain points.
+
+---
+
+## Cross-cutting foundations (ongoing, every phase)
+
+- **Tests grow with each flow** — every new tool ships with a contract/regression
+  test (the harness exists; web coverage is still thin).
+- **Repo hygiene** — merge `feat/rental-wedge-engine` and `docs/…` to `main`, open
+  PRs, keep CI green, set a real git author identity.
+- **Docs stay living** — this file is the plan; update the "you are here" and the
+  findings list as you go.
+
+---
+
+## Doc Map (what each reference is for)
+
+| Doc                               | Role                                                                      |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| `roadmap.md` (this)               | **The plan** — phases, milestones, order                                  |
+| `positioning.md`                  | **The why** — north star, wedge, decision-engine framing                  |
+| `decision-catalog.md`             | **The feature backlog** — prioritized decision tools + tax hub/layer plan |
+| `path-to-first-user.md`           | **The ops gate** — deploy steps + security checklist + validation script  |
+| `ux-backlog.md`                   | **UX debt** — deferred IA (personal-vs-investment nav)                    |
+| `competitive-analysis-empower.md` | **The market** — feature comparison vs Empower                            |
+
+---
+
+## Running list: validation findings (update as sessions happen)
 
 - ✅ Rent-vs-buy: landed well, no comments.
-- ✅→fixed: Scenarios "Update" silently failed (string-vs-typed override values).
-  Root cause fixed + form-contract audit done (only offender) + save errors now
-  surface in the UI.
+- ✅→fixed: Scenarios "Update" silently failed (string-vs-typed override values) —
+  root cause fixed, whole form-audit done, save errors now surface.
 - _(add further observations here)_
