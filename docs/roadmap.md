@@ -167,4 +167,7 @@ Goal: retention and growth; deepen the moat where users pull.
 - ✅ Rent-vs-buy: landed well, no comments.
 - ✅→fixed: Scenarios "Update" silently failed (string-vs-typed override values) —
   root cause fixed, whole form-audit done, save errors now surface.
+- ✅ Founder end-to-end self-test (2026-07): flows work start to finish, satisfied.
+  NB: confirms it _works_, not that it's _wanted_ — the M1.1 gate (real users
+  making trusted decisions) is still open.
 - _(add further observations here)_
