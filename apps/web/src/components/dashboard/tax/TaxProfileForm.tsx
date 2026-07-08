@@ -35,7 +35,8 @@ export function TaxProfileForm({ profile, onSubmit }: TaxProfileFormProps) {
       await onSubmit({
         taxYear,
         filingStatus,
-        stateCode: stateCode || null,
+        // Schema requires exactly 2 chars; drop a partial entry rather than 400.
+        stateCode: stateCode.length === 2 ? stateCode : null,
         dependents,
         additionalIncomeCents: additionalIncome
           ? Math.round(parseFloat(additionalIncome) * 100)
