@@ -8,6 +8,8 @@ import { useHouseholdEntities } from '@/hooks/useHouseholdEntities'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
 import { ScenarioEditor } from '@/components/dashboard/scenarios/ScenarioEditor'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getApiErrorMessage } from '@/lib/api-error'
 import type { Scenario, CreateScenarioDto } from '@finance-app/shared-types'
 
 export default function EditScenarioPage() {
@@ -20,6 +22,7 @@ export default function EditScenarioPage() {
   const [scenarioLoading, setScenarioLoading] = useState(true)
   const [scenarioError, setScenarioError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -60,11 +63,13 @@ export default function EditScenarioPage() {
 
   const handleSave = async (data: CreateScenarioDto) => {
     setIsSaving(true)
+    setSaveError(null)
     try {
       await updateScenario(scenarioId, data)
       router.push('/dashboard/scenarios')
     } catch (err) {
       console.error('Failed to update scenario:', err)
+      setSaveError(getApiErrorMessage(err, 'Failed to update scenario. Please try again.'))
     } finally {
       setIsSaving(false)
     }
@@ -115,6 +120,12 @@ export default function EditScenarioPage() {
       <p className="text-muted-foreground">
         Update the assumptions for &quot;{scenario.name}&quot;.
       </p>
+
+      {saveError && (
+        <Alert variant="destructive">
+          <AlertDescription>{saveError}</AlertDescription>
+        </Alert>
+      )}
 
       <ScenarioEditor
         scenario={scenario}
