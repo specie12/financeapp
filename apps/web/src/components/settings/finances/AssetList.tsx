@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { formatCurrency } from '@/lib/utils'
 import { AssetModal } from './AssetModal'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
+import { getApiErrorMessage } from '@/lib/api-error'
 
 interface AssetListProps {
   assets: Asset[]
@@ -29,6 +30,7 @@ export function AssetList({ assets, onRefresh, accessToken }: AssetListProps) {
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   // Group assets by type
   const assetsByType = assets.reduce(
@@ -59,6 +61,7 @@ export function AssetList({ assets, onRefresh, accessToken }: AssetListProps) {
     if (!deletingAsset || !accessToken) return
 
     setIsDeleting(true)
+    setDeleteError(null)
     try {
       const apiClient = createAuthenticatedApiClient(accessToken)
       await apiClient.assets.delete(deletingAsset.id)
@@ -66,6 +69,7 @@ export function AssetList({ assets, onRefresh, accessToken }: AssetListProps) {
       setDeletingAsset(null)
     } catch (err) {
       console.error('Failed to delete asset:', err)
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete asset. Please try again.'))
     } finally {
       setIsDeleting(false)
     }
@@ -148,11 +152,17 @@ export function AssetList({ assets, onRefresh, accessToken }: AssetListProps) {
 
       <DeleteConfirmDialog
         open={!!deletingAsset}
-        onOpenChange={(open) => !open && setDeletingAsset(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletingAsset(null)
+            setDeleteError(null)
+          }
+        }}
         title="Delete Asset"
         description={`Are you sure you want to delete "${deletingAsset?.name}"? This action cannot be undone.`}
         onConfirm={handleDelete}
         isDeleting={isDeleting}
+        error={deleteError}
       />
     </div>
   )

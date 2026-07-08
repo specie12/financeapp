@@ -5,6 +5,7 @@ import type { UpdateRentalPropertyDtoClass } from './dto/update-rental-property.
 import type { RentalPropertyQueryDto } from './dto/rental-property-query.dto'
 import type { RentalProperty } from '@prisma/client'
 import type { RentalPropertyMetrics, RentalPortfolioSummary } from '@finance-app/shared-types'
+import { computeRentalMetrics, type Cents } from '@finance-app/finance-engine'
 
 interface PaginatedResult<T> {
   data: T[]
@@ -32,6 +33,9 @@ export class RentalPropertiesService {
         propertyTaxAnnualCents: dto.propertyTaxAnnualCents,
         mortgagePaymentCents: dto.mortgagePaymentCents ?? null,
         mortgageRatePercent: dto.mortgageRatePercent ?? null,
+        mortgageBalanceCents: dto.mortgageBalanceCents ?? null,
+        mortgageTermMonths: dto.mortgageTermMonths ?? null,
+        appreciationRatePercent: dto.appreciationRatePercent ?? null,
         linkedAssetId: dto.linkedAssetId ?? null,
         linkedLiabilityId: dto.linkedLiabilityId ?? null,
       },
@@ -92,29 +96,16 @@ export class RentalPropertiesService {
   }
 
   calculateMetrics(property: RentalProperty): RentalPropertyMetrics {
-    const vacancyRate = Number(property.vacancyRatePercent) / 100
-    const effectiveGrossIncome = Math.round(property.monthlyRentCents * 12 * (1 - vacancyRate))
-    const noiCents =
-      effectiveGrossIncome - property.annualExpensesCents - property.propertyTaxAnnualCents
-
-    const capRatePercent =
-      property.currentValueCents > 0
-        ? Math.round((noiCents / property.currentValueCents) * 10000) / 100
-        : 0
-
-    const annualMortgage = property.mortgagePaymentCents ? property.mortgagePaymentCents * 12 : 0
-    const cashFlow = noiCents - annualMortgage
-    const cashOnCashReturnPercent =
-      property.downPaymentCents > 0
-        ? Math.round((cashFlow / property.downPaymentCents) * 10000) / 100
-        : 0
-
-    const annualRent = property.monthlyRentCents * 12
-    const grossRentMultiplier =
-      annualRent > 0 ? Math.round((property.currentValueCents / annualRent) * 100) / 100 : 0
-
-    const dscrRatio =
-      annualMortgage > 0 ? Math.round((noiCents / annualMortgage) * 100) / 100 : null
+    // Thin adapter: all rental math lives in the (Decimal.js, tested) engine.
+    const metrics = computeRentalMetrics({
+      currentValueCents: property.currentValueCents as Cents,
+      downPaymentCents: property.downPaymentCents as Cents,
+      monthlyRentCents: property.monthlyRentCents as Cents,
+      vacancyRatePercent: Number(property.vacancyRatePercent),
+      annualExpensesCents: property.annualExpensesCents as Cents,
+      propertyTaxAnnualCents: property.propertyTaxAnnualCents as Cents,
+      mortgagePaymentCents: (property.mortgagePaymentCents ?? null) as Cents | null,
+    })
 
     return {
       property: {
@@ -133,16 +124,21 @@ export class RentalPropertiesService {
         mortgageRatePercent: property.mortgageRatePercent
           ? Number(property.mortgageRatePercent)
           : null,
+        mortgageBalanceCents: property.mortgageBalanceCents,
+        mortgageTermMonths: property.mortgageTermMonths,
+        appreciationRatePercent: property.appreciationRatePercent
+          ? Number(property.appreciationRatePercent)
+          : null,
         linkedAssetId: property.linkedAssetId,
         linkedLiabilityId: property.linkedLiabilityId,
         createdAt: property.createdAt,
         updatedAt: property.updatedAt,
       },
-      noiCents,
-      capRatePercent,
-      cashOnCashReturnPercent,
-      grossRentMultiplier,
-      dscrRatio,
+      noiCents: metrics.noiCents,
+      capRatePercent: metrics.capRatePercent,
+      cashOnCashReturnPercent: metrics.cashOnCashReturnPercent,
+      grossRentMultiplier: metrics.grossRentMultiplier,
+      dscrRatio: metrics.dscrRatio,
     }
   }
 
@@ -153,11 +149,34 @@ export class RentalPropertiesService {
 
     const propertyMetrics = properties.map((p) => this.calculateMetrics(p))
 
-    const totalValueCents = properties.reduce((sum, p) => sum + p.currentValueCents, 0)
-    const totalDebtCents = properties.reduce(
-      (sum, p) => sum + (p.mortgagePaymentCents ? p.currentValueCents - p.downPaymentCents : 0),
-      0,
+    // Resolve real amortized balances for rentals linked to a liability, so
+    // portfolio equity reflects actual paydown rather than the down-payment
+    // proxy. Unlinked mortgaged rentals fall back to the documented proxy.
+    const linkedLiabilityIds = properties
+      .map((p) => p.linkedLiabilityId)
+      .filter((id): id is string => id !== null)
+    const linkedLiabilities =
+      linkedLiabilityIds.length > 0
+        ? await this.prisma.liability.findMany({
+            where: { householdId, id: { in: linkedLiabilityIds } },
+            select: { id: true, currentBalanceCents: true },
+          })
+        : []
+    const balanceByLiabilityId = new Map(
+      linkedLiabilities.map((l) => [l.id, l.currentBalanceCents]),
     )
+
+    const totalValueCents = properties.reduce((sum, p) => sum + p.currentValueCents, 0)
+    const totalDebtCents = properties.reduce((sum, p) => {
+      if (p.linkedLiabilityId && balanceByLiabilityId.has(p.linkedLiabilityId)) {
+        return sum + (balanceByLiabilityId.get(p.linkedLiabilityId) ?? 0)
+      }
+      // Exact balance when entered, else the (value − down payment) proxy.
+      if (p.mortgageBalanceCents != null) {
+        return sum + p.mortgageBalanceCents
+      }
+      return sum + (p.mortgagePaymentCents ? p.currentValueCents - p.downPaymentCents : 0)
+    }, 0)
     const totalMonthlyRentCents = properties.reduce((sum, p) => sum + p.monthlyRentCents, 0)
     const totalNOICents = propertyMetrics.reduce((sum, m) => sum + m.noiCents, 0)
 

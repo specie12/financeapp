@@ -13,6 +13,7 @@ import {
   type FieldOverride,
   type Cents,
 } from '@finance-app/finance-engine'
+import { buildRentalProjectionContributions } from '../rental-properties/rental-projection.util'
 import { CreateScenarioDto, ScenarioOverrideDto, OverrideTargetType } from './dto'
 import { UpdateScenarioDto } from './dto'
 
@@ -136,52 +137,72 @@ export class ScenariosService {
 
     const scenario = await this.findOne(householdId, scenarioId)
 
-    const [assets, liabilities, cashFlowItems] = await Promise.all([
+    const [assets, liabilities, cashFlowItems, rentalProperties] = await Promise.all([
       this.prisma.asset.findMany({ where: { householdId } }),
       this.prisma.liability.findMany({ where: { householdId } }),
       this.prisma.cashFlowItem.findMany({ where: { householdId } }),
+      this.prisma.rentalProperty.findMany({ where: { householdId } }),
     ])
 
     const engineScenario = this.convertToEngineScenario(scenario)
+    const projectionStartDate = new Date()
+
+    // Fold rentals into the projection (skipping any already represented by a
+    // linked asset/liability) so scenarios reflect real-estate holdings.
+    const rentalContributions = buildRentalProjectionContributions(
+      rentalProperties,
+      new Set(assets.map((a) => a.id)),
+      new Set(liabilities.map((l) => l.id)),
+      projectionStartDate,
+    )
 
     const projectionInput: ProjectionInput = {
-      startDate: new Date(),
+      startDate: projectionStartDate,
       horizonYears,
-      assets: assets.map(
-        (a): ProjectionAsset => ({
-          id: a.id,
-          name: a.name,
-          currentValueCents: a.currentValueCents as Cents,
-          annualGrowthRatePercent: a.annualGrowthRatePercent
-            ? Number(a.annualGrowthRatePercent)
-            : 0,
-        }),
-      ),
-      liabilities: liabilities.map(
-        (l): ProjectionLiability => ({
-          id: l.id,
-          name: l.name,
-          currentBalanceCents: l.currentBalanceCents as Cents,
-          interestRatePercent: Number(l.interestRatePercent),
-          minimumPaymentCents: l.minimumPaymentCents as Cents,
-          termMonths: l.termMonths ?? null,
-          startDate: l.startDate,
-        }),
-      ),
-      cashFlowItems: cashFlowItems.map(
-        (c): ProjectionCashFlowItem => ({
-          id: c.id,
-          name: c.name,
-          type: c.type,
-          amountCents: c.amountCents as Cents,
-          frequency: c.frequency,
-          startDate: c.startDate ?? null,
-          endDate: c.endDate ?? null,
-          annualGrowthRatePercent: c.annualGrowthRatePercent
-            ? Number(c.annualGrowthRatePercent)
-            : null,
-        }),
-      ),
+      assets: [
+        ...assets.map(
+          (a): ProjectionAsset => ({
+            id: a.id,
+            name: a.name,
+            currentValueCents: a.currentValueCents as Cents,
+            annualGrowthRatePercent: a.annualGrowthRatePercent
+              ? Number(a.annualGrowthRatePercent)
+              : 0,
+          }),
+        ),
+        ...rentalContributions.assets,
+      ],
+      liabilities: [
+        ...liabilities.map(
+          (l): ProjectionLiability => ({
+            id: l.id,
+            name: l.name,
+            currentBalanceCents: l.currentBalanceCents as Cents,
+            interestRatePercent: Number(l.interestRatePercent),
+            minimumPaymentCents: l.minimumPaymentCents as Cents,
+            termMonths: l.termMonths ?? null,
+            startDate: l.startDate,
+          }),
+        ),
+        ...rentalContributions.liabilities,
+      ],
+      cashFlowItems: [
+        ...cashFlowItems.map(
+          (c): ProjectionCashFlowItem => ({
+            id: c.id,
+            name: c.name,
+            type: c.type,
+            amountCents: c.amountCents as Cents,
+            frequency: c.frequency,
+            startDate: c.startDate ?? null,
+            endDate: c.endDate ?? null,
+            annualGrowthRatePercent: c.annualGrowthRatePercent
+              ? Number(c.annualGrowthRatePercent)
+              : null,
+          }),
+        ),
+        ...rentalContributions.cashFlowItems,
+      ],
       scenario: engineScenario,
     }
 

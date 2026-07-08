@@ -1,6 +1,51 @@
 import type { Frequency } from '@finance-app/shared-types'
-import type { MonthlyExpenses, OnboardingState } from './types'
+import type { MonthlyExpenses, OnboardingState, OnboardingIntent } from './types'
 import type { IncomeItem, AssetItem, LiabilityItem } from './schemas'
+
+// ============================================
+// Intent → recommended first tool
+// ============================================
+
+export interface RecommendedTool {
+  href: string
+  label: string
+  description: string
+}
+
+/**
+ * Maps the user's stated onboarding intent to the tool they should land on
+ * first, so the wedge value is one click from the completion screen. Falls back
+ * to net worth when no intent was chosen.
+ */
+export function recommendedToolForIntent(intent: OnboardingIntent | null): RecommendedTool {
+  switch (intent) {
+    case 'buy_rental':
+      return {
+        href: '/dashboard/decisions/rental',
+        label: 'Analyze a rental purchase',
+        description: 'Score a property and see its impact on your net worth',
+      }
+    case 'rent_vs_buy':
+      return {
+        href: '/dashboard/rent-vs-buy',
+        label: 'Compare renting vs. buying',
+        description: 'See which comes out ahead over your time horizon',
+      }
+    case 'pay_off_debt':
+      return {
+        href: '/dashboard/loans',
+        label: 'Plan your debt payoff',
+        description: 'Model extra payments and the interest you would save',
+      }
+    case 'grow_net_worth':
+    default:
+      return {
+        href: '/dashboard/net-worth',
+        label: 'See your net worth projection',
+        description: 'Track assets vs. debts and project them forward',
+      }
+  }
+}
 
 // ============================================
 // Currency Conversion

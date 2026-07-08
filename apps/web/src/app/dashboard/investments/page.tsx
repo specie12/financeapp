@@ -15,6 +15,7 @@ import {
 import { EnhancedHoldingsList } from '@/components/dashboard/investments/EnhancedHoldingsList'
 import { GoalsSummaryCard } from '@/components/dashboard/goals'
 import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import type { TickerData, EnhancedInvestmentsWithTickers } from '@finance-app/shared-types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
@@ -155,6 +156,16 @@ export default function InvestmentsPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Investments</h1>
 
+      {tickerData?.marketDataSource === 'simulated' && (
+        <Alert>
+          <AlertDescription>
+            <span className="font-medium">Demo data.</span> Live prices, day/week/month/YTD/1-year
+            performance, and market movers below are simulated for demonstration — not live market
+            quotes. Your holdings, shares, and cost basis are your real data.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <PortfolioSummary
         summary={investmentData.summary}
         holdingCount={investmentData.holdings.length}
@@ -230,12 +241,17 @@ export default function InvestmentsPage() {
             <AllocationChart holdings={investmentData.holdings} />
           </div>
 
-          {/* Portfolio Performance — labeled as snapshot/estimate so users
-              don't read these as projections. Day-change is real ticker data;
-              week/month/YTD are not yet implemented and are surfaced as null. */}
+          {/* Portfolio Performance — sourced from simulated market data (see the
+              demo-data notice above), labeled snapshot so it isn't read as a
+              projection. */}
           {tickerData?.portfolioPerformance && (
             <div className="flex items-center gap-2 mt-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Portfolio Performance</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Portfolio Performance{' '}
+                {tickerData.marketDataSource === 'simulated' && (
+                  <span className="font-normal">(demo)</span>
+                )}
+              </h3>
               <DisclosureBadge kind="snapshot" />
             </div>
           )}
@@ -274,15 +290,23 @@ export default function InvestmentsPage() {
               kind: 'snapshot',
               framing:
                 'A current-state view of your investments. Cost basis, gain/loss, and dividend yield are surfaced only when you have set them on the asset — missing inputs render as “Not set,” never as zero.',
+              assumptions: [
+                {
+                  label: 'Prices & performance',
+                  value: 'simulated demo data',
+                  source: 'default',
+                  note: 'ticker prices and the day/week/month/YTD/1-year changes are generated for demonstration, not fetched from a live market feed',
+                },
+              ],
               notModeled: [
+                'Live market quotes — a real market-data provider is not yet connected.',
                 'Realized vs unrealized gain — every gain shown here is unrealized.',
                 'Dividend reinvestment or DRIP behavior.',
                 'Fund expense ratios, advisor fees, and other portfolio drag.',
                 'Tax-lot accounting — cost basis is per-asset, not per-purchase.',
-                'Market price movements between page loads.',
               ],
               caveats: [
-                'Day change comes from ticker data when configured. Week / month / YTD windows are not yet implemented and will read as “—,” not “0%.”',
+                'Because prices are simulated, the performance percentages are illustrative — do not use them to make trading decisions.',
                 'Default dividend yields are not assumed. Dollars shown are only summed across assets where you set a yield.',
               ],
             }}

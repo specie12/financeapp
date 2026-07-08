@@ -18,6 +18,8 @@ interface DeleteConfirmDialogProps {
   description: string
   onConfirm: () => void
   isDeleting?: boolean
+  /** Shown inside the dialog when the delete fails, so it isn't silent. */
+  error?: string | null
 }
 
 export function DeleteConfirmDialog({
@@ -27,6 +29,7 @@ export function DeleteConfirmDialog({
   description,
   onConfirm,
   isDeleting = false,
+  error = null,
 }: DeleteConfirmDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -35,6 +38,11 @@ export function DeleteConfirmDialog({
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {error && (
+          <p className="text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
           <AlertDialogAction

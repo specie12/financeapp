@@ -1,143 +1,106 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
-import { TickerData } from '@finance-app/shared-types'
-import { MOCK_TICKER_DATA, VALID_TICKERS, updateMockPrices } from './mock-ticker-data'
+import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import type { MarketDataSource, TickerData } from '@finance-app/shared-types'
+import { MARKET_DATA_PROVIDER, type MarketDataProvider } from './market-data.provider'
 
+/** How long a fetched quote is reused before refetching. */
+const CACHE_TTL_MS = 30_000
+
+interface CacheEntry {
+  data: TickerData
+  expiresAt: number
+}
+
+/**
+ * Orchestration + caching over a pluggable {@link MarketDataProvider}. Providers
+ * only implement `getTicker` / `listSymbols`; this layer derives search, sector,
+ * summary, and portfolio math, and caches each symbol for a short TTL so a
+ * single page render doesn't hammer a live API (or reshuffle mock jitter).
+ */
 @Injectable()
 export class MarketDataService {
-  private readonly mockData: Map<string, TickerData>
+  private readonly cache = new Map<string, CacheEntry>()
 
-  constructor() {
-    // Initialize with mock data
-    this.mockData = new Map()
-    this.loadMockData()
+  constructor(@Inject(MARKET_DATA_PROVIDER) private readonly provider: MarketDataProvider) {}
 
-    // Update prices every 30 seconds for demo purposes
-    setInterval(() => {
-      updateMockPrices()
-      this.loadMockData()
-    }, 30000)
+  /** Whether the underlying data is live or simulated. */
+  getSource(): MarketDataSource {
+    return this.provider.source
   }
 
-  /**
-   * Get ticker data for a single symbol
-   */
   async getTickerData(symbol: string): Promise<TickerData> {
-    const normalizedSymbol = symbol.toUpperCase()
-    const tickerData = this.mockData.get(normalizedSymbol)
+    const key = symbol.toUpperCase()
+    const cached = this.cache.get(key)
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data
+    }
 
-    if (!tickerData) {
+    const data = await this.provider.getTicker(key)
+    if (!data) {
       throw new NotFoundException(`Ticker data not found for symbol: ${symbol}`)
     }
-
-    return {
-      ...tickerData,
-      lastUpdated: new Date(), // Always return current timestamp
-    }
+    this.cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS })
+    return data
   }
 
-  /**
-   * Get ticker data for multiple symbols
-   */
   async getMultipleTickerData(symbols: string[]): Promise<TickerData[]> {
-    const results = []
-
+    const results: TickerData[] = []
     for (const symbol of symbols) {
       try {
-        const data = await this.getTickerData(symbol)
-        results.push(data)
+        results.push(await this.getTickerData(symbol))
       } catch {
-        // Skip invalid symbols but don't fail the entire request
-        console.warn(`Skipping invalid ticker symbol: ${symbol}`)
+        // Skip unknown symbols without failing the whole request.
       }
     }
-
     return results
   }
 
-  /**
-   * Validate if a ticker symbol is supported
-   */
   async validateTicker(symbol: string): Promise<boolean> {
-    const normalizedSymbol = symbol.toUpperCase()
-    return VALID_TICKERS.includes(normalizedSymbol)
+    const symbols = await this.provider.listSymbols()
+    return symbols.includes(symbol.toUpperCase())
   }
 
-  /**
-   * Get all available ticker symbols
-   */
   async getAvailableTickers(): Promise<string[]> {
-    return VALID_TICKERS
+    return this.provider.listSymbols()
   }
 
-  /**
-   * Get tickers by sector
-   */
+  /** All quotes the provider serves (cached per symbol). */
+  private async getUniverse(): Promise<TickerData[]> {
+    const symbols = await this.provider.listSymbols()
+    return this.getMultipleTickerData(symbols)
+  }
+
   async getTickersBySector(sector: string): Promise<TickerData[]> {
-    const sectorTickers = Array.from(this.mockData.values()).filter(
-      (ticker) => ticker.sector === sector,
-    )
-
-    return sectorTickers
+    const universe = await this.getUniverse()
+    return universe.filter((ticker) => ticker.sector === sector)
   }
 
-  /**
-   * Search tickers by name or symbol
-   */
   async searchTickers(query: string): Promise<TickerData[]> {
-    const normalizedQuery = query.toLowerCase()
-
-    return Array.from(this.mockData.values()).filter(
+    const normalized = query.toLowerCase()
+    const universe = await this.getUniverse()
+    return universe.filter(
       (ticker) =>
-        ticker.symbol.toLowerCase().includes(normalizedQuery) ||
-        ticker.name.toLowerCase().includes(normalizedQuery),
+        ticker.symbol.toLowerCase().includes(normalized) ||
+        ticker.name.toLowerCase().includes(normalized),
     )
   }
 
-  /**
-   * Get market summary (top performing tickers)
-   */
   async getMarketSummary(): Promise<{
     topGainers: TickerData[]
     topLosers: TickerData[]
     mostActive: TickerData[]
   }> {
-    const allTickers = Array.from(this.mockData.values())
-
-    // Sort by day change for gainers/losers
-    const sortedByDayChange = [...allTickers].sort((a, b) => b.dayChange - a.dayChange)
+    const universe = await this.getUniverse()
+    const byDayChange = [...universe].sort((a, b) => b.dayChange - a.dayChange)
 
     return {
-      topGainers: sortedByDayChange.slice(0, 5),
-      topLosers: sortedByDayChange.slice(-5).reverse(),
-      mostActive: allTickers
-        .filter((t) => t.marketCap && t.marketCap > 100000000000) // $100B+ market cap
-        .slice(0, 5),
+      topGainers: byDayChange.slice(0, 5),
+      topLosers: byDayChange.slice(-5).reverse(),
+      mostActive: universe.filter((t) => t.marketCap && t.marketCap > 100_000_000_000).slice(0, 5),
     }
   }
 
-  /**
-   * Load mock data into memory
-   */
-  private loadMockData(): void {
-    this.mockData.clear()
-
-    for (const [symbol, data] of Object.entries(MOCK_TICKER_DATA)) {
-      this.mockData.set(symbol, {
-        ...data,
-        lastUpdated: new Date(),
-      })
-    }
-  }
-
-  /**
-   * Calculate portfolio performance metrics
-   */
   async calculatePortfolioPerformance(
-    holdings: Array<{
-      ticker: string
-      shares: number
-      costBasisCents: number
-    }>,
+    holdings: Array<{ ticker: string; shares: number; costBasisCents: number }>,
   ): Promise<{
     totalValueCents: number
     totalCostBasisCents: number
@@ -162,7 +125,7 @@ export class MarketDataService {
         totalCostBasisCents += holding.costBasisCents
         dayChangeCents += dayChangeForHoldingCents
       } catch {
-        console.warn(`Skipping ticker ${holding.ticker} in portfolio calculation`)
+        // Skip holdings whose ticker isn't served.
       }
     }
 

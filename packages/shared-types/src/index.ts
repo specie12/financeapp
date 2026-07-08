@@ -360,6 +360,33 @@ export interface NetWorthResponse {
   projection: NetWorthProjection[]
 }
 
+// Monte Carlo net-worth projection
+
+export interface MonteCarloYearBand {
+  year: number
+  date: Date
+  p10NetWorthCents: number
+  p50NetWorthCents: number
+  p90NetWorthCents: number
+}
+
+export interface MonteCarloNetWorthResponse {
+  iterations: number
+  seed: number
+  returnVolatilityPercent: number
+  startDate: Date
+  horizonYears: number
+  yearlyBands: MonteCarloYearBand[]
+  summary: {
+    startingNetWorthCents: number
+    endingP10NetWorthCents: number
+    endingP50NetWorthCents: number
+    endingP90NetWorthCents: number
+    probEndAboveStartPercent: number
+    probEndPositivePercent: number
+  }
+}
+
 // Loans Dashboard
 export interface LoanSummary {
   totalOutstandingCents: number
@@ -450,7 +477,9 @@ export interface ScenarioOverride {
   targetType: OverrideTargetType
   entityId: string
   fieldName: string
-  value: string
+  // Typed by (targetType, fieldName): numeric fields (…Cents, …Percent) are
+  // numbers, name/type fields are strings. Enforced at the write boundary.
+  value: string | number
 }
 
 export interface Scenario {
@@ -468,7 +497,7 @@ export interface CreateScenarioOverrideDto {
   targetType: OverrideTargetType
   entityId: string
   fieldName: string
-  value: string
+  value: string | number
 }
 
 export interface CreateScenarioDto {
@@ -994,6 +1023,9 @@ export interface RentalProperty {
   propertyTaxAnnualCents: number
   mortgagePaymentCents: number | null
   mortgageRatePercent: number | null
+  mortgageBalanceCents: number | null
+  mortgageTermMonths: number | null
+  appreciationRatePercent: number | null
   linkedAssetId: string | null
   linkedLiabilityId: string | null
   createdAt: Date
@@ -1012,6 +1044,9 @@ export interface CreateRentalPropertyDto {
   propertyTaxAnnualCents: number
   mortgagePaymentCents?: number | null
   mortgageRatePercent?: number | null
+  mortgageBalanceCents?: number | null
+  mortgageTermMonths?: number | null
+  appreciationRatePercent?: number | null
   linkedAssetId?: string | null
   linkedLiabilityId?: string | null
 }
@@ -1028,6 +1063,9 @@ export interface UpdateRentalPropertyDto {
   propertyTaxAnnualCents?: number
   mortgagePaymentCents?: number | null
   mortgageRatePercent?: number | null
+  mortgageBalanceCents?: number | null
+  mortgageTermMonths?: number | null
+  appreciationRatePercent?: number | null
   linkedAssetId?: string | null
   linkedLiabilityId?: string | null
 }
@@ -1050,6 +1088,43 @@ export interface RentalPortfolioSummary {
   averageCapRatePercent: number
   averageCashOnCashPercent: number
   properties: RentalPropertyMetrics[]
+}
+
+// Rental "should I buy this?" decision analysis
+
+export interface RentalDecisionRequest extends CreateRentalPropertyDto {
+  /** Projection horizon in years (defaults server-side). */
+  horizonYears?: number
+}
+
+export interface RentalDealFactorDto {
+  label: string
+  status: 'positive' | 'neutral' | 'negative'
+  detail: string
+}
+
+export interface RentalDecisionResponse {
+  horizonYears: number
+  metrics: {
+    noiCents: number
+    capRatePercent: number
+    cashOnCashReturnPercent: number
+    grossRentMultiplier: number
+    dscrRatio: number | null
+    monthlyCashFlowCents: number
+  }
+  /** Deterministic net-worth path with the current portfolio only. */
+  withoutProperty: NetWorthProjection[]
+  /** Deterministic net-worth path including the candidate property. */
+  withProperty: NetWorthProjection[]
+  /** Ending net-worth difference (with − without) at the horizon. */
+  netWorthDeltaCents: number
+  /** Monte Carlo range of outcomes including the candidate property. */
+  monteCarlo: MonteCarloNetWorthResponse
+  verdict: {
+    signal: 'favorable' | 'caution' | 'unfavorable'
+    factors: RentalDealFactorDto[]
+  }
 }
 
 // ============================================
@@ -1241,6 +1316,9 @@ export interface PlaidExchangeRequest {
 // Ticker Data and Performance Types
 // ============================================
 
+/** Whether market data came from a live feed or simulated demo data. */
+export type MarketDataSource = 'live' | 'simulated'
+
 export interface TickerData {
   symbol: string
   name: string
@@ -1302,4 +1380,6 @@ export interface EnhancedInvestmentsWithTickers extends EnhancedInvestmentsRespo
   portfolioPerformance: PortfolioPerformance
   sectorAllocations: SectorAllocation[]
   enhancedHoldings: EnhancedHolding[]
+  /** Where the ticker prices/performance came from — drives the demo-data notice. */
+  marketDataSource: MarketDataSource
 }

@@ -26,6 +26,9 @@ export function AddPropertyModal({ onSubmit, onCancel }: AddPropertyModalProps) 
     propertyTaxAnnual: '',
     mortgagePayment: '',
     mortgageRate: '',
+    mortgageBalance: '',
+    mortgageTerm: '',
+    appreciationRate: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,6 +49,13 @@ export function AddPropertyModal({ onSubmit, onCancel }: AddPropertyModalProps) 
           ? Math.round(parseFloat(form.mortgagePayment) * 100)
           : null,
         mortgageRatePercent: form.mortgageRate ? parseFloat(form.mortgageRate) : null,
+        mortgageBalanceCents: form.mortgageBalance
+          ? Math.round(parseFloat(form.mortgageBalance) * 100)
+          : null,
+        mortgageTermMonths: form.mortgageTerm
+          ? Math.round(parseFloat(form.mortgageTerm) * 12)
+          : null,
+        appreciationRatePercent: form.appreciationRate ? parseFloat(form.appreciationRate) : null,
       })
     } finally {
       setIsSubmitting(false)
@@ -191,6 +201,45 @@ export function AddPropertyModal({ onSubmit, onCancel }: AddPropertyModalProps) 
                 max="25"
                 step="0.1"
                 placeholder="Optional"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mortgageBalance">Mortgage Balance ($)</Label>
+              <Input
+                id="mortgageBalance"
+                type="number"
+                value={form.mortgageBalance}
+                onChange={(e) => updateField('mortgageBalance', e.target.value)}
+                min="0"
+                placeholder="Outstanding (optional)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="mortgageTerm">Mortgage Term (years)</Label>
+              <Input
+                id="mortgageTerm"
+                type="number"
+                value={form.mortgageTerm}
+                onChange={(e) => updateField('mortgageTerm', e.target.value)}
+                min="0"
+                max="50"
+                placeholder="e.g. 30 (optional)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="appreciationRate">Annual Appreciation (%)</Label>
+              <Input
+                id="appreciationRate"
+                type="number"
+                value={form.appreciationRate}
+                onChange={(e) => updateField('appreciationRate', e.target.value)}
+                min="-20"
+                max="50"
+                step="0.1"
+                placeholder="Defaults to 3%"
               />
             </div>
 

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createAuthenticatedApiClient } from '@/lib/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DisclosureBadge } from '@/components/dashboard/shared'
 import type { AiForecastResponse } from '@finance-app/shared-types'
 
 interface AiCashFlowForecastProps {
@@ -62,7 +63,10 @@ export function AiCashFlowForecast({ accessToken }: AiCashFlowForecastProps) {
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm">Month-End Forecast</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-sm">Month-End Forecast</CardTitle>
+            <DisclosureBadge kind="projection" />
+          </div>
           <span className={`text-xs font-medium ${confidenceColors[forecast.confidenceLevel]}`}>
             {forecast.confidenceLevel} confidence
           </span>
@@ -101,6 +105,11 @@ export function AiCashFlowForecast({ accessToken }: AiCashFlowForecastProps) {
               ))}
             </div>
           )}
+
+          <p className="text-[11px] text-muted-foreground border-t pt-2">
+            Rules-based projection from your recurring cash-flow items and this month&apos;s
+            spending pace so far — not a market or AI prediction.
+          </p>
         </div>
       </CardContent>
     </Card>

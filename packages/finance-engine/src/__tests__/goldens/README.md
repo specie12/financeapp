@@ -13,6 +13,7 @@ fixture is updated consciously.
 | `tax.golden.json`                | Standard deduction, taxable income, tax liability, effective + marginal rate for Single / MFJ / HoH at $50k / $150k / $500k. | Engine `tax-brackets.ts` (2025 IRS Rev. Proc. 2024-40 figures).                                                                                   |
 | `rent-vs-buy.golden.json`        | Full `RentVsBuySummary` for two representative scenarios.                                                                    | Canonical Decimal engine. Sensitive to default assumptions in `rent-vs-buy.constants.ts`; if a default changes, this file must be re-generated.   |
 | `mortgage-vs-invest.golden.json` | `payExtraSummary`, `investSummary`, `recommendation`, `breakEvenReturnPercent` for three representative scenarios.           | Canonical Decimal engine. Includes a degenerate (no-extra) case that must agree with canonical amortization.                                      |
+| `rental.golden.json`             | NOI, cash flow, cap rate, cash-on-cash, GRM, DSCR for a mortgaged and an unmortgaged property.                               | Canonical Decimal engine (`computeRentalMetrics`). Spec asserts the invariant `NOI = EGI − expenses − property tax`.                              |
 
 ## Update protocol
 

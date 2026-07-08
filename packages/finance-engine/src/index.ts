@@ -47,6 +47,16 @@ export * from './mortgage-vs-invest'
 export * from './tax'
 
 // ============================================
+// Rental Property Metrics Engine
+// ============================================
+export * from './rental'
+
+// ============================================
+// Monte Carlo Projection Engine
+// ============================================
+export * from './monte-carlo'
+
+// ============================================
 // Interest Calculations
 // ============================================
 

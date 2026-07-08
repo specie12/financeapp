@@ -12,11 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { OnboardingGoal } from '@/lib/onboarding/types'
+import { ONBOARDING_INTENTS } from '@/lib/onboarding/types'
+import type { OnboardingGoal, OnboardingIntent } from '@/lib/onboarding/types'
 import type { GoalType } from '@finance-app/shared-types'
+import { cn } from '@/lib/utils'
 
 interface GoalsStepProps {
   goals: OnboardingGoal[]
+  primaryIntent: OnboardingIntent | null
+  onSetIntent: (intent: OnboardingIntent) => void
   onAddGoal: (goal: OnboardingGoal) => void
   onRemoveGoal: (index: number) => void
   onNext: () => void
@@ -41,7 +45,15 @@ const GOAL_TYPE_ICONS: Record<GoalType, string> = {
   debt_freedom: '🎯',
 }
 
-export function GoalsStep({ goals, onAddGoal, onRemoveGoal, onNext, onBack }: GoalsStepProps) {
+export function GoalsStep({
+  goals,
+  primaryIntent,
+  onSetIntent,
+  onAddGoal,
+  onRemoveGoal,
+  onNext,
+  onBack,
+}: GoalsStepProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [newGoal, setNewGoal] = useState<Partial<OnboardingGoal>>({
     type: 'net_worth_target',
@@ -84,6 +96,28 @@ export function GoalsStep({ goals, onAddGoal, onRemoveGoal, onNext, onBack }: Go
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Primary intent — what brought you here? Drives the first tool we
+            surface after onboarding. */}
+        <div className="space-y-2">
+          <Label>What brought you here? (optional)</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {ONBOARDING_INTENTS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onSetIntent(option.value)}
+                className={cn(
+                  'text-left rounded-lg border p-3 transition-colors hover:bg-muted/50',
+                  primaryIntent === option.value && 'border-primary bg-primary/5',
+                )}
+              >
+                <div className="text-sm font-medium">{option.label}</div>
+                <div className="text-xs text-muted-foreground">{option.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Existing Goals */}
         {goals.length > 0 && (
           <div className="space-y-3">

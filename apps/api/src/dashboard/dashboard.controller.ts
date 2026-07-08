@@ -16,7 +16,14 @@ import type {
   CashFlowSummaryResponse,
   BudgetStatusResponse,
 } from './types'
-import type { EnhancedInvestmentsWithTickers } from '@finance-app/shared-types'
+import type {
+  EnhancedInvestmentsWithTickers,
+  MonteCarloNetWorthResponse,
+  RentalDecisionRequest,
+  RentalDecisionResponse,
+} from '@finance-app/shared-types'
+import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe'
+import { rentalDecisionSchema } from '@finance-app/validation'
 
 @Controller('dashboard')
 export class DashboardController {
@@ -30,6 +37,41 @@ export class DashboardController {
   ): Promise<ApiResponse<NetWorthResponse>> {
     const years = horizonYears ? parseInt(horizonYears, 10) : 5
     const data = await this.dashboardService.getNetWorth(householdId, years)
+    return {
+      success: true,
+      data,
+    }
+  }
+
+  @Get('net-worth/monte-carlo')
+  @RequirePermission(Permission.READ)
+  async getNetWorthMonteCarlo(
+    @CurrentUser('householdId') householdId: string,
+    @Query('horizonYears') horizonYears?: string,
+    @Query('iterations') iterations?: string,
+    @Query('volatilityPercent') volatilityPercent?: string,
+  ): Promise<ApiResponse<MonteCarloNetWorthResponse>> {
+    const years = horizonYears ? parseInt(horizonYears, 10) : 5
+    const iters = iterations ? parseInt(iterations, 10) : undefined
+    const vol = volatilityPercent ? parseFloat(volatilityPercent) : undefined
+    const data = await this.dashboardService.getNetWorthMonteCarlo(householdId, years, iters, vol)
+    return {
+      success: true,
+      data,
+    }
+  }
+
+  @Post('rental-decision')
+  @RequirePermission(Permission.READ)
+  async getRentalDecision(
+    @CurrentUser('householdId') householdId: string,
+    @Body(new ZodValidationPipe(rentalDecisionSchema)) request: RentalDecisionRequest,
+  ): Promise<ApiResponse<RentalDecisionResponse>> {
+    const data = await this.dashboardService.getRentalDecision(
+      householdId,
+      request,
+      request.horizonYears,
+    )
     return {
       success: true,
       data,

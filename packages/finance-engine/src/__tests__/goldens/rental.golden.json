@@ -1,0 +1,48 @@
+{
+  "$schema": "fixture",
+  "description": "Rental-property investment metrics from the canonical Decimal engine (computeRentalMetrics). Each case is hand-verifiable: NOI = EGI − expenses − property tax, EGI = annualRent × (1 − vacancy). Percentages are whole-number percentages rounded to two decimals; GRM and DSCR are plain ratios to two decimals; DSCR is null when there is no mortgage.",
+  "cases": [
+    {
+      "label": "Mortgaged $500k SFH, $100k down, $3,000/mo rent, 5% vacancy, $2,000/mo mortgage",
+      "input": {
+        "currentValueCents": 50000000,
+        "downPaymentCents": 10000000,
+        "monthlyRentCents": 300000,
+        "vacancyRatePercent": 5,
+        "annualExpensesCents": 600000,
+        "propertyTaxAnnualCents": 600000,
+        "mortgagePaymentCents": 200000
+      },
+      "expected": {
+        "effectiveGrossIncomeCents": 3420000,
+        "noiCents": 2220000,
+        "cashFlowCents": -180000,
+        "capRatePercent": 4.44,
+        "cashOnCashReturnPercent": -1.8,
+        "grossRentMultiplier": 13.89,
+        "dscrRatio": 0.93
+      }
+    },
+    {
+      "label": "Unmortgaged $300k condo, $300k down, $2,200/mo rent, 8% vacancy",
+      "input": {
+        "currentValueCents": 30000000,
+        "downPaymentCents": 30000000,
+        "monthlyRentCents": 220000,
+        "vacancyRatePercent": 8,
+        "annualExpensesCents": 480000,
+        "propertyTaxAnnualCents": 360000,
+        "mortgagePaymentCents": null
+      },
+      "expected": {
+        "effectiveGrossIncomeCents": 2428800,
+        "noiCents": 1588800,
+        "cashFlowCents": 1588800,
+        "capRatePercent": 5.3,
+        "cashOnCashReturnPercent": 5.3,
+        "grossRentMultiplier": 11.36,
+        "dscrRatio": null
+      }
+    }
+  ]
+}

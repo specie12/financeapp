@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useBudgetPage } from '@/hooks/useBudgetPage'
 import { LoadingState } from '@/components/dashboard/shared/LoadingState'
 import { ErrorState } from '@/components/dashboard/shared/ErrorState'
+import { getApiErrorMessage } from '@/lib/api-error'
 import {
   BudgetOverview,
   SpendingByCategoryChart,
@@ -27,6 +28,7 @@ export default function BudgetPage() {
   const [editingBudget, setEditingBudget] = useState<BudgetStatusItem | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingBudget, setDeletingBudget] = useState<BudgetStatusItem | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -61,12 +63,19 @@ export default function BudgetPage() {
 
   const openDeleteDialog = (budget: BudgetStatusItem) => {
     setDeletingBudget(budget)
+    setDeleteError(null)
     setDeleteDialogOpen(true)
   }
 
   const handleDelete = async () => {
     if (!deletingBudget) return
-    await deleteBudget(deletingBudget.budgetId)
+    setDeleteError(null)
+    try {
+      await deleteBudget(deletingBudget.budgetId)
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Failed to delete budget. Please try again.'))
+      return
+    }
     setDeleteDialogOpen(false)
     setDeletingBudget(null)
     refetchAll()
@@ -166,6 +175,7 @@ export default function BudgetPage() {
         categoryName={deletingBudget?.categoryName || ''}
         isMutating={isMutating}
         onConfirm={handleDelete}
+        error={deleteError}
       />
     </div>
   )

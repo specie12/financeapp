@@ -46,6 +46,21 @@ const CASH_FLOW_FIELDS = [
   { name: 'annualGrowthRatePercent', label: 'Annual Growth Rate (%)', type: 'number' },
 ]
 
+// Fields whose override value must be sent as a number (the write-time schema
+// pins numeric fields to numbers; sending strings fails validation). Every
+// field the editor exposes today is numeric, but keep this explicit so a future
+// string field (name/type) isn't coerced.
+const NUMERIC_OVERRIDE_FIELDS = new Set(
+  [...ASSET_FIELDS, ...LIABILITY_FIELDS, ...CASH_FLOW_FIELDS]
+    .filter((f) => f.type === 'number')
+    .map((f) => f.name),
+)
+
+/** Coerce a form-string override value to the type the API expects. */
+export function coerceOverrideValue(fieldName: string, value: string): string | number {
+  return NUMERIC_OVERRIDE_FIELDS.has(fieldName) ? Number(value) : value
+}
+
 export function ScenarioEditor({
   scenario,
   assets,
@@ -70,7 +85,8 @@ export function ScenarioEditor({
         }
         const entityOverrides = overrides[override.entityId]
         if (entityOverrides) {
-          entityOverrides[override.fieldName] = override.value
+          // Stored values may be numbers; inputs are strings.
+          entityOverrides[override.fieldName] = String(override.value)
         }
       }
     }
@@ -137,7 +153,12 @@ export function ScenarioEditor({
     for (const [entityId, fields] of Object.entries(assetOverrides)) {
       for (const [fieldName, value] of Object.entries(fields)) {
         if (value !== '') {
-          overrides.push({ targetType: 'asset', entityId, fieldName, value })
+          overrides.push({
+            targetType: 'asset',
+            entityId,
+            fieldName,
+            value: coerceOverrideValue(fieldName, value),
+          })
         }
       }
     }
@@ -146,7 +167,12 @@ export function ScenarioEditor({
     for (const [entityId, fields] of Object.entries(liabilityOverrides)) {
       for (const [fieldName, value] of Object.entries(fields)) {
         if (value !== '') {
-          overrides.push({ targetType: 'liability', entityId, fieldName, value })
+          overrides.push({
+            targetType: 'liability',
+            entityId,
+            fieldName,
+            value: coerceOverrideValue(fieldName, value),
+          })
         }
       }
     }
@@ -155,7 +181,12 @@ export function ScenarioEditor({
     for (const [entityId, fields] of Object.entries(cashFlowOverrides)) {
       for (const [fieldName, value] of Object.entries(fields)) {
         if (value !== '') {
-          overrides.push({ targetType: 'cash_flow_item', entityId, fieldName, value })
+          overrides.push({
+            targetType: 'cash_flow_item',
+            entityId,
+            fieldName,
+            value: coerceOverrideValue(fieldName, value),
+          })
         }
       }
     }

@@ -12,6 +12,9 @@ export class UpdateRentalPropertyDtoClass implements UpdateRentalPropertyDto {
   propertyTaxAnnualCents?: number
   mortgagePaymentCents?: number | null
   mortgageRatePercent?: number | null
+  mortgageBalanceCents?: number | null
+  mortgageTermMonths?: number | null
+  appreciationRatePercent?: number | null
   linkedAssetId?: string | null
   linkedLiabilityId?: string | null
 }

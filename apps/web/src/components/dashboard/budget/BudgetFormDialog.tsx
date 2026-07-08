@@ -21,8 +21,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SpendingSuggestionRow } from './SpendingSuggestionRow'
 import { formatCurrency } from '@/lib/utils'
+import { getApiErrorMessage } from '@/lib/api-error'
 import type {
   Category,
   Budget,
@@ -115,6 +117,8 @@ export function BudgetFormDialog({
   const [selectedTemplate, setSelectedTemplate] = useState('50-30-20')
   const [templateAssignments, setTemplateAssignments] = useState<Record<string, string[]>>({})
 
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
   const budgetedCategoryIds = useMemo(() => new Set(budgets.map((b) => b.categoryId)), [budgets])
 
   const availableCategories = useMemo(
@@ -142,27 +146,33 @@ export function BudgetFormDialog({
     setMonthlyIncome('')
     setSelectedTemplate('50-30-20')
     setTemplateAssignments({})
+    setSubmitError(null)
   }, [open, editBudget, existingBudget])
 
   const handleManualSubmit = async () => {
     const amountCents = Math.round(parseFloat(manualAmount) * 100)
     if (!amountCents || amountCents <= 0) return
 
-    if (isEditing && editBudget) {
-      await onUpdateBudget(editBudget.budgetId, {
-        amount: amountCents,
-        period: manualPeriod,
-      })
-    } else {
-      if (!manualCategoryId) return
-      await onCreateBudget({
-        categoryId: manualCategoryId,
-        amount: amountCents,
-        period: manualPeriod,
-        startDate: new Date(),
-      })
+    setSubmitError(null)
+    try {
+      if (isEditing && editBudget) {
+        await onUpdateBudget(editBudget.budgetId, {
+          amount: amountCents,
+          period: manualPeriod,
+        })
+      } else {
+        if (!manualCategoryId) return
+        await onCreateBudget({
+          categoryId: manualCategoryId,
+          amount: amountCents,
+          period: manualPeriod,
+          startDate: new Date(),
+        })
+      }
+      onOpenChange(false)
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, 'Failed to save budget. Please try again.'))
     }
-    onOpenChange(false)
   }
 
   const handleSpendingSubmit = async () => {
@@ -170,23 +180,28 @@ export function BudgetFormDialog({
       (a) => spendingSelections[a.categoryId] && !budgetedCategoryIds.has(a.categoryId),
     )
 
-    for (const avg of selectedAverages) {
-      const overrideDollars = spendingOverrides[avg.categoryId]
-      let amountCents: number
-      if (overrideDollars && parseFloat(overrideDollars) > 0) {
-        amountCents = Math.round(parseFloat(overrideDollars) * 100)
-      } else {
-        amountCents = Math.round(avg.monthlyAverageCents * (1 + bufferPercent / 100))
-      }
+    setSubmitError(null)
+    try {
+      for (const avg of selectedAverages) {
+        const overrideDollars = spendingOverrides[avg.categoryId]
+        let amountCents: number
+        if (overrideDollars && parseFloat(overrideDollars) > 0) {
+          amountCents = Math.round(parseFloat(overrideDollars) * 100)
+        } else {
+          amountCents = Math.round(avg.monthlyAverageCents * (1 + bufferPercent / 100))
+        }
 
-      await onCreateBudget({
-        categoryId: avg.categoryId,
-        amount: amountCents,
-        period: 'monthly',
-        startDate: new Date(),
-      })
+        await onCreateBudget({
+          categoryId: avg.categoryId,
+          amount: amountCents,
+          period: 'monthly',
+          startDate: new Date(),
+        })
+      }
+      onOpenChange(false)
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, 'Failed to create budgets. Please try again.'))
     }
-    onOpenChange(false)
   }
 
   const handleTemplateSubmit = async () => {
@@ -196,24 +211,29 @@ export function BudgetFormDialog({
     const template = TEMPLATES.find((t) => t.value === selectedTemplate)
     if (!template) return
 
-    for (const group of template.groups) {
-      const groupCents = Math.round((incomeCents * group.percent) / 100)
-      const assignedCategoryIds = templateAssignments[group.name] || []
-      if (assignedCategoryIds.length === 0) continue
+    setSubmitError(null)
+    try {
+      for (const group of template.groups) {
+        const groupCents = Math.round((incomeCents * group.percent) / 100)
+        const assignedCategoryIds = templateAssignments[group.name] || []
+        if (assignedCategoryIds.length === 0) continue
 
-      const perCategoryCents = Math.round(groupCents / assignedCategoryIds.length)
+        const perCategoryCents = Math.round(groupCents / assignedCategoryIds.length)
 
-      for (const categoryId of assignedCategoryIds) {
-        if (budgetedCategoryIds.has(categoryId)) continue
-        await onCreateBudget({
-          categoryId,
-          amount: perCategoryCents,
-          period: 'monthly',
-          startDate: new Date(),
-        })
+        for (const categoryId of assignedCategoryIds) {
+          if (budgetedCategoryIds.has(categoryId)) continue
+          await onCreateBudget({
+            categoryId,
+            amount: perCategoryCents,
+            period: 'monthly',
+            startDate: new Date(),
+          })
+        }
       }
+      onOpenChange(false)
+    } catch (err) {
+      setSubmitError(getApiErrorMessage(err, 'Failed to create budgets. Please try again.'))
     }
-    onOpenChange(false)
   }
 
   const currentTemplate = TEMPLATES.find((t) => t.value === selectedTemplate)
@@ -563,6 +583,12 @@ export function BudgetFormDialog({
               </DialogFooter>
             </TabsContent>
           </Tabs>
+        )}
+
+        {submitError && (
+          <Alert variant="destructive">
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
         )}
       </DialogContent>
     </Dialog>

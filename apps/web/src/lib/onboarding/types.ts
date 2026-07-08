@@ -7,6 +7,9 @@ import type { IncomeItem, AssetItem, LiabilityItem } from './schemas'
 
 export type OnboardingStep = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
+/** What the user primarily came to do — drives the first recommended tool. */
+export type OnboardingIntent = 'buy_rental' | 'rent_vs_buy' | 'pay_off_debt' | 'grow_net_worth'
+
 export interface OnboardingGoal {
   type: GoalType
   name: string
@@ -34,6 +37,9 @@ export interface OnboardingState {
   // Country (Step 2)
   country: Country
 
+  // Primary intent (captured on the Goals step)
+  primaryIntent: OnboardingIntent | null
+
   // Goals (Step 4)
   goals: OnboardingGoal[]
 
@@ -54,6 +60,7 @@ export type OnboardingAction =
   | { type: 'PREV_STEP' }
   | { type: 'SET_USER'; user: AuthUser; tokens: AuthTokens }
   | { type: 'SET_COUNTRY'; country: Country }
+  | { type: 'SET_INTENT'; intent: OnboardingIntent }
   | { type: 'ADD_GOAL'; goal: OnboardingGoal }
   | { type: 'UPDATE_GOAL'; index: number; goal: OnboardingGoal }
   | { type: 'REMOVE_GOAL'; index: number }
@@ -91,6 +98,35 @@ export interface QuickAddOption {
   name: string
   type?: string
 }
+
+export interface OnboardingIntentOption {
+  value: OnboardingIntent
+  label: string
+  description: string
+}
+
+export const ONBOARDING_INTENTS: OnboardingIntentOption[] = [
+  {
+    value: 'buy_rental',
+    label: 'Decide whether to buy a rental',
+    description: 'Score a property and see how it moves your net worth',
+  },
+  {
+    value: 'rent_vs_buy',
+    label: 'Figure out rent vs. buy',
+    description: 'Compare renting to buying a home over time',
+  },
+  {
+    value: 'pay_off_debt',
+    label: 'Pay off debt faster',
+    description: 'Model payoff strategies and interest saved',
+  },
+  {
+    value: 'grow_net_worth',
+    label: 'Track & grow net worth',
+    description: 'See projections and plan toward your goals',
+  },
+]
 
 export const INCOME_QUICK_ADD: QuickAddOption[] = [
   { label: 'Salary', name: 'Salary' },

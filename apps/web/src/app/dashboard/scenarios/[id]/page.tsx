@@ -11,6 +11,8 @@ import { DashboardCard } from '@/components/dashboard/shared/DashboardCard'
 import { MoneyDisplay } from '@/components/dashboard/shared/MoneyDisplay'
 import { DisclosureBadge, DisclosurePanel } from '@/components/dashboard/shared'
 import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getApiErrorMessage } from '@/lib/api-error'
 import {
   Select,
   SelectContent,
@@ -26,6 +28,7 @@ export default function ScenarioDetailPage() {
 
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [horizonYears, setHorizonYears] = useState(5)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
@@ -41,11 +44,13 @@ export default function ScenarioDetailPage() {
 
   const handleDelete = async () => {
     if (confirm('Are you sure you want to delete this scenario?')) {
+      setDeleteError(null)
       try {
         await deleteScenario(scenarioId)
         router.push('/dashboard/scenarios')
       } catch (err) {
         console.error('Failed to delete scenario:', err)
+        setDeleteError(getApiErrorMessage(err, 'Failed to delete scenario. Please try again.'))
       }
     }
   }
@@ -126,6 +131,12 @@ export default function ScenarioDetailPage() {
           </Button>
         </div>
       </div>
+
+      {deleteError && (
+        <Alert variant="destructive">
+          <AlertDescription>{deleteError}</AlertDescription>
+        </Alert>
+      )}
 
       {/* Horizon selector */}
       <div className="flex items-center gap-4">
